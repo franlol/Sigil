@@ -306,3 +306,48 @@ function ns.Probe()
     ns.Print(L["Type /reload to write it to disk."])
     ns.Print(L["Tip: run it with a target, a focus and your pet, in the open world, in a dungeon and in combat."])
 end
+
+-------------------------------------------------------------------------------
+-- /sigil gcd: what the game gives for the global cooldown. Run it right after
+-- casting a spell (within a second).
+-------------------------------------------------------------------------------
+local GCD_SPELL = 61304
+
+local function Show(label, v)
+    if ns.S(v) then
+        print("  " .. label .. ": SECRET " .. type(v))
+    else
+        print("  " .. label .. ": " .. tostring(v))
+    end
+end
+
+function ns.ProbeGCD(spellID)
+    spellID = spellID or GCD_SPELL
+    ns.Print("GCD " .. spellID .. " (" .. tostring(ns.GetSpellName(spellID)) .. ")")
+    if not (C_Spell and C_Spell.GetSpellCooldown) then
+        print("  C_Spell.GetSpellCooldown: MISSING")
+        return
+    end
+    local ok, info = pcall(C_Spell.GetSpellCooldown, spellID)
+    if not ok then
+        print("  GetSpellCooldown: ERROR " .. tostring(info))
+    elseif not info then
+        print("  GetSpellCooldown: nil")
+    else
+        Show("startTime", info.startTime)
+        Show("duration", info.duration)
+        Show("isEnabled", info.isEnabled)
+        Show("modRate", info.modRate)
+    end
+    if C_Spell.GetSpellCooldownDuration then
+        local ok2, d = pcall(C_Spell.GetSpellCooldownDuration, spellID)
+        print("  GetSpellCooldownDuration: " .. (ok2 and (d and (ns.S(d) and "SECRET object" or "object") or "nil") or ("ERROR " .. tostring(d))))
+        if ok2 and d then
+            local bar = ns.probeBar or CreateFrame("StatusBar")
+            local ok3, err = pcall(bar.SetTimerDuration, bar, d)
+            print("  StatusBar:SetTimerDuration: " .. (ok3 and "ok" or ("ERROR " .. tostring(err))))
+        end
+    else
+        print("  C_Spell.GetSpellCooldownDuration: MISSING")
+    end
+end

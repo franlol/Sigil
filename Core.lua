@@ -249,6 +249,8 @@ SlashCmdList.SIGIL = function(msg)
     local cmd, arg = strtrim(msg or ""):lower():match("^(%S*)%s*(.-)$")
     if cmd == "probe" or cmd == "sondeo" then
         ns.Probe()
+    elseif cmd == "gcd" then
+        ns.ProbeGCD(tonumber(arg))
     elseif cmd == "move" or cmd == "mover" or cmd == "unlock" then
         ns.SetUnlocked(true)
     elseif cmd == "lock" or cmd == "bloquear" then
