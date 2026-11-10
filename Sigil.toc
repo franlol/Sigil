@@ -5,7 +5,7 @@
 ## Notes-esMX: Marcos de unidad para jugador, objetivo, foco, mascota y grupo.
 ## Author: franlol
 ## Version: 0.10.0
-## IconTexture: InterfaceAddOnsSigilMediaIcon
+## IconTexture: Interface\AddOns\Sigil\Media\Icon
 ## SavedVariables: SigilDB
 ## OptionalDeps: Blizzard_AuraContainer, Masque, Clique, LibSharedMedia-3.0
 
