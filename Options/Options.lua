@@ -74,6 +74,20 @@ end
 
 local function Px(v) return ("%d px"):format(v) end
 
+-- Enabled only when every given condition holds (nil conditions are skipped).
+-- Dependent options are greyed out instead of hidden, so the layout never moves.
+local function Both(...)
+    local conds = { ... }
+    local n = select("#", ...)
+    return function()
+        for i = 1, n do
+            local c = conds[i]
+            if c and not c() then return false end
+        end
+        return true
+    end
+end
+
 -- Selectable list (texts, aura groups, spells). items() -> list;
 -- label(item, i) -> text; selected() -> index; onSelect(i);
 -- extra(row, item, i) adds pieces to each row; onReorder(from, to) lets rows be dragged
@@ -134,15 +148,15 @@ local function BarCard(page, column, title, getStyle, apply, opts)
     g, s = TB(getStyle, "color", apply)
     card:Add(UI.Segmented(card, L["Color"], colors, g, s, { enableIf = on, tip = opts.autoTip }))
     card:Add(UI.Swatch(card, L["Custom color"], function() return getStyle().custom end, apply,
-        { showIf = Is("color", "custom"), enableIf = on }))
+        { enableIf = Both(on, Is("color", "custom")) }))
     g, s = TB(getStyle, "bg", apply)
     card:Add(UI.Segmented(card, L["Background"], { { "auto", L["Bar color, darker"] }, { "custom", L["Custom"] } },
         g, s, { enableIf = on }))
     g, s = TB(getStyle, "bgBrightness", apply)
     card:Add(UI.Slider(card, L["Background brightness"], 0, 1, 0.05, g, s,
-        { format = UI.pct, showIf = IsNot("bg", "custom"), enableIf = on }))
+        { format = UI.pct, enableIf = Both(on, IsNot("bg", "custom")) }))
     card:Add(UI.Swatch(card, L["Background color"], function() return getStyle().bgCustom end, apply,
-        { showIf = Is("bg", "custom"), enableIf = on }))
+        { enableIf = Both(on, Is("bg", "custom")) }))
     g, s = TB(getStyle, "bgAlpha", apply)
     card:Add(UI.Slider(card, L["Background opacity"], 0, 1, 0.05, g, s, { format = UI.pct, enableIf = on }))
     g, s = TB(getStyle, "orientation", apply)
@@ -187,7 +201,7 @@ local function TextRows(card, getText, apply, opts)
         if not t then return { r = 1, g = 1, b = 1 } end
         t.color = t.color or { r = 1, g = 1, b = 1 }
         return t.color
-    end, apply, { showIf = function() return getText() and getText().colorMode == "custom" end, enableIf = on }))
+    end, apply, { enableIf = Both(on, function() return getText() and getText().colorMode == "custom" end) }))
     if opts.show then
         g, s = TB(getText, "show", apply)
         card:Add(UI.Segmented(card, L["Show"], {
@@ -263,7 +277,7 @@ function Tabs.frame(page, unit)
     }, g, s))
     g, s = Bind(unit, "visibilityCustom")
     card:Add(UI.Input(card, L["Macro conditions"], g, s, {
-        showIf = function() return Unit().visibility == "custom" end,
+        enableIf = function() return Unit().visibility == "custom" end,
         tip = L["Like in a macro, for example: [combat] show; [@target,exists] show; hide"] }))
 
     card = page:Add(2, UI.Card(page.content, L["Highlight"], L["Colored border (colors in the Colors page)."]))
@@ -323,7 +337,7 @@ function Tabs.bars(page, unit)
     g, s = Bind(unit, "health", "detached")
     card:Add(UI.Check(card, L["Detach from the frame"], g, s, { tip = L["The bar leaves the frame and goes where you place it. Clicks on it do not target the unit."] }))
     g, s = Bind(unit, "health", "height")
-    card:Add(UI.Slider(card, L["Height"], 4, 80, 1, g, s, { format = Px, showIf = HDet }))
+    card:Add(UI.Slider(card, L["Height"], 4, 80, 1, g, s, { format = Px, enableIf = HDet }))
     PositionRows(card, H, apply, { width = true, enableIf = HDet })
     BarCard(page, 1, L["Health bar look"], function() return U(unit).health.style end, apply, {
         gradient = true, autoLabel = L["Class / reaction"],
@@ -666,18 +680,18 @@ function Tabs.auras(page, unit)
     local filt = page:Add(2, UI.Card(page.content, L["Filters"]))
     filt.showIf = function() return Sel() ~= nil end
     g, s = SB("dispellable")
-    filt:Add(UI.Check(filt, L["Only the ones I can dispel"], g, s, { showIf = Harmful, enableIf = SelOn }))
+    filt:Add(UI.Check(filt, L["Only the ones I can dispel"], g, s, { enableIf = Both(SelOn, Harmful) }))
     g, s = SB("boss")
     filt:Add(UI.Check(filt, L["Only boss auras"], g, s, { enableIf = SelOn }))
     g, s = SB("stealable")
     filt:Add(UI.Check(filt, L["Only the ones I can purge or steal"], g, s, {
-        showIf = function() return not Harmful() end, enableIf = SelOn,
+        enableIf = Both(SelOn, function() return not Harmful() end),
     }))
     for _, kind in ipairs(ns.DISPEL_KINDS) do
         filt:Add(UI.Check(filt, L[kind], function() return Sel() and Sel().types[kind] end, function(v)
             if Sel() then Sel().types[kind] = v end
             ns.ApplyUnit(unit)
-        end, { showIf = Harmful, enableIf = SelOn }))
+        end, { enableIf = Both(SelOn, Harmful) }))
     end
     g, s = SB("maxDuration")
     filt:Add(UI.Slider(filt, L["Hide longer than"], 0, 600, 5, g, s, {
@@ -709,7 +723,7 @@ function Tabs.auras(page, unit)
     g, s = SB("spiral")
     look:Add(UI.Check(look, L["Duration sweep"], g, s, { enableIf = SelOn }))
     g, s = SB("borderByType")
-    look:Add(UI.Check(look, L["Border colored by debuff type"], g, s, { showIf = Harmful, enableIf = SelOn }))
+    look:Add(UI.Check(look, L["Border colored by debuff type"], g, s, { enableIf = Both(SelOn, Harmful) }))
     g, s = SB("tooltip")
     look:Add(UI.Check(look, L["Tooltip on mouseover"], g, s, { enableIf = SelOn }))
     g, s = SB("pandemic")
