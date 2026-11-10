@@ -47,7 +47,8 @@ end
 function ns.UpdateAltMana(f)
     local a = f.altMana
     if not a or not f.altManaOn then return end
-    if not f.altManaClass and not ns.testMode then return a:Hide() end
+    -- druids only, also in test mode
+    if not f.altManaClass then return a:Hide() end
     if ns.testMode then
         a.bar:SetMinMaxValues(0, 100)
         a.bar:SetValue(60)

@@ -478,6 +478,8 @@ ns.translations.esES = {
     ["Detach from the frame"] = "Separar del marco",
     ["The bar leaves the frame and goes where you place it. Clicks on it do not target the unit."] = "La barra sale del marco y va donde la coloques. Los clics sobre ella no seleccionan la unidad.",
 
+    ["Your class does not use this. It stays saved for characters that do."] = "Tu clase no lo usa. Se queda guardado para los personajes que sí.",
+
     -- Options library
     ["Search..."] = "Buscar...",
     ["Accept"] = "Aceptar",

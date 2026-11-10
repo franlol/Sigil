@@ -31,7 +31,9 @@ function ns.UpdateTotems(f)
     if f.unit ~= "player" then return end
     local c = f.cfg.totems
     local s = f.totemSample
-    if not (ns.testMode and c and c.enabled) then
+    local _, class = UnitClass("player")
+    -- shamans only
+    if not (ns.testMode and c and c.enabled and class == "SHAMAN") then
         if s then s:Hide() end
         return
     end

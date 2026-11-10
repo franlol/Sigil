@@ -66,7 +66,8 @@ end
 function ns.UpdateCombo(f)
     local cp = f.combo
     if not cp or not f.comboOn then return end
-    if not f.comboClass and not ns.testMode then return cp:Hide() end
+    -- only for the classes that use them, also in test mode
+    if not f.comboClass then return cp:Hide() end
     if ns.Fake(f.unit) or ns.testMode then
         cp.bar:SetValue(3)
         cp:Show()
