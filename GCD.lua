@@ -1,6 +1,7 @@
 -------------------------------------------------------------------------------
 -- Sigil - Global cooldown: a thin bar on the player frame that empties while
--- the global cooldown runs. Read from the game's global cooldown spell; if
+-- the global cooldown runs. Read from the game's global cooldown spell, or
+-- from the spell just cast when the client has no such spell; if
 -- the times are hidden, the game moves the bar with its duration object.
 -------------------------------------------------------------------------------
 
@@ -54,15 +55,34 @@ function ns.LayoutGCD(f)
     end
 end
 
-local function Update()
+-- Where the global cooldown is read from: the game's global cooldown spell
+-- when the client has it (WoW: Forever does not), else the spell you just
+-- cast. A spell's cooldown is the global one while it has none of its own:
+-- longer than MAX_GCD is its own cooldown, and is not shown.
+local MAX_GCD = 1.5
+local lastSpell
+
+local function Source()
+    if C_Spell.GetSpellCooldown(GCD_SPELL) then return GCD_SPELL, false end
+    return lastSpell, true
+end
+
+local function Update(_, event, _, _, spellID)
+    if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_SUCCEEDED" then
+        lastSpell = ns.R(spellID) or lastSpell
+    end
     local f = ns.frames and ns.frames.player
     if not f or not f.gcdOn or ns.testMode then return end
+    if not (C_Spell and C_Spell.GetSpellCooldown) then return end
     local g = f.gcd
-    local info = C_Spell and C_Spell.GetSpellCooldown and C_Spell.GetSpellCooldown(GCD_SPELL)
+    local id, fromCast = Source()
+    if not id then return end
+    local info = C_Spell.GetSpellCooldown(id)
     if not info then return end
     local start, duration = info.startTime, info.duration
     if not S(start) and not S(duration) then
         if not duration or duration <= 0 then return end
+        if fromCast and duration > MAX_GCD then return end
         g.finish = start + duration
         g.bar:SetMinMaxValues(0, duration)
         g.bar:SetValue(g.finish - GetTime())
@@ -71,7 +91,7 @@ local function Update()
     end
     -- hidden times: the game moves the bar
     local ok = pcall(function()
-        local d = C_Spell.GetSpellCooldownDuration(GCD_SPELL)
+        local d = C_Spell.GetSpellCooldownDuration(id)
         g.bar:SetTimerDuration(d, Enum.StatusBarInterpolation.Immediate, Enum.StatusBarTimerDirection.RemainingTime)
     end)
     if ok then
