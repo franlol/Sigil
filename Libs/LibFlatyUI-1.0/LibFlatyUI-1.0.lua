@@ -32,7 +32,7 @@
 --   UI.RefreshAll()).
 -------------------------------------------------------------------------------
 
-local MAJOR, MINOR = "LibFlatyUI-1.0", 5
+local MAJOR, MINOR = "LibFlatyUI-1.0", 6
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -992,10 +992,20 @@ function lib:New(theme)
     ---------------------------------------------------------------------------
     function UI.List(parent, opts)
         local h = opts.rowHeight or 20
+        local step = h + 1 -- each row and the line under it
         local r = Row(parent, 10, opts)
+        -- a field like the inputs: dark box with a border, rows inside it
+        local box = CreateFrame("Frame", nil, r, "BackdropTemplate")
+        box:SetAllPoints()
+        UI.Backdrop(box, T.fieldDark, T.border)
+        box:SetFrameLevel(r:GetFrameLevel())
         local rows = {}
         local dragFrom
-        local marker = r:CreateTexture(nil, "OVERLAY")
+        -- where a dragged row will land: above the box and the rows
+        local over = CreateFrame("Frame", nil, r)
+        over:SetAllPoints()
+        over:SetFrameLevel(box:GetFrameLevel() + 5)
+        local marker = over:CreateTexture(nil, "OVERLAY")
         marker:SetHeight(2)
         marker:SetColorTexture(A[1], A[2], A[3], 1)
         marker:Hide()
@@ -1006,7 +1016,7 @@ function lib:New(theme)
             local top = r:GetTop()
             if not top then return 1 end
             local n = #opts.items()
-            return math.max(1, math.min(n, math.floor((top - cy) / (h + 2)) + 1))
+            return math.max(1, math.min(n, math.floor((top - 1 - cy) / step) + 1))
         end
 
         r.Refresh = function()
@@ -1016,8 +1026,15 @@ function lib:New(theme)
                 local row = rows[i]
                 if not row then
                     row = CreateFrame("Button", nil, r)
+                    row:SetFrameLevel(box:GetFrameLevel() + 2)
                     row.bg = row:CreateTexture(nil, "BACKGROUND")
                     row.bg:SetAllPoints()
+                    -- thin line under the row (not under the last one)
+                    row.line = row:CreateTexture(nil, "BORDER")
+                    row.line:SetPoint("TOPLEFT", row, "BOTTOMLEFT")
+                    row.line:SetPoint("TOPRIGHT", row, "BOTTOMRIGHT")
+                    row.line:SetHeight(1)
+                    row.line:SetColorTexture(unpack(T.cardBorder))
                     local hl = row:CreateTexture(nil, "HIGHLIGHT")
                     hl:SetAllPoints()
                     hl:SetColorTexture(1, 1, 1, 0.07)
@@ -1037,8 +1054,8 @@ function lib:New(theme)
                             r:SetScript("OnUpdate", function()
                                 local to = IndexAtCursor()
                                 marker:ClearAllPoints()
-                                marker:SetPoint("TOPLEFT", 0, -(to - 1) * (h + 2) + 1)
-                                marker:SetPoint("TOPRIGHT", 0, -(to - 1) * (h + 2) + 1)
+                                marker:SetPoint("TOPLEFT", 1, -(to - 1) * step)
+                                marker:SetPoint("TOPRIGHT", -1, -(to - 1) * step)
                                 marker:Show()
                             end)
                         end)
@@ -1065,13 +1082,14 @@ function lib:New(theme)
                 row.text:SetTextColor(unpack(on and T.text or T.muted))
                 if opts.decorate then opts.decorate(row, item, i) end
                 row:ClearAllPoints()
-                row:SetPoint("TOPLEFT", 0, -(i - 1) * (h + 2))
-                row:SetPoint("TOPRIGHT", 0, -(i - 1) * (h + 2))
+                row:SetPoint("TOPLEFT", 1, -1 - (i - 1) * step)
+                row:SetPoint("TOPRIGHT", -1, -1 - (i - 1) * step)
                 row:SetHeight(h)
+                row.line:SetShown(i < #list)
                 row:Show()
             end
             for i = #list + 1, #rows do rows[i]:Hide() end
-            r:SetHeight(math.max(1, #list * (h + 2) - 2))
+            r:SetHeight(math.max(h + 2, #list * step + 1))
         end
         return Register(r)
     end
