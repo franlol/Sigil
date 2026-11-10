@@ -372,6 +372,7 @@ ns.translations.esES = {
     ["Text color"] = "Color del texto",
     ["Always"] = "Siempre",
     ["Mouseover"] = "Al pasar el ratón",
+    ["Not on mouseover"] = "Sin pasar el ratón",
     ["Corner"] = "Esquina",
     ["Text look"] = "Aspecto del texto",
 

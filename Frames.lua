@@ -226,7 +226,8 @@ function ns.UpdateTextVisibility(f)
     local combat = InCombatLockdown()
     for _, t in ipairs(f.texts) do
         local show = t.cfg.show or "always"
-        local on = show == "always" or (show == "mouseover" and f.hover) or (show == "ooc" and not combat)
+        local on = show == "always" or (show == "mouseover" and f.hover) or (show == "nomouseover" and not f.hover)
+            or (show == "ooc" and not combat)
             or ns.testMode
         t.fs:SetAlpha(on and 1 or 0)
     end

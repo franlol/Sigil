@@ -222,8 +222,9 @@ local function TextRows(card, getText, apply, opts)
     end, apply, { enableIf = Both(on, function() return getText() and getText().colorMode == "custom" end) }))
     if opts.show then
         g, s = TB(getText, "show", apply)
-        card:Add(UI.Segmented(card, L["Show"], {
-            { "always", L["Always"] }, { "mouseover", L["Mouseover"] }, { "ooc", L["Out of combat"] },
+        card:Add(UI.Dropdown(card, L["Show"], {
+            { "always", L["Always"] }, { "mouseover", L["Mouseover"] }, { "nomouseover", L["Not on mouseover"] },
+            { "ooc", L["Out of combat"] },
         }, g, s, { enableIf = on }))
     end
 end
