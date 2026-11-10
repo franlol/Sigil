@@ -103,8 +103,10 @@ function ns.RefreshMovers(f)
             m.entry = entry
             m.text:SetText(entry.label or key)
             -- the box covers the piece, never smaller than its label
+            -- (a text showing a secret value has a secret size: use the minimum)
             local ratio = ns.PieceScale(region) / UIParent:GetEffectiveScale()
-            m:SetSize(math.max(MIN_W, region:GetWidth() * ratio), math.max(MIN_H, region:GetHeight() * ratio))
+            local w, h = ns.R(region:GetWidth()) or 0, ns.R(region:GetHeight()) or 0
+            m:SetSize(math.max(MIN_W, w * ratio), math.max(MIN_H, h * ratio))
             m:ClearAllPoints()
             m:SetPoint("CENTER", region, "CENTER")
             m:Show()

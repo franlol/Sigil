@@ -146,8 +146,9 @@ end
 
 -- Screen coordinates (pixels) of a point of a frame or region
 local function PointPx(obj, point)
-    local l, r, t, b = obj:GetLeft(), obj:GetRight(), obj:GetTop(), obj:GetBottom()
-    if not l then return nil end
+    local R = ns.R
+    local l, r, t, b = R(obj:GetLeft()), R(obj:GetRight()), R(obj:GetTop()), R(obj:GetBottom())
+    if not (l and r and t and b) then return nil end
     local x = point:find("LEFT") and l or point:find("RIGHT") and r or (l + r) / 2
     local y = point:find("TOP") and t or point:find("BOTTOM") and b or (t + b) / 2
     local s = obj.GetEffectiveScale and obj:GetEffectiveScale() or obj:GetParent():GetEffectiveScale()
