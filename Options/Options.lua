@@ -418,16 +418,55 @@ if t then return "%d%%", t end]], { "UNIT_THREAT_LIST_UPDATE" } },
     { "classname", "Name in class color", [[return Colorize(Name(unit), ClassColor(unit))]], { "UNIT_NAME_UPDATE" } },
 }
 
-local HELP = [[Name(unit), FullName(unit), Level(unit), Classification(unit), Class(unit), Status(unit)
-HP(unit), MaxHP(unit), Missing(unit), HPPercent(unit), Power(unit), MaxPower(unit), Threat(unit)
-Short(number) · Colorize(text, r, g, b) · ClassColor(unit) · DifficultyColor(unit)]]
+-- The functions a text can use, by topic: { call, what it gives }
+local HELP = {
+    { "Unit", {
+        { "Name(unit)", "Name" },
+        { "FullName(unit)", "Name with surname" },
+        { "Level(unit)", "Level (?? if unknown)" },
+        { "Classification(unit)", "+ elite, R rare, R+ rare elite, B boss" },
+        { "Class(unit)", "Class, or creature type" },
+        { "Status(unit)", "Dead, Ghost, Offline, AFK or nothing" },
+    } },
+    { "Health", {
+        { "HP(unit)", "Current" },
+        { "MaxHP(unit)", "Maximum" },
+        { "Missing(unit)", "Missing" },
+        { "HPPercent(unit)", "Percentage (0-100)" },
+    } },
+    { "Power", {
+        { "Power(unit)", "Current" },
+        { "MaxPower(unit)", "Maximum" },
+    } },
+    { "Combat", {
+        { "Threat(unit)", "Threat percentage, or nothing" },
+    } },
+    { "Format", {
+        { "Short(number)", "Short number: 12.3K, 1.2M" },
+        { "Colorize(text, r, g, b)", "Text in a color (0-1)" },
+        { "ClassColor(unit)", "Class color: r, g, b" },
+        { "DifficultyColor(unit)", "Level color by difficulty: r, g, b" },
+    } },
+}
 
-local function TextLabel(t, i)
+-- One topic as text: its title, then a call (accent) and what it gives per line
+local function HelpText(topic)
+    local A = C.accent
+    local hex = ("|cff%02x%02x%02x"):format(A[1] * 255, A[2] * 255, A[3] * 255)
+    local lines = { "|cffffffff" .. L[topic[1]] .. "|r" }
+    for _, fn in ipairs(topic[2]) do
+        lines[#lines + 1] = hex .. fn[1] .. "|r  " .. L[fn[2]]
+    end
+    return table.concat(lines, "\n")
+end
+
+-- Its name, or else the start of its code (the same for every text)
+local function TextLabel(t)
     if t.name and t.name ~= "" then return t.name end
     local first = (t.code or ""):match("[^\n]+") or ""
     first = first:gsub("^%s*return%s*", "")
     if #first > 26 then first = first:sub(1, 24) .. "…" end
-    return ("%d. %s"):format(i, first)
+    return first
 end
 
 function Tabs.texts(page, unit)
@@ -482,9 +521,11 @@ function Tabs.texts(page, unit)
     list:Add(delete)
 
     -- reference
-    local ref = page:Add(1, UI.Card(page.content, L["Functions you can use"]))
-    ref:Add(UI.Note(ref, HELP))
-    ref:Add(UI.Note(ref, L["Return a text, or a format and its values: return \"%s / %s\", HP(unit), MaxHP(unit). Health and power can be hidden by the game: they can be shown, but not compared or used in math."]))
+    local ref = page:Add(1, UI.Card(page.content, L["Functions you can use"],
+        L["unit is this frame's unit. Return a text, or a format and its values."]))
+    ref:Add(UI.Note(ref, "|cffd0d0d0return \"%s / %s\", HP(unit), MaxHP(unit)|r"))
+    for _, topic in ipairs(HELP) do ref:Add(UI.Note(ref, HelpText(topic))) end
+    ref:Add(UI.Note(ref, L["Health and power can be hidden by the game: they can be shown, but not compared or used in math."]))
 
     -- editor
     local ed = page:Add(2, UI.Card(page.content, L["Edit text"]))
