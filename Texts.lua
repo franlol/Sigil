@@ -195,6 +195,41 @@ function H.Status(u)
     return nil
 end
 
+-- A part of a frame by name: the bars, the portrait or any placed piece
+-- (castbar, combo, xp, gcd, altMana, threatBar, totems, combatText, aura1...)
+local PARTS = { health = "health", power = "power", portrait = "portrait" }
+local function Part(f, part)
+    if PARTS[part] then return f[PARTS[part]] end
+    local e = f.pieces and f.pieces[part]
+    return e and e.region
+end
+
+local function Over(region)
+    return region and region:IsVisible() and R(region:IsMouseOver()) and true or false
+end
+
+-- Mouse over this frame (Hover()) or over one of its parts (Hover("power")).
+-- Texts that use it are refreshed whenever the mouse moves between parts.
+local current -- the frame whose text is running now (set by ns.RunText)
+function H.Hover(part)
+    local f = current
+    if not f then return false end
+    if part == nil or part == "frame" then return f.hover and true or false end
+    return Over(Part(f, part))
+end
+
+-- Which parts the mouse is over now, as one string (changes = refresh)
+function ns.HoverState(f)
+    local s = f.hover and "f" or ""
+    for key in pairs(PARTS) do
+        if Over(Part(f, key)) then s = s .. "|" .. key end
+    end
+    for key, e in pairs(f.pieces or {}) do
+        if Over(e.region) then s = s .. "|" .. key end
+    end
+    return s
+end
+
 -- Text in a color: Colorize("hello", 1, 0, 0)
 function H.Colorize(text, r, g, b)
     return ("|cff%02x%02x%02x"):format(r * 255, g * 255, b * 255) .. text .. "|r"
@@ -236,6 +271,7 @@ end
 function ns.RunText(f, t)
     if not t.fn then return end
     getfenv(t.fn).unit = f.unit
+    current = f
     local ok, err = pcall(Run, t)
     if not ok then
         t.fs:SetText("|cffff3333" .. L["error"] .. "|r")

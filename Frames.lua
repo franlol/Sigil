@@ -420,6 +420,7 @@ local function Build(unit)
         self.hover = true
         ns.UpdateHighlight(self)
         ns.UpdateTextVisibility(self)
+        if self.usesHover then ns.UpdateTexts(self) end
         if not UnitExists(self.unit) then return end
         GameTooltip_SetDefaultAnchor(GameTooltip, self)
         GameTooltip:SetUnit(self.unit)
@@ -429,12 +430,25 @@ local function Build(unit)
         self.hover = false
         ns.UpdateHighlight(self)
         ns.UpdateTextVisibility(self)
+        if self.usesHover then ns.UpdateTexts(self) end
         GameTooltip:Hide()
     end)
 
     -- Every POLL seconds: range, and everything for the units without events
-    local elapsed = 0
+    local elapsed, hoverElapsed = 0, 0
     f:HookScript("OnUpdate", function(self, dt)
+        -- texts using Hover(): refreshed when the mouse moves between parts
+        if self.usesHover then
+            hoverElapsed = hoverElapsed + dt
+            if hoverElapsed >= 0.05 then
+                hoverElapsed = 0
+                local state = ns.HoverState(self)
+                if state ~= self.hoverState then
+                    self.hoverState = state
+                    ns.UpdateTexts(self)
+                end
+            end
+        end
         elapsed = elapsed + dt
         if elapsed < POLL then return end
         elapsed = 0
@@ -458,6 +472,7 @@ end
 function ns.BuildTexts(f)
     wipe(f.texts)
     wipe(f.textEvents)
+    f.usesHover = nil
     for _, fs in ipairs(f.fontStrings) do fs:Hide() end
     for i, cfg in ipairs(f.cfg.texts) do
         local fs = f.fontStrings[i]
@@ -483,6 +498,7 @@ function ns.BuildTexts(f)
         fs:SetText("")
         fs:Show()
         local fn, err = ns.CompileText(cfg.code)
+        if (cfg.code or ""):find("Hover%s*%(") then f.usesHover = true end
         if not fn then ns.Print(L["Error in a text of %s: %s"]:format(f.unit, tostring(err))) end
         local t = { fs = fs, fn = fn, cfg = cfg }
         f.texts[#f.texts + 1] = t
