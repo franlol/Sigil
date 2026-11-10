@@ -161,8 +161,41 @@ local ICONS = {
             local l = (3 - h) * 0.1875
             SetTex(tex, "Interface\\PetPaperDollFrame\\UI-PetHappiness", l, l + 0.1875, 0, 0.359375)
         end,
+        -- Same lines as Blizzard's pet frame: mood, damage and loyalty
+        tooltip = function(u)
+            local get = (C_PetInfo and C_PetInfo.GetPetHappiness) or GetPetHappiness
+            local _, damage, loyalty
+            if get then _, damage, loyalty = get() end
+            damage, loyalty = R(damage), R(loyalty)
+            local h = PetHappiness(u) or 3
+            GameTooltip:SetText(_G["PET_HAPPINESS" .. h] or "")
+            if type(damage) == "number" and PET_DAMAGE_PERCENTAGE then
+                GameTooltip:AddLine(format(PET_DAMAGE_PERCENTAGE, damage), 1, 1, 1)
+            end
+            if type(loyalty) == "number" then
+                if loyalty < 0 and LOSING_LOYALTY then GameTooltip:AddLine(LOSING_LOYALTY, 1, 0.1, 0.1)
+                elseif loyalty > 0 and GAINING_LOYALTY then GameTooltip:AddLine(GAINING_LOYALTY, 0.1, 1, 0.1) end
+            end
+        end,
     },
 }
+
+-- Hover area for the icons that have a tooltip (clicks go through to the frame)
+local function TooltipHit(f, key, tex)
+    local hit = CreateFrame("Frame", nil, f.overlay)
+    hit:SetAllPoints(tex)
+    hit:SetFrameLevel(f.overlay:GetFrameLevel() + 5)
+    hit:EnableMouse(true)
+    if hit.SetMouseClickEnabled then hit:SetMouseClickEnabled(false) end
+    hit:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        pcall(ICONS[key].tooltip, f.unit)
+        GameTooltip:Show()
+    end)
+    hit:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    hit:Hide()
+    return hit
+end
 
 ns.ICON_KEYS = {
     "combat", "resting", "leader", "assistant", "masterLooter", "role", "raidTarget",
@@ -177,8 +210,10 @@ function ns.LayoutIcons(f)
         if not tex then
             tex = f.overlay:CreateTexture(nil, "OVERLAY", nil, 2)
             f.icons[key] = tex
+            if ICONS[key].tooltip then tex.hit = TooltipHit(f, key, tex) end
         end
         tex:Hide()
+        if tex.hit then tex.hit:Hide() end
         if cfg and cfg.show then
             tex:ClearAllPoints()
             tex:SetPoint("CENTER", f, cfg.point, cfg.x or 0, cfg.y or 0)
@@ -203,6 +238,7 @@ function ns.UpdateIcons(f)
         else
             tex:Hide()
         end
+        if tex.hit then tex.hit:SetShown(tex:IsShown()) end
     end
 end
 
