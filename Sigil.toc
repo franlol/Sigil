@@ -1,0 +1,39 @@
+## Interface: 16001
+## Title: Sigil
+## Notes: Unit frames for player, target, focus, pet and party.
+## Notes-esES: Marcos de unidad para jugador, objetivo, foco, mascota y grupo.
+## Notes-esMX: Marcos de unidad para jugador, objetivo, foco, mascota y grupo.
+## Author: franlol
+## Version: 0.8.0
+## SavedVariables: SigilDB
+## OptionalDeps: Blizzard_AuraContainer, Masque, Clique, LibSharedMedia-3.0
+
+Libs\LibStub\LibStub.lua
+Libs\LibFlatyUI-1.0\LibFlatyUI-1.0.lua
+
+Locales\Locale.lua
+Locales\esES.lua
+Core.lua
+Defaults.lua
+Media.lua
+Style.lua
+Spells.lua
+Texts.lua
+Frames.lua
+Auras.lua
+Icons.lua
+Faders.lua
+Castbar.lua
+Threat.lua
+ComboPoints.lua
+Experience.lua
+Totems.lua
+AltMana.lua
+CombatText.lua
+GCD.lua
+Sounds.lua
+HideBlizzard.lua
+MinimapButton.lua
+Probe.lua
+Options\UI.lua
+Options\Options.lua
