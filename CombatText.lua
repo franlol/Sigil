@@ -90,7 +90,15 @@ ns.On("UNIT_COMBAT", function(f, _, event, flag, amount)
     end
 end)
 
--- Test mode: a sample hit
+-- Test mode: a sample hit that stays until test mode ends
 function ns.TestCombatText(f)
-    if ns.testMode then Show(f, "-1.2K", COLORS.WOUND, false) end
+    local fs = f.ctext
+    if not fs then return end
+    if ns.testMode and f.cfg.combatText and f.cfg.combatText.enabled then
+        Show(f, "-1.2K", COLORS.WOUND, false)
+        fs.holder:SetScript("OnUpdate", nil)
+        fs:SetAlpha(1)
+    elseif fs.holder:GetScript("OnUpdate") == nil then
+        fs:Hide()
+    end
 end

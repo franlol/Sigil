@@ -20,7 +20,8 @@ end
 function ns.LayoutCombo(f)
     local c = f.cfg.combo
     local _, class = UnitClass("player")
-    if not c or not c.enabled or not CLASSES[class] then
+    f.comboClass = CLASSES[class] and true or false
+    if not c or not c.enabled then
         if f.combo then f.combo:Hide() end
         f.comboOn = false
         return
@@ -65,6 +66,7 @@ end
 function ns.UpdateCombo(f)
     local cp = f.combo
     if not cp or not f.comboOn then return end
+    if not f.comboClass and not ns.testMode then return cp:Hide() end
     if ns.Fake(f.unit) or ns.testMode then
         cp.bar:SetValue(3)
         cp:Show()

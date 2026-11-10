@@ -238,7 +238,7 @@ function ns.UpdateHighlight(f)
     local color
     if hl.mouseover and f.hover then
         color = ns.Color("highlight", "mouseover")
-    elseif hl.target and f.unit ~= "target" and not ns.Fake(f.unit) and R(UnitIsUnit(f.unit, "target")) then
+    elseif hl.target and f.unit ~= "target" and (ns.testMode or R(UnitIsUnit(f.unit, "target"))) then
         color = ns.Color("highlight", "target")
     end
     if color then
@@ -269,6 +269,8 @@ function ns.UpdateAll(f)
     ns.UpdateCombo(f)
     ns.UpdateExperience(f)
     ns.UpdateAltMana(f)
+    ns.UpdateTotems(f)
+    if ns.TestCombatText then ns.TestCombatText(f) end
 end
 
 -------------------------------------------------------------------------------

@@ -27,7 +27,8 @@ end
 function ns.LayoutAltMana(f)
     local c = f.cfg.altMana
     local _, class = UnitClass("player")
-    if f.unit ~= "player" or not c or not c.enabled or class ~= "DRUID" then
+    f.altManaClass = class == "DRUID"
+    if f.unit ~= "player" or not c or not c.enabled then
         if f.altMana then f.altMana:Hide() end
         f.altManaOn = false
         return
@@ -46,6 +47,7 @@ end
 function ns.UpdateAltMana(f)
     local a = f.altMana
     if not a or not f.altManaOn then return end
+    if not f.altManaClass and not ns.testMode then return a:Hide() end
     if ns.testMode then
         a.bar:SetMinMaxValues(0, 100)
         a.bar:SetValue(60)

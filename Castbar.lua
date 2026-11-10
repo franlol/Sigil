@@ -237,6 +237,17 @@ function ns.UpdateCastbar(f)
         cb.text:SetText(L["Test cast"])
         cb.time:SetText(f.cfg.castbar.timeFormat == "both" and "1.2 / 3.0" or "1.2")
         if cb.icon:IsShown() then cb.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark") end
+        -- sample latency at the end of your bar
+        cb.lag:Hide()
+        if f.unit == "player" and f.cfg.castbar.latency then
+            local c = ns.Color("cast", "latency")
+            cb.lag:SetVertexColor(c.r, c.g, c.b, c.a or 0.6)
+            cb.lag:ClearAllPoints()
+            cb.lag:SetPoint("TOPRIGHT")
+            cb.lag:SetPoint("BOTTOMRIGHT")
+            cb.lag:SetWidth(math.max(1, cb.bar:GetWidth() * 0.12))
+            cb.lag:Show()
+        end
         cb:Show()
         return
     end

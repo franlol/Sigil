@@ -79,6 +79,19 @@ function ns.UpdateExperience(f)
     local x = f.xp
     local c = f.cfg.xp
     if not x or not c or not c.enabled then return end
+    if ns.testMode then
+        x.bar:SetMinMaxValues(0, 100)
+        x.bar:SetValue(60)
+        ns.PaintBar(x.bar, c.style, unpack(XP_COLOR))
+        x.rested:SetMinMaxValues(0, 100)
+        x.rested:SetValue(75)
+        x.rested:SetStatusBarColor(RESTED_COLOR[1], RESTED_COLOR[2], RESTED_COLOR[3], 0.5)
+        x.rested:Show()
+        x.text:SetText(c.text and "6000 / 10000 (60%)" or "")
+        x.tip = nil
+        x:Show()
+        return
+    end
     local mode = c.mode or "auto"
     if mode == "auto" then mode = AtMaxLevel() and "rep" or "xp" end
 
