@@ -204,8 +204,19 @@ local function Part(f, part)
     return e and e.region
 end
 
+-- Mouse over a region. A bar showing a secret value can answer IsMouseOver
+-- with a secret too: then the cursor is compared with the bar's rectangle.
 local function Over(region)
-    return region and region:IsVisible() and R(region:IsMouseOver()) and true or false
+    if not (region and region:IsVisible()) then return false end
+    local over = region:IsMouseOver()
+    if not S(over) then return over and true or false end
+    local l, b, w, h = region:GetRect()
+    l, b, w, h = R(l), R(b), R(w), R(h)
+    if not (l and b and w and h) then return false end
+    local x, y = GetCursorPosition()
+    local s = region:GetEffectiveScale()
+    x, y = x / s, y / s
+    return x >= l and x <= l + w and y >= b and y <= b + h
 end
 
 -- Mouse over this frame (Hover()) or over one of its parts (Hover("power")).
