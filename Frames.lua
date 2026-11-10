@@ -540,22 +540,57 @@ function ns.Layout(f)
         portrait:Hide()
     end
 
-    -- health and power
-    local ph = c.power.height or 0
-    f.health:ClearAllPoints()
-    f.health:SetPoint("TOPLEFT", left, -inset)
-    f.health:SetPoint("TOPRIGHT", -right, -inset)
-    if ph > 0 then
-        f.health:SetHeight(inner - ph - 1)
-        f.power:ClearAllPoints()
+    -- health and power: inside the frame (health on top, power below), or
+    -- detached, each in its own box placed anywhere around the frame
+    local function Detach(bar, b, height)
+        bar.box = bar.box or CreateFrame("Frame", nil, f, "BackdropTemplate")
+        local box = bar.box
+        box:SetBackdrop({ bgFile = FLAT, edgeFile = edge > 0 and FLAT or nil, edgeSize = math.max(1, edge) })
+        box:SetBackdropColor(bg.r, bg.g, bg.b, bg.a or 1)
+        if edge > 0 then box:SetBackdropBorderColor(bd.r, bd.g, bd.b, bd.a or 1) end
+        local w = (b.width and b.width > 0) and b.width or c.width
+        box:SetSize(w, height + 2 * inset)
+        ns.Place(box, f, b)
+        box:SetFrameLevel(f:GetFrameLevel())
+        box:Show()
+        bar:SetParent(box)
+        bar:ClearAllPoints()
+        bar:SetPoint("TOPLEFT", inset, -inset)
+        bar:SetPoint("BOTTOMRIGHT", -inset, inset)
+    end
+    local function Attach(bar)
+        if bar.box then bar.box:Hide() end
+        bar:SetParent(f)
+        bar:ClearAllPoints()
+    end
+
+    local h, pw = c.health, c.power
+    local ph = pw.height or 0
+    local powerInside = ph > 0 and not pw.detached
+    if pw.detached and ph > 0 then
+        Detach(f.power, pw, ph)
+        f.power:Show()
+    else
+        Attach(f.power)
+        f.power:SetShown(powerInside)
+    end
+    if h.detached then
+        Detach(f.health, h, h.height or 20)
+    else
+        Attach(f.health)
+        f.health:SetPoint("TOPLEFT", left, -inset)
+        f.health:SetPoint("TOPRIGHT", -right, -inset)
+        f.health:SetHeight(powerInside and (inner - ph - 1) or inner)
+    end
+    if powerInside then
         f.power:SetPoint("BOTTOMLEFT", left, inset)
         f.power:SetPoint("BOTTOMRIGHT", -right, inset)
         f.power:SetHeight(ph)
-        f.power:Show()
-    else
-        f.health:SetHeight(inner)
-        f.power:Hide()
+        -- with the health detached, the power bar fills the frame
+        if h.detached then f.power:SetHeight(inner) end
     end
+    f.health:SetFrameLevel((f.health:GetParent()):GetFrameLevel() + 1)
+    f.power:SetFrameLevel((f.power:GetParent()):GetFrameLevel() + 1)
     ns.StyleBar(f.health, c.health.style)
     ns.StyleBar(f.power, c.power.style)
 

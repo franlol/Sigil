@@ -318,6 +318,13 @@ function Tabs.bars(page, unit)
     card:Add(UI.Check(card, L["Incoming heals"], g, s, { tip = L["A lighter bar after the health with the heals on their way."] }))
     g, s = Bind(unit, "health", "absorbs")
     card:Add(UI.Check(card, L["Shields"], g, s, { tip = L["A bar after the health with the damage shields can absorb."] }))
+    local function H() return U(unit).health end
+    local function HDet() return H().detached end
+    g, s = Bind(unit, "health", "detached")
+    card:Add(UI.Check(card, L["Detach from the frame"], g, s, { tip = L["The bar leaves the frame and goes where you place it. Clicks on it do not target the unit."] }))
+    g, s = Bind(unit, "health", "height")
+    card:Add(UI.Slider(card, L["Height"], 4, 80, 1, g, s, { format = Px, showIf = HDet }))
+    PositionRows(card, H, apply, { width = true, enableIf = HDet })
     BarCard(page, 1, L["Health bar look"], function() return U(unit).health.style end, apply, {
         gradient = true, autoLabel = L["Class / reaction"],
         autoTip = L["Class / reaction: class color for players; hostile, neutral or friendly color for the rest. Gradient: from the low to the high health color."],
@@ -328,6 +335,13 @@ function Tabs.bars(page, unit)
     card:Add(UI.Slider(card, L["Height"], 0, 40, 1, g, s, {
         format = function(v) return v == 0 and L["Hidden"] or Px(v) end,
     }))
+    local function PW() return U(unit).power end
+    local function PDet() return PW().detached and (PW().height or 0) > 0 end
+    g, s = Bind(unit, "power", "detached")
+    card:Add(UI.Check(card, L["Detach from the frame"], g, s, {
+        enableIf = function() return (PW().height or 0) > 0 end,
+        tip = L["The bar leaves the frame and goes where you place it. Clicks on it do not target the unit."] }))
+    PositionRows(card, PW, apply, { width = true, enableIf = PDet })
     BarCard(page, 2, L["Power bar look"], function() return U(unit).power.style end, apply, {
         autoLabel = L["Power type"], enableIf = function() return (U(unit).power.height or 0) > 0 end,
     })

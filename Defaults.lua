@@ -334,7 +334,14 @@ ns.DEFAULTS = {
 -- Settings every unit has (each unit can change them)
 local HIGHLIGHT_TARGET = { party = true, focus = true, targettarget = true }
 for key, u in pairs(ns.DEFAULTS.units) do
-    u.health = { style = Bar("auto"), healPrediction = true, absorbs = true }
+    -- detached: the bar leaves the frame and is placed with point/relPoint/x/y
+    -- (width 0 = frame width)
+    u.health = {
+        style = Bar("auto"), healPrediction = true, absorbs = true,
+        detached = false, point = "TOP", relPoint = "BOTTOM", x = 0, y = -30, width = 0, height = 20,
+    }
+    u.power.detached = false
+    u.power.point, u.power.relPoint, u.power.x, u.power.y, u.power.width = "TOP", "BOTTOM", 0, -8, 0
     u.background = { r = 0, g = 0, b = 0, a = 0.6 }
     u.border = { r = 0, g = 0, b = 0, a = 1 }
     u.borderSize = 1

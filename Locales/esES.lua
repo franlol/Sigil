@@ -474,6 +474,10 @@ ns.translations.esES = {
     ["Target sounds"] = "Sonidos de objetivo",
     ["The game sounds when you pick or lose a target."] = "Los sonidos del juego al elegir o perder un objetivo.",
 
+    -- Detached bars
+    ["Detach from the frame"] = "Separar del marco",
+    ["The bar leaves the frame and goes where you place it. Clicks on it do not target the unit."] = "La barra sale del marco y va donde la coloques. Los clics sobre ella no seleccionan la unidad.",
+
     -- Options library
     ["Search..."] = "Buscar...",
     ["Accept"] = "Aceptar",
