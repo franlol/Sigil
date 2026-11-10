@@ -162,7 +162,8 @@ function H.HPPercent(u)
     local f = ns.Fake(u)
     if f then return math.floor(f.hp / f.maxhp * 100) end
     if UnitHealthPercent and CurveConstants and CurveConstants.ScaleTo100 then
-        return UnitHealthPercent(u, false, CurveConstants.ScaleTo100)
+        -- usePredicted false stays stale until the next health event
+        return UnitHealthPercent(u, true, CurveConstants.ScaleTo100)
     end
     return 0
 end
