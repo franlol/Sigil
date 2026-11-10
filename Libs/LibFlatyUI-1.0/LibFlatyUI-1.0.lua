@@ -32,7 +32,7 @@
 --   UI.RefreshAll()).
 -------------------------------------------------------------------------------
 
-local MAJOR, MINOR = "LibFlatyUI-1.0", 6
+local MAJOR, MINOR = "LibFlatyUI-1.0", 7
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -185,6 +185,16 @@ function lib:New(theme)
         b:SetScript("OnEnter", function(self) Hover(self, true) end)
         b:SetScript("OnLeave", function(self) Hover(self, false) end)
         b:SetScript("OnClick", onClick)
+        -- pressed: darker while the mouse button is held down
+        local press = b:CreateTexture(nil, "ARTWORK", nil, 7)
+        press:SetPoint("TOPLEFT", 1, -1)
+        press:SetPoint("BOTTOMRIGHT", -1, 1)
+        press:SetColorTexture(0, 0, 0, 0.35)
+        press:Hide()
+        b:HookScript("OnMouseDown", function() press:Show() end)
+        b:HookScript("OnMouseUp", function() press:Hide() end)
+        b:HookScript("OnLeave", function() press:Hide() end)
+        b:HookScript("OnHide", function() press:Hide() end)
         return b
     end
 
