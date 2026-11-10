@@ -930,6 +930,9 @@ function Tabs.castbar(page, unit)
     end
     g, s = Bind(unit, "castbar", "height")
     card:Add(UI.Slider(card, L["Height"], 8, 40, 1, g, s, { format = Px, enableIf = On }))
+    g, s = Bind(unit, "castbar", "width")
+    card:Add(UI.Slider(card, L["Width"], 0, 500, 1, g, s, { enableIf = On,
+        format = function(v) return v == 0 and L["Same as frame"] or Px(v) end }))
     g, s = Bind(unit, "castbar", "timeFormat")
     card:Add(UI.Segmented(card, L["Time"], { { "left", "1.2" }, { "both", "1.2 / 3.0" } }, g, s, { enableIf = On }))
     g, s = Bind(unit, "castbar", "fadeTime")
@@ -947,7 +950,7 @@ function Tabs.castbar(page, unit)
     card = page:Add(2, UI.Card(page.content, L["Time text"]))
     TextRows(card, function() return CB().timeText end, apply, { auto = true, enableIf = On })
     card = page:Add(2, UI.Card(page.content, L["Position"]))
-    PositionRows(card, CB, apply, { unit = unit, width = true, enableIf = On, cornerLabel = L["Corner of the bar"] })
+    PositionRows(card, CB, apply, { unit = unit, enableIf = On, cornerLabel = L["Corner of the bar"] })
 end
 
 -- Extras: fading, threat, combo points, experience, totems
