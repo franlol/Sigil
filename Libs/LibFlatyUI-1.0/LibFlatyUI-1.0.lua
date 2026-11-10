@@ -32,7 +32,7 @@
 --   UI.RefreshAll()).
 -------------------------------------------------------------------------------
 
-local MAJOR, MINOR = "LibFlatyUI-1.0", 3
+local MAJOR, MINOR = "LibFlatyUI-1.0", 4
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -650,8 +650,18 @@ function lib:New(theme)
         b.text:SetPoint("RIGHT", -16, 0)
         b.text:SetJustifyH("LEFT")
         b.text:SetWordWrap(false)
-        b.arrow = UI.Text(b, "v", T.labelFont, T.muted)
+        -- the arrow: a thick chevron in the brand color
+        b.arrow = CreateFrame("Frame", nil, b)
+        b.arrow:SetSize(8, 5)
         b.arrow:SetPoint("RIGHT", -6, 0)
+        for i, x in ipairs({ 0, 8 }) do
+            local line = b.arrow:CreateLine(nil, "OVERLAY")
+            line:SetThickness(2)
+            line:SetColorTexture(A[1], A[2], A[3], 1)
+            line:SetStartPoint("TOPLEFT", b.arrow, x, 0)
+            line:SetEndPoint("BOTTOMLEFT", b.arrow, 4, 0)
+            b.arrow[i] = line
+        end
         r.button = b
 
         local function Opts() return type(options) == "function" and options() or options end
