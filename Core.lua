@@ -18,6 +18,20 @@ function ns.R(v)
     return v
 end
 
+-- Mouse over a frame or region: the cursor inside its rectangle. One rule
+-- for everything (IsMouseOver can be secret on bars showing secret values;
+-- a region whose place is secret counts as not under the mouse).
+function ns.MouseOver(region)
+    if not (region and region:IsVisible()) then return false end
+    local l, b, w, h = region:GetRect()
+    l, b, w, h = ns.R(l), ns.R(b), ns.R(w), ns.R(h)
+    if not (l and b and w and h) then return false end
+    local x, y = GetCursorPosition()
+    local s = region:GetEffectiveScale()
+    x, y = x / s, y / s
+    return x >= l and x <= l + w and y >= b and y <= b + h
+end
+
 -------------------------------------------------------------------------------
 -- Chat
 -------------------------------------------------------------------------------
