@@ -534,5 +534,6 @@ ns.translations.esES = {
     -- Probe
     ["Probe saved for context %s: %d missing, %d secret, %d errors."] = "Sondeo guardado para el contexto %s: %d faltan, %d secretos, %d errores.",
     ["Type /reload to write it to disk."] = "Escribe /reload para guardarlo en disco.",
+    ["Cast any spell: the global cooldown is probed right after it."] = "Lanza cualquier hechizo: el tiempo de reutilización global se sondea justo después.",
     ["Tip: run it with a target, a focus and your pet, in the open world, in a dungeon and in combat."] = "Consejo: hazlo con objetivo, foco y mascota, en el mundo, en una mazmorra y en combate.",
 }

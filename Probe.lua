@@ -351,3 +351,16 @@ function ns.ProbeGCD(spellID)
         print("  C_Spell.GetSpellCooldownDuration: MISSING")
     end
 end
+
+-- /sigil gcd with no spell: waits for your next cast and probes right then,
+-- while the global cooldown runs (typing the command takes longer than it)
+function ns.ProbeNextGCD()
+    ns.Print(L["Cast any spell: the global cooldown is probed right after it."])
+    local w = ns.gcdProbeWatcher or CreateFrame("Frame")
+    ns.gcdProbeWatcher = w
+    w:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+    w:SetScript("OnEvent", function(self)
+        self:UnregisterAllEvents()
+        ns.ProbeGCD()
+    end)
+end

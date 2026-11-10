@@ -285,7 +285,7 @@ SlashCmdList.SIGIL = function(msg)
     if cmd == "probe" or cmd == "sondeo" then
         ns.Probe()
     elseif cmd == "gcd" then
-        ns.ProbeGCD(tonumber(arg))
+        if tonumber(arg) then ns.ProbeGCD(tonumber(arg)) else ns.ProbeNextGCD() end
     elseif cmd == "move" or cmd == "mover" or cmd == "unlock" then
         ns.SetUnlocked(true)
     elseif cmd == "lock" or cmd == "bloquear" then
