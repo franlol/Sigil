@@ -162,7 +162,7 @@ end
 
 local function NewContainer(f, g)
     local c = CreateFrame("AuraContainer", nil, f, "CustomAuraContainerTemplate")
-    c:SetPoint(g.point, f, g.relPoint, g.x, g.y)
+    ns.Place(c, f, g)
     c:SetFlowLayoutAnchorPoint(g.point)
     c:SetFlowLayoutAxis(AnchorUtil.FlowLayoutAxis.Horizontal)
     local fd = AnchorUtil.FlowDirection
@@ -196,7 +196,10 @@ local function Samples(f, i, g)
         f.auraSamples[i] = s
     end
     s:ClearAllPoints()
-    s:SetPoint(g.point, f, g.relPoint, g.x, g.y)
+    -- the sample block has the size of the real one, so it can be dragged
+    local rows = math.max(1, math.ceil(g.max / g.perRow))
+    s:SetSize(g.perRow * (g.size + g.spacing), rows * (g.size + g.spacing))
+    ns.PlacePiece(f, "aura" .. i, L[g.name or ""] or L["Auras"], s, g)
     local n = math.min(g.max, g.perRow, g.kind == "HARMFUL" and 3 or 5)
     local sx = g.growX == "LEFT" and -1 or 1
     local step = g.size + g.spacing
@@ -285,6 +288,10 @@ function ns.LayoutAuras(f)
                     end
                 end
                 f.auraBlocks[i] = block
+            end
+            -- remembered as a piece (anchor changes keep it in place)
+            if block.container then
+                ns.PlacePiece(f, "aura" .. i, L[g.name or ""], block.container, g)
             end
             used[i] = true
         end

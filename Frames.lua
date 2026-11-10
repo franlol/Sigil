@@ -552,7 +552,8 @@ function ns.Layout(f)
         if edge > 0 then box:SetBackdropBorderColor(bd.r, bd.g, bd.b, bd.a or 1) end
         local w = (b.width and b.width > 0) and b.width or c.width
         box:SetSize(w, height + 2 * inset)
-        ns.Place(box, f, b)
+        ns.PlacePiece(f, bar == f.health and "health" or "power",
+            bar == f.health and L["Health bar"] or L["Power bar"], box, b)
         box:SetFrameLevel(f:GetFrameLevel())
         box:Show()
         bar:SetParent(box)
@@ -709,6 +710,7 @@ function ns.ApplyUnit(key)
                 ns.Layout(f)
                 ApplyVisibility(f)
                 ns.UpdateAll(f)
+                if ns.RefreshMovers then ns.RefreshMovers(f) end
             end
         end
     end)
@@ -736,6 +738,7 @@ function ns.SetTestMode(on)
             ApplyVisibility(f)
             ns.UpdateAll(f)
         end
+        ns.RefreshAllMovers()
         ns.Print(on and L["Test mode on."] or L["Test mode off."])
     end)
 end
@@ -777,6 +780,7 @@ function ns.SetUnlocked(on)
             f.mover:SetShown(on)
         end
         if on ~= ns.testMode then ns.SetTestMode(on) end
+        ns.RefreshAllMovers()
         ns.Print(on and L["Frames unlocked: drag them. /sigil lock to finish."] or L["Frames locked."])
     end)
 end

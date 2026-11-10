@@ -7,6 +7,7 @@
 -------------------------------------------------------------------------------
 
 local _, ns = ...
+local L = ns.L
 
 function ns.LayoutTotems(f)
     local c = f.cfg.totems
@@ -18,7 +19,7 @@ function ns.LayoutTotems(f)
     end
     tf:SetParent(f)
     tf:ClearAllPoints()
-    tf:SetPoint(c.point, f, c.relPoint, c.x or 0, c.y or 0)
+    ns.Place(tf, f, c)
     tf:SetScale(c.scale or 1)
     if tf.Update then pcall(tf.Update, tf) end
 end
@@ -56,6 +57,6 @@ function ns.UpdateTotems(f)
         f.totemSample = s
     end
     s:SetScale(c.scale or 1)
-    ns.Place(s, f, c)
+    ns.PlacePiece(f, "totems", L["Totems"], s, c)
     s:Show()
 end

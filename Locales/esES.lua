@@ -480,6 +480,15 @@ ns.translations.esES = {
 
     ["Your class does not use this. It stays saved for characters that do."] = "Tu clase no lo usa. Se queda guardado para los personajes que sí.",
 
+    -- Anchoring and dragging pieces
+    ["Anchored to"] = "Unida a",
+    ["Screen"] = "Pantalla",
+    ["Screen: the piece stays in its place on the screen, even when you move the frame. It still shows and hides with its unit."] = "Pantalla: la pieza se queda en su sitio de la pantalla aunque muevas el marco. Sigue apareciendo y desapareciendo con su unidad.",
+    ["Point of the frame or screen"] = "Punto del marco o la pantalla",
+    ["Anchored to the screen"] = "Unida a la pantalla",
+    ["Anchored to the frame"] = "Unida al marco",
+    ["Drag to move"] = "Arrastra para moverla",
+
     -- Options library
     ["Search..."] = "Buscar...",
     ["Accept"] = "Aceptar",

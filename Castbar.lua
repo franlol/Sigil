@@ -95,7 +95,7 @@ function ns.LayoutCastbar(f)
     local cb = f.castbar or Build(f)
     f.castbar = cb
     local h = c.height
-    ns.Place(cb, f, c)
+    ns.PlacePiece(f, "castbar", L["Cast bar"], cb, c)
     cb:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, h)
 
     local inner = h - 2

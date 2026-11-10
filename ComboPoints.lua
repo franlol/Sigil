@@ -6,6 +6,7 @@
 -------------------------------------------------------------------------------
 
 local _, ns = ...
+local L = ns.L
 local S = ns.S
 
 local FLAT = "Interface\\Buttons\\WHITE8X8"
@@ -48,7 +49,7 @@ function ns.LayoutCombo(f)
         f.combo = cp
     end
     cp:ClearAllPoints()
-    cp:SetPoint(c.point, f, c.relPoint, c.x or 0, c.y or 0)
+    ns.PlacePiece(f, "combo", L["Combo points"], cp, c)
     local w = c.width and c.width > 0 and c.width or f.cfg.width
     cp:SetSize(w, c.height)
     local inner = w - 2

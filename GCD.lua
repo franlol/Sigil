@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 
 local _, ns = ...
+local L = ns.L
 local S = ns.S
 
 local FLAT = "Interface\\Buttons\\WHITE8X8"
@@ -44,7 +45,7 @@ function ns.LayoutGCD(f)
     f.gcdOn = true
     local g = f.gcd or Build(f)
     f.gcd = g
-    ns.Place(g, f, c)
+    ns.PlacePiece(f, "gcd", L["Global cooldown"], g, c)
     g:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, c.height)
     ns.StyleBar(g.bar, c.style)
     ns.PaintBar(g.bar, c.style, 1, 1, 1)

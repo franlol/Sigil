@@ -4,6 +4,7 @@
 -------------------------------------------------------------------------------
 
 local _, ns = ...
+local L = ns.L
 local S, R = ns.S, ns.R
 
 local FLAT = "Interface\\Buttons\\WHITE8X8"
@@ -36,7 +37,7 @@ function ns.LayoutAltMana(f)
     f.altManaOn = true
     local a = f.altMana or Build(f)
     f.altMana = a
-    ns.Place(a, f, c)
+    ns.PlacePiece(f, "altMana", L["Druid mana"], a, c)
     a:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, c.height)
     ns.StyleBar(a.bar, c.style)
     ns.PaintBar(a.bar, c.style, ns.PowerRGB("MANA"))

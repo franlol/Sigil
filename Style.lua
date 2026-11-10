@@ -136,10 +136,38 @@ end
 -------------------------------------------------------------------------------
 -- Position: { point, relPoint, x, y } relative to an anchor frame
 -------------------------------------------------------------------------------
+-- pos.anchor: "frame" (default, relative to the frame) or "screen" (relative to
+-- the screen: the piece stays put when the frame moves)
 function ns.Place(region, anchor, pos)
+    if pos.anchor == "screen" then anchor = UIParent end
     region:ClearAllPoints()
     region:SetPoint(pos.point or "CENTER", anchor, pos.relPoint or pos.point or "CENTER", pos.x or 0, pos.y or 0)
 end
+
+-- Screen coordinates (pixels) of a point of a frame or region
+local function PointPx(obj, point)
+    local l, r, t, b = obj:GetLeft(), obj:GetRight(), obj:GetTop(), obj:GetBottom()
+    if not l then return nil end
+    local x = point:find("LEFT") and l or point:find("RIGHT") and r or (l + r) / 2
+    local y = point:find("TOP") and t or point:find("BOTTOM") and b or (t + b) / 2
+    local s = obj.GetEffectiveScale and obj:GetEffectiveScale() or obj:GetParent():GetEffectiveScale()
+    return x * s, y * s
+end
+
+local function Scale(region)
+    return region.GetEffectiveScale and region:GetEffectiveScale() or region:GetParent():GetEffectiveScale()
+end
+
+-- Offsets that keep a piece exactly where it is now, for its point on the
+-- given target's relPoint (nil while the piece is not on screen)
+function ns.OffsetsFor(region, target, pos)
+    local rx, ry = PointPx(region, pos.point or "CENTER")
+    local tx, ty = PointPx(target, pos.relPoint or pos.point or "CENTER")
+    if not rx or not tx then return nil end
+    local s = Scale(region)
+    return math.floor((rx - tx) / s + 0.5), math.floor((ry - ty) / s + 0.5)
+end
+ns.PieceScale = Scale
 
 -------------------------------------------------------------------------------
 -- Old settings -> the shared blocks (runs after the defaults are filled in)

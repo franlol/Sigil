@@ -41,7 +41,7 @@ function ns.LayoutCombatText(f)
         f.ctext.holder = holder
         f.ctext:Hide()
     end
-    ns.Place(f.ctext, f, c)
+    ns.PlacePiece(f, "combatText", L["Combat text"], f.ctext, c)
     ns.StyleText(f.ctext, c.textStyle, 16)
     if ns.TestCombatText then ns.TestCombatText(f) end
 end

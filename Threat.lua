@@ -6,6 +6,7 @@
 -------------------------------------------------------------------------------
 
 local _, ns = ...
+local L = ns.L
 local S, R = ns.S, ns.R
 
 local FLAT = "Interface\\Buttons\\WHITE8X8"
@@ -82,7 +83,7 @@ function ns.LayoutThreatBar(f)
         b.text:SetPoint("CENTER")
         f.threatBar = b
     end
-    ns.Place(b, f, c)
+    ns.PlacePiece(f, "threatBar", L["Threat bar"], b, c)
     b:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, c.height)
     ns.StyleBar(b.bar, c.style)
     ns.StyleText(b.text, c.textStyle, math.max(8, math.floor(c.height * 0.8)))
