@@ -554,8 +554,14 @@ function Tabs.texts(page, unit)
                 return
             end
             t.code = text
-            status:SetText("|cff6bd66b" .. L["Applied."] .. "|r")
             ns.ApplyUnit(unit)
+            -- compiled is not enough: run it once to catch errors at run time
+            local ok, runErr = ns.TryText(unit, fn)
+            if ok then
+                status:SetText("|cff6bd66b" .. L["Applied."] .. "|r")
+            else
+                status:SetText("|cffff6b61" .. L["Error:"] .. "|r " .. tostring(runErr))
+            end
             Changed()
         end, "accent" },
         { L["Undo changes"], function() page.LoadEditor() end },

@@ -267,6 +267,18 @@ local function Run(t)
     Show(t.fs, t.fn())
 end
 
+-- Runs a compiled text once for the first frame of a settings key, to find
+-- errors that only show when it runs (a missing unit, a nil value...).
+-- Returns true, or false and the error.
+function ns.TryText(key, fn)
+    local f = ns.frames[ns.UnitsOf(key)[1] or key]
+    if not f then return true end
+    getfenv(fn).unit = f.unit
+    current = f
+    local ok, err = pcall(fn)
+    return ok, err
+end
+
 -- t: { fs, fn, cfg, err }
 function ns.RunText(f, t)
     if not t.fn then return end
