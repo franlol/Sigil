@@ -8,17 +8,11 @@ local _, ns = ...
 local L = ns.L
 local S = ns.S
 
-local FLAT = "Interface\\Buttons\\WHITE8X8"
 local GCD_SPELL = 61304
 
 local function Build(f)
     local g = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    g:SetBackdrop({ bgFile = FLAT, edgeFile = FLAT, edgeSize = 1 })
-    g:SetBackdropColor(0, 0, 0, 0.6)
-    g:SetBackdropBorderColor(0, 0, 0, 1)
     g.bar = CreateFrame("StatusBar", nil, g)
-    g.bar:SetPoint("TOPLEFT", 1, -1)
-    g.bar:SetPoint("BOTTOMRIGHT", -1, 1)
     g.bar.bg = g.bar:CreateTexture(nil, "BACKGROUND")
     g.bar.bg:SetAllPoints()
     g:Hide()
@@ -47,6 +41,7 @@ function ns.LayoutGCD(f)
     f.gcd = g
     ns.PlacePiece(f, "gcd", L["Global cooldown"], g, c)
     g:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, c.height)
+    ns.StyleBox(g, c.style, g.bar)
     ns.StyleBar(g.bar, c.style)
     ns.PaintBar(g.bar, c.style, 1, 1, 1)
     if ns.testMode then

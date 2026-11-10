@@ -31,12 +31,7 @@ function ns.LayoutCombo(f)
     local cp = f.combo
     if not cp then
         cp = CreateFrame("Frame", nil, f, "BackdropTemplate")
-        cp:SetBackdrop({ bgFile = FLAT, edgeFile = FLAT, edgeSize = 1 })
-        cp:SetBackdropColor(0, 0, 0, 0.6)
-        cp:SetBackdropBorderColor(0, 0, 0, 1)
         cp.bar = CreateFrame("StatusBar", nil, cp)
-        cp.bar:SetPoint("TOPLEFT", 1, -1)
-        cp.bar:SetPoint("BOTTOMRIGHT", -1, 1)
         cp.bar:SetStatusBarTexture(FLAT)
         cp.bar:SetMinMaxValues(0, MAX)
         cp.dividers = {}
@@ -52,7 +47,8 @@ function ns.LayoutCombo(f)
     ns.PlacePiece(f, "combo", L["Combo points"], cp, c)
     local w = c.width and c.width > 0 and c.width or f.cfg.width
     cp:SetSize(w, c.height)
-    local inner = w - 2
+    local edge = ns.StyleBox(cp, c.style, cp.bar)
+    local inner = w - 2 * edge
     for i, d in ipairs(cp.dividers) do
         d:ClearAllPoints()
         d:SetPoint("TOP", cp.bar, "TOPLEFT", inner * i / MAX, 0)

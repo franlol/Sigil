@@ -386,6 +386,7 @@ ns.translations.esES = {
     -- Frame tab
     ["Background and border of the frame."] = "Fondo y borde del marco.",
     ["Border"] = "Borde",
+    ["Border color"] = "Color del borde",
     ["Border size"] = "Grosor del borde",
     ["Opacity"] = "Opacidad",
     ["Square"] = "Cuadrado",

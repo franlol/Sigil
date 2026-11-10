@@ -7,17 +7,11 @@ local _, ns = ...
 local L = ns.L
 local S, R = ns.S, ns.R
 
-local FLAT = "Interface\\Buttons\\WHITE8X8"
 local MANA = (Enum and Enum.PowerType and Enum.PowerType.Mana) or 0
 
 local function Build(f)
     local a = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    a:SetBackdrop({ bgFile = FLAT, edgeFile = FLAT, edgeSize = 1 })
-    a:SetBackdropColor(0, 0, 0, 0.6)
-    a:SetBackdropBorderColor(0, 0, 0, 1)
     a.bar = CreateFrame("StatusBar", nil, a)
-    a.bar:SetPoint("TOPLEFT", 1, -1)
-    a.bar:SetPoint("BOTTOMRIGHT", -1, 1)
     a.bar.bg = a.bar:CreateTexture(nil, "BACKGROUND")
     a.bar.bg:SetAllPoints()
     a.text = a.bar:CreateFontString(nil, "OVERLAY")
@@ -39,6 +33,7 @@ function ns.LayoutAltMana(f)
     f.altMana = a
     ns.PlacePiece(f, "altMana", L["Druid mana"], a, c)
     a:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, c.height)
+    ns.StyleBox(a, c.style, a.bar)
     ns.StyleBar(a.bar, c.style)
     ns.PaintBar(a.bar, c.style, ns.PowerRGB("MANA"))
     ns.StyleText(a.text, c.textStyle, math.max(8, math.floor(c.height * 0.8)))

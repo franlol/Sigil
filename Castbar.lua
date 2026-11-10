@@ -59,9 +59,6 @@ end
 
 local function Build(f)
     local cb = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    cb:SetBackdrop({ bgFile = FLAT, edgeFile = FLAT, edgeSize = 1 })
-    cb:SetBackdropColor(0, 0, 0, 0.6)
-    cb:SetBackdropBorderColor(0, 0, 0, 1)
 
     cb.icon = cb:CreateTexture(nil, "ARTWORK")
     cb.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -98,19 +95,20 @@ function ns.LayoutCastbar(f)
     ns.PlacePiece(f, "castbar", L["Cast bar"], cb, c)
     cb:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, h)
 
-    local inner = h - 2
+    local e = ns.StyleBox(cb, c.style)
+    local inner = h - 2 * e
     cb.icon:ClearAllPoints()
     cb.bar:ClearAllPoints()
     if c.icon then
         cb.icon:SetSize(inner, inner)
-        cb.icon:SetPoint("TOPLEFT", 1, -1)
+        cb.icon:SetPoint("TOPLEFT", e, -e)
         cb.icon:Show()
-        cb.bar:SetPoint("TOPLEFT", inner + 2, -1)
+        cb.bar:SetPoint("TOPLEFT", inner + e + 1, -e)
     else
         cb.icon:Hide()
-        cb.bar:SetPoint("TOPLEFT", 1, -1)
+        cb.bar:SetPoint("TOPLEFT", e, -e)
     end
-    cb.bar:SetPoint("BOTTOMRIGHT", -1, 1)
+    cb.bar:SetPoint("BOTTOMRIGHT", -e, e)
     ns.StyleBar(cb.bar, c.style)
 
     local auto = math.max(8, math.floor(h * 0.6))

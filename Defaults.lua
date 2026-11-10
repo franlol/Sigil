@@ -126,11 +126,13 @@ end
 --   texture: nil = the general one
 --   color: auto (class, reaction, power type...) | gradient (by health) | custom
 --   bg: auto (the bar color, darker) | custom; bgAlpha: background opacity
+--   border / borderColor: the box around bars that have one (cast bar, GCD...)
 function ns.BarStyle(color, extra)
     local st = {
         texture = false, color = color or "auto", custom = { r = 0.2, g = 0.75, b = 0.3 },
         bg = "auto", bgCustom = { r = 0.1, g = 0.1, b = 0.1 }, bgBrightness = 0.25, bgAlpha = 0.9,
         orientation = "HORIZONTAL", reverse = false, spark = false,
+        border = 1, borderColor = { r = 0, g = 0, b = 0, a = 1 }, -- boxed bars: border (px, 0 = none)
     }
     for k, v in pairs(extra or {}) do st[k] = v end
     return st

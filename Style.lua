@@ -61,6 +61,26 @@ end
 -------------------------------------------------------------------------------
 local SPARK = "Interface\\CastingBar\\UI-CastingBar-Spark"
 
+-- The box around a bar (cast bar, GCD, threat bar...): its background and
+-- the border of the bar look (st.border px, 0 = none; st.borderColor).
+-- Every region given goes inside the border. Returns the border size.
+function ns.StyleBox(box, st, ...)
+    local edge = st.border or 1
+    box:SetBackdrop({ bgFile = ns.FLAT, edgeFile = edge > 0 and ns.FLAT or nil, edgeSize = math.max(1, edge) })
+    box:SetBackdropColor(0, 0, 0, 0.6)
+    if edge > 0 then
+        local c = st.borderColor or { r = 0, g = 0, b = 0, a = 1 }
+        box:SetBackdropBorderColor(c.r, c.g, c.b, c.a or 1)
+    end
+    for i = 1, select("#", ...) do
+        local r = select(i, ...)
+        r:ClearAllPoints()
+        r:SetPoint("TOPLEFT", edge, -edge)
+        r:SetPoint("BOTTOMRIGHT", -edge, edge)
+    end
+    return edge
+end
+
 -- Texture, orientation, fill direction and spark (bar.bg = background texture)
 function ns.StyleBar(bar, st)
     local tex = (st.texture and st.texture ~= "") and st.texture or ns.Texture()

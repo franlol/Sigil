@@ -8,7 +8,6 @@
 local _, ns = ...
 local L = ns.L
 
-local FLAT = "Interface\\Buttons\\WHITE8X8"
 local XP_COLOR = { 0.58, 0.3, 0.85 }
 local RESTED_COLOR = { 0.25, 0.45, 0.9 }
 
@@ -28,12 +27,7 @@ end
 
 local function Build(f)
     local x = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    x:SetBackdrop({ bgFile = FLAT, edgeFile = FLAT, edgeSize = 1 })
-    x:SetBackdropColor(0, 0, 0, 0.6)
-    x:SetBackdropBorderColor(0, 0, 0, 1)
     x.rested = CreateFrame("StatusBar", nil, x)
-    x.rested:SetPoint("TOPLEFT", 1, -1)
-    x.rested:SetPoint("BOTTOMRIGHT", -1, 1)
     x.bar = CreateFrame("StatusBar", nil, x)
     x.bar:SetAllPoints(x.rested)
     x.bar:SetFrameLevel(x.rested:GetFrameLevel() + 1)
@@ -63,6 +57,7 @@ function ns.LayoutExperience(f)
     x:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, c.height)
     x.bar.bg = x.bar.bg or x.rested:CreateTexture(nil, "BACKGROUND")
     x.bar.bg:SetAllPoints(x.rested)
+    ns.StyleBox(x, c.style, x.rested)
     ns.StyleBar(x.bar, c.style)
     ns.StyleBar(x.rested, c.style)
     ns.StyleText(x.text, c.textStyle, math.max(8, math.floor(c.height * 0.75)))

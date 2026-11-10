@@ -184,6 +184,13 @@ local function BarCard(page, column, title, getStyle, apply, opts)
     card:Add(UI.Check(card, L["Fill in reverse"], g, s, { enableIf = on }))
     g, s = TB(getStyle, "spark", apply)
     card:Add(UI.Check(card, L["Spark at the end of the fill"], g, s, { enableIf = on }))
+    if opts.box then
+        -- the box around the bar: border size (0 = none) and color
+        g, s = TB(getStyle, "border", apply)
+        card:Add(UI.Slider(card, L["Border"], 0, 4, 1, g, s, { format = Px, enableIf = on }))
+        card:Add(UI.Swatch(card, L["Border color"], function() return getStyle().borderColor end, apply,
+            { alpha = true, enableIf = Both(on, function() return (getStyle().border or 1) > 0 end) }))
+    end
     return card
 end
 
@@ -929,7 +936,7 @@ function Tabs.castbar(page, unit)
         tip = L["Shows for a moment whether the cast was completed or interrupted."] }))
     card:Add(UI.Note(card, L["Enemy casts: if the game hides their times, the bar is shown full with the spell name."]))
 
-    BarCard(page, 1, L["Bar look"], function() return CB().style end, apply, {
+    BarCard(page, 1, L["Bar look"], function() return CB().style end, apply, { box = true,
         autoLabel = L["By state"], enableIf = On,
     })
 
@@ -986,7 +993,7 @@ function Tabs.extras(page, unit)
         g, s = Bind(unit, "threatBar", "text")
         card:Add(UI.Check(card, L["Show percentage"], g, s, { enableIf = TBOn }))
         PositionRows(card, TBr, apply, { unit = unit, width = true, enableIf = TBOn })
-        BarCard(page, 2, L["Threat bar look"], function() return TBr().style end, apply, {
+        BarCard(page, 2, L["Threat bar look"], function() return TBr().style end, apply, { box = true,
             autoLabel = L["Threat status"], enableIf = TBOn })
     end
 
@@ -1010,7 +1017,7 @@ function Tabs.extras(page, unit)
         g, s = Bind(unit, "combo", "height")
         card:Add(UI.Slider(card, L["Height"], 3, 20, 1, g, s, { format = Px, enableIf = On }))
         PositionRows(card, Combo, apply, { unit = unit, width = true, enableIf = On })
-        BarCard(page, 1, L["Combo points look"], function() return Combo().style end, apply, { enableIf = On })
+        BarCard(page, 1, L["Combo points look"], function() return Combo().style end, apply, { box = true, enableIf = On })
     end
 
     if unit == "player" then
@@ -1026,7 +1033,7 @@ function Tabs.extras(page, unit)
         g, s = Bind(unit, "altMana", "text")
         card:Add(UI.Check(card, L["Show numbers"], g, s, { enableIf = AMOn }))
         PositionRows(card, AM, apply, { unit = unit, width = true, enableIf = AMOn })
-        BarCard(page, 1, L["Druid mana look"], function() return AM().style end, apply, {
+        BarCard(page, 1, L["Druid mana look"], function() return AM().style end, apply, { box = true,
             autoLabel = L["Power type"], enableIf = AMOn })
 
         local function GC() return U(unit).gcd end
@@ -1037,7 +1044,7 @@ function Tabs.extras(page, unit)
         g, s = Bind(unit, "gcd", "height")
         card:Add(UI.Slider(card, L["Height"], 2, 16, 1, g, s, { format = Px, enableIf = GCOn }))
         PositionRows(card, GC, apply, { unit = unit, width = true, enableIf = GCOn })
-        BarCard(page, 2, L["Global cooldown look"], function() return GC().style end, apply, { enableIf = GCOn })
+        BarCard(page, 2, L["Global cooldown look"], function() return GC().style end, apply, { box = true, enableIf = GCOn })
 
         local function XP() return U(unit).xp end
         local function On() return XP().enabled end
@@ -1051,7 +1058,7 @@ function Tabs.extras(page, unit)
         g, s = Bind(unit, "xp", "height")
         card:Add(UI.Slider(card, L["Height"], 4, 24, 1, g, s, { format = Px, enableIf = On }))
         PositionRows(card, XP, apply, { unit = unit, width = true, enableIf = On })
-        BarCard(page, 1, L["Experience bar look"], function() return XP().style end, apply, { enableIf = On })
+        BarCard(page, 1, L["Experience bar look"], function() return XP().style end, apply, { box = true, enableIf = On })
         card = page:Add(2, UI.Card(page.content, L["Experience text"]))
         g, s = Bind(unit, "xp", "text")
         card:Add(UI.Check(card, L["Show numbers"], g, s, { enableIf = On }))
