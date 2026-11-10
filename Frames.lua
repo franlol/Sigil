@@ -224,9 +224,10 @@ end
 -- Texts shown only on mouseover or out of combat
 function ns.UpdateTextVisibility(f)
     local combat = InCombatLockdown()
+    local over = ns.FrameHover(f) -- the frame or any of its parts (as Hover())
     for _, t in ipairs(f.texts) do
         local show = t.cfg.show or "always"
-        local on = show == "always" or (show == "mouseover" and f.hover) or (show == "nomouseover" and not f.hover)
+        local on = show == "always" or (show == "mouseover" and over) or (show == "nomouseover" and not over)
             or (show == "ooc" and not combat)
             or ns.testMode
         t.fs:SetAlpha(on and 1 or 0)
@@ -437,7 +438,8 @@ local function Build(unit)
     -- Every POLL seconds: range, and everything for the units without events
     local elapsed, hoverElapsed = 0, 0
     f:HookScript("OnUpdate", function(self, dt)
-        -- texts using Hover(): refreshed when the mouse moves between parts
+        -- texts using Hover() or shown on mouseover: refreshed when the mouse
+        -- moves between the frame and its parts
         if self.usesHover then
             hoverElapsed = hoverElapsed + dt
             if hoverElapsed >= 0.05 then
@@ -446,6 +448,7 @@ local function Build(unit)
                 if state ~= self.hoverState then
                     self.hoverState = state
                     ns.UpdateTexts(self)
+                    ns.UpdateTextVisibility(self)
                 end
             end
         end
@@ -498,7 +501,9 @@ function ns.BuildTexts(f)
         fs:SetText("")
         fs:Show()
         local fn, err = ns.CompileText(cfg.code)
-        if (cfg.code or ""):find("Hover%s*%(") then f.usesHover = true end
+        if (cfg.code or ""):find("Hover%s*%(") or cfg.show == "mouseover" or cfg.show == "nomouseover" then
+            f.usesHover = true
+        end
         if not fn then ns.Print(L["Error in a text of %s: %s"]:format(f.unit, tostring(err))) end
         local t = { fs = fs, fn = fn, cfg = cfg }
         f.texts[#f.texts + 1] = t

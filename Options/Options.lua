@@ -443,7 +443,7 @@ local HELP = {
         { "Threat(unit)", "Threat percentage, or nothing" },
     } },
     { "Mouse", {
-        { "Hover()", "Mouse over this frame" },
+        { "Hover()", "Mouse over this frame or any of its parts" },
         { "Hover(\"power\")", "Mouse over a part: \"health\", \"power\", \"portrait\", \"castbar\"..." },
     } },
     { "Format", {

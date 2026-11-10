@@ -206,17 +206,8 @@ end
 
 local Over = ns.MouseOver
 
--- Mouse over this frame (Hover()) or over one of its parts (Hover("power")).
--- Texts that use it are refreshed whenever the mouse moves between parts.
-local current -- the frame whose text is running now (set by ns.RunText)
-function H.Hover(part)
-    local f = current
-    if not f then return false end
-    if part == nil or part == "frame" then return f.hover and true or false end
-    return Over(Part(f, part))
-end
-
--- Which parts the mouse is over now, as one string (changes = refresh)
+-- Which parts the mouse is over now, as one string (changes = refresh).
+-- "" = not over the frame nor any of its parts (attached or detached).
 function ns.HoverState(f)
     local s = f.hover and "f" or ""
     for key in pairs(PARTS) do
@@ -226,6 +217,22 @@ function ns.HoverState(f)
         if Over(e.region) then s = s .. "|" .. key end
     end
     return s
+end
+
+-- Mouse over the frame: the frame itself or any of its parts, even a part
+-- placed away from it. Used by Hover() and the Mouseover show options.
+function ns.FrameHover(f)
+    return ns.HoverState(f) ~= ""
+end
+
+-- Mouse over this frame (Hover()) or over one of its parts (Hover("power")).
+-- Texts that use it are refreshed whenever the mouse moves between parts.
+local current -- the frame whose text is running now (set by ns.RunText)
+function H.Hover(part)
+    local f = current
+    if not f then return false end
+    if part == nil or part == "frame" then return ns.FrameHover(f) end
+    return Over(Part(f, part))
 end
 
 -- Text in a color: Colorize("hello", 1, 0, 0)
