@@ -370,6 +370,7 @@ ns.translations.esES = {
     ["Bar color, darker"] = "Color de la barra, más oscuro",
     ["Background color"] = "Color del fondo",
     ["Background opacity"] = "Opacidad del fondo",
+    ["Bar opacity"] = "Opacidad de la barra",
     ["Orientation"] = "Orientación",
     ["Fill in reverse"] = "Rellenar al revés",
     ["Spark at the end of the fill"] = "Chispa al final del relleno",

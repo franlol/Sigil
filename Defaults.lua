@@ -129,7 +129,7 @@ end
 --   border / borderColor: the box around bars that have one (cast bar, GCD...)
 function ns.BarStyle(color, extra)
     local st = {
-        texture = false, color = color or "auto", custom = { r = 0.2, g = 0.75, b = 0.3 },
+        texture = false, color = color or "auto", custom = { r = 0.2, g = 0.75, b = 0.3 }, alpha = 1, -- alpha: fill opacity
         bg = "auto", bgCustom = { r = 0.1, g = 0.1, b = 0.1 }, bgBrightness = 0.25, bgAlpha = 0.9,
         orientation = "HORIZONTAL", reverse = false, spark = false,
         border = 1, borderColor = { r = 0, g = 0, b = 0, a = 1 }, -- boxed bars: border (px, 0 = none)

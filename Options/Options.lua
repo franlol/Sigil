@@ -167,6 +167,8 @@ local function BarCard(page, column, title, getStyle, apply, opts)
     card:Add(UI.Segmented(card, L["Color"], colors, g, s, { enableIf = on, tip = opts.autoTip }))
     card:Add(UI.Swatch(card, L["Custom color"], function() return getStyle().custom end, apply,
         { enableIf = Both(on, Is("color", "custom")) }))
+    g, s = TB(getStyle, "alpha", apply)
+    card:Add(UI.Slider(card, L["Bar opacity"], 0, 1, 0.05, g, s, { format = UI.pct, enableIf = on }))
     g, s = TB(getStyle, "bg", apply)
     card:Add(UI.Segmented(card, L["Background"], { { "auto", L["Bar color, darker"] }, { "custom", L["Custom"] } },
         g, s, { enableIf = on }))

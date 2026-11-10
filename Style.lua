@@ -118,6 +118,7 @@ end
 function ns.PaintBar(bar, st, r, g, b)
     if st.color == "custom" and st.custom then r, g, b = st.custom.r, st.custom.g, st.custom.b end
     bar:SetStatusBarColor(r, g, b)
+    bar:GetStatusBarTexture():SetAlpha(st.alpha or 1)
     if bar.bg then
         if st.bg == "custom" and st.bgCustom then
             bar.bg:SetVertexColor(st.bgCustom.r, st.bgCustom.g, st.bgCustom.b, st.bgAlpha or 0.9)

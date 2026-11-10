@@ -93,7 +93,7 @@ function ns.UpdateColor(f)
     local state = StateKey(f.unit)
     if state then
         local r, g, b = ns.StateRGB(state)
-        ns.PaintBar(f.health, { bg = st.bg, bgCustom = st.bgCustom, bgBrightness = st.bgBrightness, bgAlpha = st.bgAlpha }, r, g, b)
+        ns.PaintBar(f.health, { bg = st.bg, bgCustom = st.bgCustom, bgBrightness = st.bgBrightness, bgAlpha = st.bgAlpha, alpha = st.alpha }, r, g, b)
         return
     end
     if st.color == "gradient" then
@@ -105,6 +105,7 @@ function ns.UpdateColor(f)
                 if fake then color = curve:Evaluate(fake.hp / fake.maxhp)
                 else color = UnitHealthPercent(f.unit, false, curve) end
                 f.health:GetStatusBarTexture():SetVertexColor(color:GetRGB())
+                f.health:GetStatusBarTexture():SetAlpha(st.alpha or 1)
             end)
             if ok then
                 -- the background cannot be darkened from a hidden color: neutral dark
