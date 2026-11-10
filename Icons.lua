@@ -31,14 +31,17 @@ local function SetTex(tex, path, l, r, t, b)
 end
 
 -- Pet happiness: 1 unhappy, 2 content, 3 happy (nil = no data).
--- GetPetHappiness if the client has it, else the happiness power (type 4).
-local HAPPINESS_POWER = Enum and Enum.PowerType and Enum.PowerType.Happiness or 4
+-- C_PetInfo.GetPetHappiness (Forever) or GetPetHappiness, else the happiness power (only if the
+-- client names one: power type 4 is combo points in the modern UI).
+local HAPPINESS_POWER = Enum and Enum.PowerType and Enum.PowerType.Happiness
 local function PetHappiness(u)
     if u ~= "pet" or not R(UnitExists(u)) then return nil end
-    if GetPetHappiness then
-        local h = R(GetPetHappiness())
-        if h then return h end
+    local get = (C_PetInfo and C_PetInfo.GetPetHappiness) or GetPetHappiness
+    if get then
+        local h = R(get())
+        if type(h) == "number" and h >= 1 and h <= 3 then return h end
     end
+    if not HAPPINESS_POWER then return nil end
     local cur, max = R(UnitPower(u, HAPPINESS_POWER)), R(UnitPowerMax(u, HAPPINESS_POWER))
     if not (cur and max and max > 0) then return nil end
     local pct = cur / max
