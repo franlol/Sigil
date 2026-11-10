@@ -313,26 +313,33 @@ end
 -------------------------------------------------------------------------------
 local GCD_SPELL = 61304
 
+-- Every line goes to the chat and to SigilDB.gcdProbe (read after /reload)
+local function Out(line)
+    print(line)
+    ns.db.gcdProbe = ns.db.gcdProbe or {}
+    table.insert(ns.db.gcdProbe, line)
+end
+
 local function Show(label, v)
     if ns.S(v) then
-        print("  " .. label .. ": SECRET " .. type(v))
+        Out("  " .. label .. ": SECRET " .. type(v))
     else
-        print("  " .. label .. ": " .. tostring(v))
+        Out("  " .. label .. ": " .. tostring(v))
     end
 end
 
 function ns.ProbeGCD(spellID)
     spellID = spellID or GCD_SPELL
-    ns.Print("GCD " .. spellID .. " (" .. tostring((ns.GetSpellName(spellID))) .. ")")
+    Out("GCD " .. spellID .. " (" .. tostring((ns.GetSpellName(spellID))) .. ")")
     if not (C_Spell and C_Spell.GetSpellCooldown) then
-        print("  C_Spell.GetSpellCooldown: MISSING")
+        Out("  C_Spell.GetSpellCooldown: MISSING")
         return
     end
     local ok, info = pcall(C_Spell.GetSpellCooldown, spellID)
     if not ok then
-        print("  GetSpellCooldown: ERROR " .. tostring(info))
+        Out("  GetSpellCooldown: ERROR " .. tostring(info))
     elseif not info then
-        print("  GetSpellCooldown: nil")
+        Out("  GetSpellCooldown: nil")
     else
         Show("startTime", info.startTime)
         Show("duration", info.duration)
@@ -341,14 +348,14 @@ function ns.ProbeGCD(spellID)
     end
     if C_Spell.GetSpellCooldownDuration then
         local ok2, d = pcall(C_Spell.GetSpellCooldownDuration, spellID)
-        print("  GetSpellCooldownDuration: " .. (ok2 and (d and (ns.S(d) and "SECRET object" or "object") or "nil") or ("ERROR " .. tostring(d))))
+        Out("  GetSpellCooldownDuration: " .. (ok2 and (d and (ns.S(d) and "SECRET object" or "object") or "nil") or ("ERROR " .. tostring(d))))
         if ok2 and d then
             local bar = ns.probeBar or CreateFrame("StatusBar")
             local ok3, err = pcall(bar.SetTimerDuration, bar, d)
-            print("  StatusBar:SetTimerDuration: " .. (ok3 and "ok" or ("ERROR " .. tostring(err))))
+            Out("  StatusBar:SetTimerDuration: " .. (ok3 and "ok" or ("ERROR " .. tostring(err))))
         end
     else
-        print("  C_Spell.GetSpellCooldownDuration: MISSING")
+        Out("  C_Spell.GetSpellCooldownDuration: MISSING")
     end
 end
 
@@ -357,6 +364,7 @@ end
 -- after it), a moment later so the game has updated the cooldowns
 function ns.ProbeNextGCD()
     ns.Print(L["Cast any spell: the global cooldown is probed right after it."])
+    ns.db.gcdProbe = {}
     local w = ns.gcdProbeWatcher or CreateFrame("Frame")
     ns.gcdProbeWatcher = w
     w:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
@@ -367,6 +375,16 @@ function ns.ProbeNextGCD()
             ns.ProbeGCD()
             -- the spell cast: its cooldown is the global one when it has none of its own
             if castID then ns.ProbeGCD(castID) end
+            -- the old API, if the client has it
+            if GetSpellCooldown then
+                local ok, st, dur = pcall(GetSpellCooldown, GCD_SPELL)
+                Out("  GetSpellCooldown(61304) old API: " .. (ok and (tostring(st) .. " / " .. tostring(dur)) or "ERROR"))
+                if castID then
+                    ok, st, dur = pcall(GetSpellCooldown, castID)
+                    Out("  GetSpellCooldown(cast) old API: " .. (ok and (tostring(st) .. " / " .. tostring(dur)) or "ERROR"))
+                end
+            end
+            ns.Print(L["Type /reload to write it to disk."])
         end)
     end)
 end
