@@ -13,7 +13,18 @@ local R = ns.R
 
 local STATE = "Interface\\CharacterFrame\\UI-StateIcon"
 
+-- A texture file or an atlas name (the game's globals can be either,
+-- depending on the client: READY_CHECK_*_TEXTURE are atlases in the modern UI)
+local function IsAtlas(name)
+    return C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(name) ~= nil
+end
+
 local function SetTex(tex, path, l, r, t, b)
+    if IsAtlas(path) then
+        tex:SetTexCoord(0, 1, 0, 1)
+        tex:SetAtlas(path)
+        return
+    end
     tex:SetTexture(path)
     if l then tex:SetTexCoord(l, r, t, b) else tex:SetTexCoord(0, 1, 0, 1) end
 end
@@ -112,8 +123,7 @@ local ICONS = {
             local s = test and 1 or R(C_IncomingSummon.IncomingSummonStatus(u))
             local atlas = s == 2 and "Raid-Icon-SummonAccepted" or s == 3 and "Raid-Icon-SummonDeclined"
                 or "Raid-Icon-SummonPending"
-            tex:SetTexCoord(0, 1, 0, 1)
-            tex:SetAtlas(atlas)
+            SetTex(tex, atlas)
         end,
     },
     phase = {
