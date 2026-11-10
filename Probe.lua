@@ -323,7 +323,7 @@ end
 
 function ns.ProbeGCD(spellID)
     spellID = spellID or GCD_SPELL
-    ns.Print("GCD " .. spellID .. " (" .. tostring(ns.GetSpellName(spellID)) .. ")")
+    ns.Print("GCD " .. spellID .. " (" .. tostring((ns.GetSpellName(spellID))) .. ")")
     if not (C_Spell and C_Spell.GetSpellCooldown) then
         print("  C_Spell.GetSpellCooldown: MISSING")
         return
@@ -359,8 +359,10 @@ function ns.ProbeNextGCD()
     local w = ns.gcdProbeWatcher or CreateFrame("Frame")
     ns.gcdProbeWatcher = w
     w:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-    w:SetScript("OnEvent", function(self)
+    w:SetScript("OnEvent", function(self, _, _, _, castID)
         self:UnregisterAllEvents()
         ns.ProbeGCD()
+        -- the spell just cast: its cooldown is the global one when it has none of its own
+        if castID then ns.ProbeGCD(castID) end
     end)
 end
