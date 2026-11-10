@@ -475,7 +475,7 @@ function Tabs.texts(page, unit)
     local function Sel() return Texts()[state.sel] end
 
     -- list
-    local list = page:Add(1, UI.Card(page.content, L["Texts of this frame"], L["Click one to edit it."]))
+    local list = page:Add(1, UI.Card(page.content, L["Texts"], L["Click to edit · drag to reorder"]))
     list:Add(SelectList(list, Texts, TextLabel, function() return state.sel end, function(i)
         state.sel = i
         if page.LoadEditor then page.LoadEditor() end

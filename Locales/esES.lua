@@ -93,8 +93,7 @@ ns.translations.esES = {
     ["Color of the empty part of the bars, compared with the filled part."] = "Color de la parte vacía de las barras, comparado con la parte llena.",
 
     -- Options: Texts tab
-    ["Texts of this frame"] = "Textos de este marco",
-    ["Click one to edit it."] = "Pulsa uno para editarlo.",
+    ["Click to edit · drag to reorder"] = "Pulsa para editar · arrastra para ordenar",
     ["Template"] = "Plantilla",
     ["Add text"] = "Añadir texto",
     ["Delete selected"] = "Borrar el seleccionado",
