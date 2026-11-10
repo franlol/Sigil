@@ -847,7 +847,7 @@ local ICON_NAMES = {
     combat = "In combat", resting = "Resting", leader = "Group leader", assistant = "Raid assistant",
     masterLooter = "Master looter", role = "Role", raidTarget = "Raid target", pvp = "PvP",
     readyCheck = "Ready check", resurrect = "Being resurrected", summon = "Summon", phase = "Other phase",
-    questBoss = "Quest boss",
+    questBoss = "Quest boss", happiness = "Pet happiness",
 }
 
 function Tabs.icons(page, unit)

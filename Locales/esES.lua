@@ -344,6 +344,7 @@ ns.translations.esES = {
     ["Summon"] = "Invocación",
     ["Other phase"] = "Otra fase",
     ["Quest boss"] = "Jefe de misión",
+    ["Pet happiness"] = "Felicidad de la mascota",
 
     -- Experience, totems
     ["Experience / reputation"] = "Experiencia / reputación",

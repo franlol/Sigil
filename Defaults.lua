@@ -111,6 +111,7 @@ local function Icons(on, where)
         summon = Icon(false, "CENTER", 0, 0, 26),
         phase = Icon(false, "CENTER", 0, 0, 22),
         questBoss = Icon(false, "BOTTOMRIGHT", -2, 2, 16),
+        happiness = Icon(false, "RIGHT", 10, 0, 16),
     }
     for key, v in pairs(where or {}) do
         for k, val in pairs(v) do base[key][k] = val end
@@ -292,7 +293,7 @@ ns.DEFAULTS = {
                 Text(PERCENT, { events = { "UNIT_HEALTH", "UNIT_MAXHEALTH" } }),
             },
             auras = { enabled = false, groups = { Group("Buffs", "HELPFUL", { size = 16, perRow = 8, max = 8 }) } },
-            icons = Icons({ "raidTarget" }, { raidTarget = { size = 14 } }),
+            icons = Icons({ "raidTarget", "happiness" }, { raidTarget = { size = 14 } }),
             fader = Fader(false, 0.5),
             castbar = Castbar(false, true, 12),
             threat = Threat(false),

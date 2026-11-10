@@ -1,7 +1,8 @@
 -------------------------------------------------------------------------------
 -- Sigil - Status icons
 --   combat, resting, leader, assistant, master looter, role, raid target,
---   PvP, ready check, incoming resurrection, summon, phase, quest boss
+--   PvP, ready check, incoming resurrection, summon, phase, quest boss,
+--   pet happiness
 --
 -- Each icon is centered on a point of the frame (its corner, edge...) plus
 -- an offset. Test mode shows all the enabled ones. Textures are the game's
@@ -27,6 +28,21 @@ local function SetTex(tex, path, l, r, t, b)
     end
     tex:SetTexture(path)
     if l then tex:SetTexCoord(l, r, t, b) else tex:SetTexCoord(0, 1, 0, 1) end
+end
+
+-- Pet happiness: 1 unhappy, 2 content, 3 happy (nil = no data).
+-- GetPetHappiness if the client has it, else the happiness power (type 4).
+local HAPPINESS_POWER = Enum and Enum.PowerType and Enum.PowerType.Happiness or 4
+local function PetHappiness(u)
+    if u ~= "pet" or not R(UnitExists(u)) then return nil end
+    if GetPetHappiness then
+        local h = R(GetPetHappiness())
+        if h then return h end
+    end
+    local cur, max = R(UnitPower(u, HAPPINESS_POWER)), R(UnitPowerMax(u, HAPPINESS_POWER))
+    if not (cur and max and max > 0) then return nil end
+    local pct = cur / max
+    return pct < 1 / 3 and 1 or pct < 2 / 3 and 2 or 3
 end
 
 -- Ready check: it stays a few seconds after it ends
@@ -134,11 +150,20 @@ local ICONS = {
         active = function(u) return R(UnitIsQuestBoss(u)) and true or false end,
         apply = function(tex) SetTex(tex, "Interface\\TargetingFrame\\PortraitQuestBadge") end,
     },
+    happiness = {
+        active = function(u) return PetHappiness(u) ~= nil end,
+        apply = function(tex, u, test)
+            local h = test and 3 or PetHappiness(u) or 3
+            -- happy, content, unhappy faces side by side
+            local l = (3 - h) * 0.1875
+            SetTex(tex, "Interface\\PetPaperDollFrame\\UI-PetHappiness", l, l + 0.1875, 0, 0.359375)
+        end,
+    },
 }
 
 ns.ICON_KEYS = {
     "combat", "resting", "leader", "assistant", "masterLooter", "role", "raidTarget",
-    "pvp", "readyCheck", "resurrect", "summon", "phase", "questBoss",
+    "pvp", "readyCheck", "resurrect", "summon", "phase", "questBoss", "happiness",
 }
 
 function ns.LayoutIcons(f)
@@ -184,7 +209,7 @@ for _, ev in ipairs({
     "PARTY_LEADER_CHANGED", "GROUP_ROSTER_UPDATE", "RAID_TARGET_UPDATE", "PARTY_LOOT_METHOD_CHANGED",
     "PLAYER_ROLES_ASSIGNED", "READY_CHECK_CONFIRM", "INCOMING_RESURRECT_CHANGED",
     "INCOMING_SUMMON_CHANGED", "UNIT_PHASE", "UNIT_CLASSIFICATION_CHANGED",
-    "UNIT_FLAGS", "UNIT_FACTION",
+    "UNIT_FLAGS", "UNIT_FACTION", "UNIT_HAPPINESS", "PET_UI_UPDATE",
 }) do
     ns.On(ev, function(f) ns.UpdateIcons(f) end)
 end
@@ -197,4 +222,9 @@ ns.On("READY_CHECK_FINISHED", function(f)
     readyUntil = GetTime() + 6
     ns.UpdateIcons(f)
     C_Timer.After(6.1, function() ns.UpdateIcons(f) end)
+end)
+
+-- Happiness can also come as a power update: only the pet frame cares
+ns.On("UNIT_POWER_UPDATE", function(f, _, powerType)
+    if f.unit == "pet" and (powerType == nil or powerType == "HAPPINESS") then ns.UpdateIcons(f) end
 end)
