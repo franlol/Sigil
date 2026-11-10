@@ -362,6 +362,7 @@ local P_ = ns.DEFAULTS.units
 P_.player.combatText = CombatText(true, "CENTER", "LEFT", 26)
 P_.player.altMana = SmallBar(true, "BOTTOMLEFT", "TOPLEFT", 2, 6)
 P_.player.gcd = SmallBar(false, "TOPLEFT", "BOTTOMLEFT", -24, 4, Bar("custom", { custom = { r = 1, g = 1, b = 1 } }))
+P_.player.gcd.fillUp = false
 P_.player.castbar.latency = true
 P_.target.combatText = CombatText(true, "CENTER", "RIGHT", -26)
 P_.target.threatBar = SmallBar(false, "BOTTOMLEFT", "TOPLEFT", 22, 8, nil, true)

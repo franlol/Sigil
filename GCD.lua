@@ -25,7 +25,7 @@ local function Build(f)
             self:Hide()
             return
         end
-        self.bar:SetValue(left)
+        self.bar:SetValue(self.fillUp and self.duration - left or left)
     end)
     return g
 end
@@ -45,6 +45,7 @@ function ns.LayoutGCD(f)
     ns.StyleBox(g, c.style, g.bar)
     ns.StyleBar(g.bar, c.style)
     ns.PaintBar(g.bar, c.style, 1, 1, 1)
+    g.fillUp = c.fillUp and true or false
     g.test = nil
     ns.UpdateGCD(f)
 end
@@ -94,15 +95,18 @@ local function Update(_, event, _, _, spellID)
         if not duration or duration <= 0 then return end
         if fromCast and duration > MAX_GCD then return end
         g.finish = start + duration
+        g.duration = duration
         g.bar:SetMinMaxValues(0, duration)
-        g.bar:SetValue(g.finish - GetTime())
+        local left = g.finish - GetTime()
+        g.bar:SetValue(g.fillUp and duration - left or left)
         g:Show()
         return
     end
     -- hidden times: the game moves the bar
     local ok = pcall(function()
         local d = C_Spell.GetSpellCooldownDuration(id)
-        g.bar:SetTimerDuration(d, Enum.StatusBarInterpolation.Immediate, Enum.StatusBarTimerDirection.RemainingTime)
+        g.bar:SetTimerDuration(d, Enum.StatusBarInterpolation.Immediate,
+            g.fillUp and Enum.StatusBarTimerDirection.ElapsedTime or Enum.StatusBarTimerDirection.RemainingTime)
     end)
     if ok then
         g.finish = nil
