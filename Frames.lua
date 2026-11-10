@@ -736,6 +736,8 @@ function ns.ApplyUnit(key)
             end
         end
     end)
+    -- the Blizzard frames and cast bars it replaces follow its options
+    ns.HideBlizzard()
 end
 
 function ns.ApplyAll()

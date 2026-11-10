@@ -909,7 +909,7 @@ function Tabs.castbar(page, unit)
     if unit == "player" or unit == "pet" then
         g, s = Bind(unit, "castbar", "hideBlizzard")
         card:Add(UI.Check(card, L["Hide the game's cast bar"], g, s, {
-            enableIf = On, tip = L["Turning it off brings it back after /reload."],
+            enableIf = On,
         }))
     end
     g, s = Bind(unit, "castbar", "icon")
