@@ -32,7 +32,7 @@
 --   UI.RefreshAll()).
 -------------------------------------------------------------------------------
 
-local MAJOR, MINOR = "LibFlatyUI-1.0", 1
+local MAJOR, MINOR = "LibFlatyUI-1.0", 3
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -445,8 +445,8 @@ function lib:New(theme)
             if user and v ~= get() then set(v) end
         end)
         s:SetScript("OnMouseUp", Changed)
-        s:EnableMouseWheel(true)
-        s:SetScript("OnMouseWheel", function(_, d) Commit((get() or minV) + d * step) end)
+        -- no mouse wheel: it would catch the wheel meant to scroll the page
+        -- (use the < > buttons, drag, or type the value)
 
         value:SetScript("OnEditFocusGained", function(self) self:SetText(tostring(get())) self:HighlightText() end)
         value:SetScript("OnEnterPressed", function(self)
@@ -525,36 +525,75 @@ function lib:New(theme)
     -- onScroll(position) is called when the user moves it.
     -- bar:SetRange(max, visibleFraction), bar:SetPos(position)
     ---------------------------------------------------------------------------
+    -- Built by hand (not a Slider widget): the thumb follows the cursor and
+    -- the top of the bar is always the top of the content, in every client.
     function UI.ScrollBar(parent, onScroll)
-        local bar = CreateFrame("Slider", nil, parent, "BackdropTemplate")
-        bar:SetOrientation("VERTICAL")
+        local bar = CreateFrame("Frame", nil, parent, "BackdropTemplate")
         bar:SetWidth(8)
         UI.Backdrop(bar, T.fieldDark, { 0.2, 0.2, 0.25, 1 })
-        local thumb = bar:CreateTexture(nil, "OVERLAY")
-        thumb:SetColorTexture(A[1], A[2], A[3], 0.9)
+        bar:EnableMouse(true)
+        local thumb = CreateFrame("Frame", nil, bar)
         thumb:SetSize(6, 16)
-        bar:SetThumbTexture(thumb)
+        thumb:EnableMouse(true)
+        thumb.tex = thumb:CreateTexture(nil, "OVERLAY")
+        thumb.tex:SetAllPoints()
+        thumb.tex:SetColorTexture(A[1], A[2], A[3], 0.9)
         bar.thumb = thumb
-        bar:SetMinMaxValues(0, 0)
-        bar:SetValueStep(1)
-        bar:SetObeyStepOnDrag(true)
-        bar:SetValue(0)
-        bar.cur = 0
-        bar:SetScript("OnValueChanged", function(self, v)
-            v = math.floor(v + 0.5)
-            if v == self.cur then return end
-            self.cur = v
-            onScroll(v)
+        bar.max, bar.cur = 0, 0
+
+        local function Travel() return math.max(1, bar:GetHeight() - 2 - thumb:GetHeight()) end
+        local function PlaceThumb()
+            local f = bar.max > 0 and bar.cur / bar.max or 0
+            thumb:ClearAllPoints()
+            thumb:SetPoint("TOP", bar, "TOP", 0, -1 - f * Travel())
+        end
+        local function CursorY()
+            local _, y = GetCursorPosition()
+            return y / bar:GetEffectiveScale()
+        end
+        -- position from the cursor; grab = cursor distance from the thumb top
+        local function MoveTo(y, grab)
+            local offset = (bar:GetTop() - 1) - y - grab
+            local v = math.floor(math.max(0, math.min(1, offset / Travel())) * bar.max + 0.5)
+            if v ~= bar.cur then
+                bar.cur = v
+                PlaceThumb()
+                onScroll(v)
+            end
+        end
+        local function StartDrag(grab)
+            thumb:SetScript("OnUpdate", function()
+                if not IsMouseButtonDown("LeftButton") then
+                    thumb:SetScript("OnUpdate", nil)
+                    return
+                end
+                MoveTo(CursorY(), grab)
+            end)
+        end
+        thumb:SetScript("OnMouseDown", function(_, button)
+            if button ~= "LeftButton" then return end
+            StartDrag(thumb:GetTop() - CursorY())
         end)
+        thumb:SetScript("OnMouseUp", function() thumb:SetScript("OnUpdate", nil) end)
+        -- click on the track: the thumb jumps there (centered) and can be dragged
+        bar:SetScript("OnMouseDown", function(_, button)
+            if button ~= "LeftButton" then return end
+            local grab = thumb:GetHeight() / 2
+            MoveTo(CursorY(), grab)
+            StartDrag(grab)
+        end)
+        bar:SetScript("OnSizeChanged", PlaceThumb)
+
         function bar:SetRange(max, frac)
-            max = math.max(0, math.floor((max or 0) + 0.5))
-            self:SetMinMaxValues(0, max)
-            self.thumb:SetHeight(math.max(16, (self:GetHeight() - 2) * math.min(1, frac or 1)))
-            self:SetShown(max > 0)
+            self.max = math.max(0, math.floor((max or 0) + 0.5))
+            thumb:SetHeight(math.max(16, (self:GetHeight() - 2) * math.min(1, frac or 1)))
+            if self.cur > self.max then self.cur = self.max end
+            PlaceThumb()
+            self:SetShown(self.max > 0)
         end
         function bar:SetPos(v)
-            self.cur = math.floor((v or 0) + 0.5)
-            self:SetValue(self.cur)
+            self.cur = math.max(0, math.min(self.max, math.floor((v or 0) + 0.5)))
+            PlaceThumb()
         end
         return bar
     end
