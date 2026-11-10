@@ -48,6 +48,18 @@ end
 -------------------------------------------------------------------------------
 -- Drag boxes
 -------------------------------------------------------------------------------
+-- Puts the box where the piece is, from the piece's own settings (never
+-- anchored to the piece: a text showing a secret value has a secret place,
+-- and anything anchored to it would get secret sizes too)
+local function PlaceMover(m)
+    local e = m.entry
+    local pos = e.pos
+    local p = pos.point or "CENTER"
+    local ratio = ns.PieceScale(e.region) / UIParent:GetEffectiveScale()
+    m:ClearAllPoints()
+    m:SetPoint(p, pos.anchor == "screen" and UIParent or m.frame, pos.relPoint or p, (pos.x or 0) * ratio, (pos.y or 0) * ratio)
+end
+
 local function NewMover(f, entry)
     local m = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
     m:SetFrameStrata("HIGH")
@@ -69,6 +81,7 @@ local function NewMover(f, entry)
             e.pos.x = math.floor(x0 + (x - cx) / s + 0.5)
             e.pos.y = math.floor(y0 + (y - cy) / s + 0.5)
             ns.Place(e.region, self.frame, e.pos)
+            PlaceMover(self)
         end)
     end)
     m:SetScript("OnDragStop", function(self)
@@ -107,8 +120,7 @@ function ns.RefreshMovers(f)
             local ratio = ns.PieceScale(region) / UIParent:GetEffectiveScale()
             local w, h = ns.R(region:GetWidth()) or 0, ns.R(region:GetHeight()) or 0
             m:SetSize(math.max(MIN_W, w * ratio), math.max(MIN_H, h * ratio))
-            m:ClearAllPoints()
-            m:SetPoint("CENTER", region, "CENTER")
+            PlaceMover(m)
             m:Show()
         elseif m then
             m:Hide()
