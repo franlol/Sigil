@@ -2,7 +2,8 @@
 -- Sigil - Threat: a colored border around the frame
 --   player frame: your highest threat on any enemy
 --   other frames: your threat on that unit
--- Colors are the game's (yellow, orange, red). Hidden without threat.
+-- Colors: Colors page (the game's yellow, orange, red by default). Hidden
+-- without threat.
 -------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -32,6 +33,14 @@ function ns.LayoutThreat(f)
     t:Hide()
 end
 
+-- Color of a threat status 1-3 (Colors page: Threat)
+local THREAT_KEYS = { "high", "insecure", "tanking" }
+function ns.ThreatRGB(status)
+    local c = ns.Color("threat", THREAT_KEYS[status])
+    if c then return c.r, c.g, c.b end
+    return 1, 1, 1
+end
+
 -- Threat status 0-3 (nil if none or hidden by the game)
 local function Status(f)
     if f.unit == "player" then return R(UnitThreatSituation("player")) end
@@ -45,12 +54,12 @@ function ns.UpdateThreat(f)
     if not t or not f.cfg.threat or not f.cfg.threat.enabled then return end
     local status
     if ns.Fake(f.unit) or (ns.testMode and f.unit == "target") then
-        status = 2
+        status = 3 -- test mode: tanking
     else
         status = Status(f)
     end
-    if status and status > 0 and GetThreatStatusColor then
-        t:SetBackdropBorderColor(GetThreatStatusColor(status))
+    if status and status > 0 then
+        t:SetBackdropBorderColor(ns.ThreatRGB(status))
         t:Show()
     else
         t:Hide()
@@ -97,7 +106,7 @@ function ns.UpdateThreatBar(f)
     if not b or not c or not c.enabled or f.unit == "player" then return end
     local status, pct
     if ns.Fake(f.unit) or ns.testMode then
-        status, pct = 2, 75
+        status, pct = 3, 75 -- test mode: tanking
     elseif R(UnitCanAttack("player", f.unit)) then
         local _, st, scaled = UnitDetailedThreatSituation("player", f.unit)
         status, pct = R(st), R(scaled)
@@ -106,8 +115,7 @@ function ns.UpdateThreatBar(f)
         b:Hide()
         return
     end
-    local r, g, bl = 1, 1, 1
-    if GetThreatStatusColor then r, g, bl = GetThreatStatusColor(status) end
+    local r, g, bl = ns.ThreatRGB(status)
     ns.PaintBar(b.bar, c.style, r, g, bl)
     b.bar:SetValue(pct)
     b.text:SetFormattedText("%d%%", pct)

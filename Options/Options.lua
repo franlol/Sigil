@@ -1124,6 +1124,9 @@ local function ColorsPage(container)
         { "interrupted", L["Interrupted"] }, { "done", L["Completed"] }, { "latency", L["Latency"] },
     })
 
+    card = page:Add(2, UI.Card(page.content, L["Threat"], L["Border and threat bar."]))
+    Swatches(card, "threat", { { "high", L["About to pull aggro"] }, { "insecure", L["Tanking, not secure"] }, { "tanking", L["Tanking"] } })
+
     card = page:Add(1, UI.Card(page.content, L["Highlight"], L["Also the glow of auras that should be renewed."]))
     Swatches(card, "highlight", { { "mouseover", L["Mouseover"] }, { "target", L["Your target"] } }, true)
 

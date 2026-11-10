@@ -370,6 +370,14 @@ P_.target.threatBar = SmallBar(false, "BOTTOMLEFT", "TOPLEFT", 22, 8, nil, true)
 -------------------------------------------------------------------------------
 local function C(r, g, b, a) return { r = r, g = g, b = b, a = a } end
 
+local function ThreatColor(status, fr, fg, fb)
+    if GetThreatStatusColor then
+        local r, g, b = GetThreatStatusColor(status)
+        if r then return C(r, g, b) end
+    end
+    return C(fr, fg, fb)
+end
+
 local function GameColor(t, fr, fg, fb)
     if t then return C(t.r, t.g, t.b) end
     return C(fr, fg, fb)
@@ -407,4 +415,6 @@ ns.DEFAULTS.colors = {
         interrupted = C(0.9, 0.2, 0.2), done = C(0.3, 0.85, 0.3), latency = C(1, 0.15, 0.15, 0.6),
     },
     highlight = { mouseover = C(1, 1, 1, 0.5), target = C(1, 0.85, 0.3, 1) },
+    -- threat status 1-3, from the game's own colors
+    threat = { high = ThreatColor(1, 1, 1, 0.47), insecure = ThreatColor(2, 1, 0.6, 0), tanking = ThreatColor(3, 1, 0, 0) },
 }
