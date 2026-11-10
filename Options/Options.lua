@@ -444,7 +444,7 @@ local HELP = {
     } },
     { "Mouse", {
         { "Hover()", "Mouse over this frame" },
-        { "Hover(part)", "Mouse over a part: health, power, portrait, castbar..." },
+        { "Hover(\"power\")", "Mouse over a part: \"health\", \"power\", \"portrait\", \"castbar\"..." },
     } },
     { "Format", {
         { "Short(number)", "Short number: 12.3K, 1.2M" },
