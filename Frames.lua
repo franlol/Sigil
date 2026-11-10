@@ -272,6 +272,7 @@ function ns.UpdateAll(f)
     ns.UpdateExperience(f)
     ns.UpdateAltMana(f)
     ns.UpdateTotems(f)
+    ns.UpdateGCD(f)
     if ns.TestCombatText then ns.TestCombatText(f) end
 end
 

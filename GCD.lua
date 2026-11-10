@@ -45,12 +45,22 @@ function ns.LayoutGCD(f)
     ns.StyleBox(g, c.style, g.bar)
     ns.StyleBar(g.bar, c.style)
     ns.PaintBar(g.bar, c.style, 1, 1, 1)
+    g.test = nil
+    ns.UpdateGCD(f)
+end
+
+-- Test mode shows a half-full sample bar; leaving it hides the sample
+function ns.UpdateGCD(f)
+    local g = f.gcd
+    if not g or not f.gcdOn then return end
     if ns.testMode then
         g.finish = nil
+        g.test = true
         g.bar:SetMinMaxValues(0, 1)
         g.bar:SetValue(0.5)
         g:Show()
-    else
+    elseif g.test then
+        g.test = nil
         g:Hide()
     end
 end
