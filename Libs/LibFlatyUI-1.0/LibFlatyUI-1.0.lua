@@ -32,7 +32,7 @@
 --   UI.RefreshAll()).
 -------------------------------------------------------------------------------
 
-local MAJOR, MINOR = "LibFlatyUI-1.0", 4
+local MAJOR, MINOR = "LibFlatyUI-1.0", 5
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -47,7 +47,7 @@ lib.defaultTheme = {
     windowBorder = { 0.2, 0.2, 0.25, 1 },
     header = { 0.08, 0.1, 0.15, 1 },
     nav = { 0.1, 0.1, 0.12, 1 },
-    navSelected = { 0.12, 0.3, 0.42, 1 },
+    navSelected = nil,                      -- (nil: a dark shade of the accent)
     button = { 0.15, 0.15, 0.18, 1 },
     border = { 0.25, 0.25, 0.3, 1 },
     field = { 0.05, 0.05, 0.06, 1 },
@@ -90,6 +90,7 @@ end)
 function lib:New(theme)
     local T = Merge(lib.defaultTheme, theme)
     local A = T.accent
+    T.navSelected = T.navSelected or { A[1] * 0.3, A[2] * 0.3, A[3] * 0.3, 1 }
     local UI = { theme = T, widgets = {}, pages = {}, inputs = {} }
 
     local function Register(w)
