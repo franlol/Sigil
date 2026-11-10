@@ -352,17 +352,21 @@ function ns.ProbeGCD(spellID)
     end
 end
 
--- /sigil gcd with no spell: waits for your next cast and probes right then,
--- while the global cooldown runs (typing the command takes longer than it)
+-- /sigil gcd with no spell: waits for your next cast and probes as it starts
+-- (the global cooldown starts with the cast: a spell with a cast time ends
+-- after it), a moment later so the game has updated the cooldowns
 function ns.ProbeNextGCD()
     ns.Print(L["Cast any spell: the global cooldown is probed right after it."])
     local w = ns.gcdProbeWatcher or CreateFrame("Frame")
     ns.gcdProbeWatcher = w
+    w:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
     w:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
     w:SetScript("OnEvent", function(self, _, _, _, castID)
         self:UnregisterAllEvents()
-        ns.ProbeGCD()
-        -- the spell just cast: its cooldown is the global one when it has none of its own
-        if castID then ns.ProbeGCD(castID) end
+        C_Timer.After(0.1, function()
+            ns.ProbeGCD()
+            -- the spell cast: its cooldown is the global one when it has none of its own
+            if castID then ns.ProbeGCD(castID) end
+        end)
     end)
 end
