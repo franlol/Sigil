@@ -18,18 +18,39 @@ function ns.R(v)
     return v
 end
 
--- Mouse over a frame or region: the cursor inside its rectangle. One rule
--- for everything (IsMouseOver can be secret on bars showing secret values;
--- a region whose place is secret counts as not under the mouse).
-function ns.MouseOver(region)
-    if not (region and region:IsVisible()) then return false end
+-- Rectangle of a shown frame or region on screen (pixels): left, bottom,
+-- right, top. nil if hidden or if its place is secret.
+function ns.ScreenRect(region)
+    if not (region and region:IsVisible()) then return nil end
     local l, b, w, h = region:GetRect()
     l, b, w, h = ns.R(l), ns.R(b), ns.R(w), ns.R(h)
-    if not (l and b and w and h) then return false end
-    local x, y = GetCursorPosition()
+    if not (l and b and w and h) then return nil end
     local s = region:GetEffectiveScale()
-    x, y = x / s, y / s
-    return x >= l and x <= l + w and y >= b and y <= b + h
+    return l * s, b * s, (l + w) * s, (b + h) * s
+end
+
+-- Distance from the cursor to a frame or region (pixels): 0 inside it,
+-- nil if it has no rectangle. One rule for everything (IsMouseOver can be
+-- secret on bars showing secret values).
+function ns.CursorDistance(region)
+    local l, b, r, t = ns.ScreenRect(region)
+    if not l then return nil end
+    local x, y = GetCursorPosition()
+    local dx = x < l and l - x or x > r and x - r or 0
+    local dy = y < b and b - y or y > t and y - t or 0
+    return math.sqrt(dx * dx + dy * dy)
+end
+
+function ns.MouseOver(region)
+    return ns.CursorDistance(region) == 0
+end
+
+-- A region lies inside another one (both shown, places not secret)
+function ns.RectInside(region, outer)
+    local l, b, r, t = ns.ScreenRect(region)
+    local L, B, R, T = ns.ScreenRect(outer)
+    if not (l and L) then return false end
+    return l >= L - 0.5 and b >= B - 0.5 and r <= R + 0.5 and t <= T + 0.5
 end
 
 -------------------------------------------------------------------------------

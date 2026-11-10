@@ -197,32 +197,55 @@ end
 
 -- A part of a frame by name: the bars, the portrait or any placed piece
 -- (castbar, combo, xp, gcd, altMana, threatBar, totems, combatText, aura1...)
-local PARTS = { health = "health", power = "power", portrait = "portrait" }
+-- A part is its box when it has one (a detached bar: the bar and the border
+-- around it), else the region itself.
+local PARTS = { "health", "power", "portrait" }
 local function Part(f, part)
-    if PARTS[part] then return f[PARTS[part]] end
     local e = f.pieces and f.pieces[part]
-    return e and e.region
+    if e and e.region and e.region:IsVisible() then return e.region end
+    return f[part]
 end
 
-local Over = ns.MouseOver
+-- Every part name of a frame: the bars, the portrait, the placed pieces
+local function PartNames(f)
+    local list = {}
+    for _, key in ipairs(PARTS) do list[#list + 1] = key end
+    for key in pairs(f.pieces or {}) do
+        if not tContains(PARTS, key) then list[#list + 1] = key end
+    end
+    return list
+end
 
--- Which parts the mouse is over now, as one string (changes = refresh).
--- "" = not over the frame nor any of its parts (attached or detached).
+-- The parts under the mouse, as a set. A border wraps parts: the mouse on a
+-- border (or a gap between bars) counts as the closest part it wraps.
+function ns.HoverParts(f)
+    local set, nearest, best = {}, nil, math.huge
+    local inFrame = ns.MouseOver(f)
+    for _, key in ipairs(PartNames(f)) do
+        local region = Part(f, key)
+        local d = ns.CursorDistance(region)
+        if d == 0 then
+            set[key] = true
+        elseif d and inFrame and d < best and ns.RectInside(region, f) then
+            nearest, best = key, d
+        end
+    end
+    if inFrame and not next(set) and nearest then set[nearest] = true end
+    return set
+end
+
+-- The parts under the mouse as one string (when it changes: refresh)
 function ns.HoverState(f)
-    local s = f.hover and "f" or ""
-    for key in pairs(PARTS) do
-        if Over(Part(f, key)) then s = s .. "|" .. key end
-    end
-    for key, e in pairs(f.pieces or {}) do
-        if Over(e.region) then s = s .. "|" .. key end
-    end
-    return s
+    local keys = {}
+    for key in pairs(ns.HoverParts(f)) do keys[#keys + 1] = key end
+    table.sort(keys)
+    return table.concat(keys, "|")
 end
 
--- Mouse over the frame: the frame itself or any of its parts, even a part
--- placed away from it. Used by Hover() and the Mouseover show options.
+-- Mouse over the frame: any of its parts, even one placed away from it.
+-- Used by Hover() and the Mouseover show options.
 function ns.FrameHover(f)
-    return ns.HoverState(f) ~= ""
+    return next(ns.HoverParts(f)) ~= nil
 end
 
 -- Mouse over this frame (Hover()) or over one of its parts (Hover("power")).
@@ -232,7 +255,7 @@ function H.Hover(part)
     local f = current
     if not f then return false end
     if part == nil or part == "frame" then return ns.FrameHover(f) end
-    return Over(Part(f, part))
+    return ns.HoverParts(f)[part] == true
 end
 
 -- Text in a color: Colorize("hello", 1, 0, 0)
