@@ -325,6 +325,19 @@ local function OnEvent(f, event, ...)
     local list = f.textEvents[event]
     if list then
         for _, t in ipairs(list) do ns.RunText(f, t) end
+        -- Some values (UnitHealthPercent) are updated by the game after the
+        -- event: run the texts again on the next frame to show the new value.
+        f.textRerun = f.textRerun or {}
+        local pending = next(f.textRerun) ~= nil
+        for _, t in ipairs(list) do f.textRerun[t] = true end
+        if not pending then
+            C_Timer.After(0, function()
+                local todo = f.textRerun
+                f.textRerun = {}
+                if not f:IsShown() then return end
+                for t in pairs(todo) do ns.RunText(f, t) end
+            end)
+        end
     end
 end
 
