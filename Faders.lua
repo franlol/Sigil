@@ -18,7 +18,7 @@ local function Base(f) return f.cfg.alpha or 1 end
 -- Faded for a reason that is never secret
 local function PlainFaded(f, c)
     local u = f.unit
-    if c.combat and not InCombatLockdown() then return true end
+    if c.combat and not ns.InCombat() then return true end
     if c.phase and UnitPhaseReason and R(UnitPhaseReason(u)) ~= nil then return true end
     if c.hostility == "friendly" and R(UnitIsFriend("player", u)) then return true end
     if c.hostility == "hostile" and R(UnitCanAttack("player", u)) then return true end

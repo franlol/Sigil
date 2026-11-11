@@ -190,8 +190,8 @@ end
 function H.Status(u)
     if ns.Fake(u) then return nil end
     if R(UnitIsConnected(u)) == false then return L["Offline"] end
-    if R(UnitIsGhost(u)) then return L["Ghost"] end
-    if R(UnitIsDead(u)) then return L["Dead"] end
+    if ns.IsGhost(u) then return L["Ghost"] end
+    if ns.IsDead(u) then return L["Dead"] end
     if R(UnitIsAFK(u)) then return L["AFK"] end
     return nil
 end

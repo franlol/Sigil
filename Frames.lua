@@ -65,7 +65,7 @@ end
 local function StateKey(u)
     if ns.Fake(u) then return nil end
     if R(UnitIsConnected(u)) == false then return "offline" end
-    if R(UnitIsDeadOrGhost(u)) then return "dead" end
+    if ns.IsDeadOrGhost(u) then return "dead" end
     if not R(UnitIsPlayer(u)) and R(UnitIsTapDenied(u)) then return "tapped" end
 end
 
@@ -224,7 +224,7 @@ end
 
 -- Texts shown only on mouseover or out of combat
 function ns.UpdateTextVisibility(f)
-    local combat = InCombatLockdown()
+    local combat = ns.InCombat()
     local over = ns.FrameHover(f) -- the frame or any of its parts (as Hover())
     for _, t in ipairs(f.texts) do
         local show = t.cfg.show or "always"
@@ -784,12 +784,37 @@ local function Mover(f)
     -- party 2-4 follow party 1: dragging any of them moves party 1
     local n = tonumber(f.unit:match("^party(%d)$"))
     local lead = (n and n > 1) and ns.frames.party1 or f
-    m:SetScript("OnDragStart", function()
+    -- boxes that travel with the frame being dragged (never snap to them)
+    local function Follows(o)
+        return o == lead or (lead.unit == "party1" and o.unit and o.unit:match("^party%d$") ~= nil)
+    end
+    local function Skip(box)
+        if box.entry then return Follows(box.frame) and box.entry.pos.anchor ~= "screen" end
+        return Follows(box:GetParent())
+    end
+    m:SetScript("OnDragStart", function(self)
         if InCombatLockdown() then return end
-        lead:StartMoving()
+        local p, _, rp, x0, y0 = lead:GetPoint(1)
+        local cx, cy = GetCursorPosition()
+        self.dragging = true
+        self:SetScript("OnUpdate", function()
+            local x, y = GetCursorPosition()
+            local s = lead:GetEffectiveScale()
+            local nx, ny = x0 + (x - cx) / s, y0 + (y - cy) / s
+            lead:ClearAllPoints()
+            lead:SetPoint(p, UIParent, rp, nx, ny)
+            local dx, dy = ns.SnapOffset(lead.mover or self, Skip)
+            if dx ~= 0 or dy ~= 0 then
+                local k = UIParent:GetEffectiveScale() / s
+                lead:ClearAllPoints()
+                lead:SetPoint(p, UIParent, rp, nx + dx * k, ny + dy * k)
+            end
+        end)
     end)
-    m:SetScript("OnDragStop", function()
-        lead:StopMovingOrSizing()
+    m:SetScript("OnDragStop", function(self)
+        if not self.dragging then return end
+        self.dragging = nil
+        self:SetScript("OnUpdate", nil)
         local p, _, rp, x, y = lead:GetPoint(1)
         lead.cfg.point = { p, "UIParent", rp, math.floor(x + 0.5), math.floor(y + 0.5) }
         if ns.OnFrameMoved then ns.OnFrameMoved(lead.unit) end
@@ -807,6 +832,7 @@ function ns.SetUnlocked(on)
         end
         if on ~= ns.testMode then ns.SetTestMode(on) end
         ns.RefreshAllMovers()
+        ns.ShowGrid(on)
         ns.Print(on and L["Frames unlocked: drag them. /sigil lock to finish."] or L["Frames locked."])
     end)
 end

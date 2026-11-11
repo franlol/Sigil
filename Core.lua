@@ -54,6 +54,54 @@ function ns.RectInside(region, outer)
 end
 
 -------------------------------------------------------------------------------
+-- Unit states as the player understands them
+--
+-- Some game functions answer a nearby but different question than the one an
+-- indicator shows. Icons, texts, colors and faders use these helpers, never the
+-- raw functions, so every part of the addon agrees:
+--   UnitIsPVP          also true when the realm or zone flags you on its own
+--   InCombatLockdown   protected-code lockdown, still false inside the
+--                      PLAYER_REGEN_DISABLED handlers (only for RunOOC & co.)
+--   UnitIsDead(OrGhost) also true for a hunter feigning death
+-------------------------------------------------------------------------------
+local R = ns.R
+
+-- The player is in combat (also right as PLAYER_REGEN_DISABLED fires)
+function ns.InCombat()
+    return R(UnitAffectingCombat("player")) and true or InCombatLockdown()
+end
+
+local function FeigningDeath(u)
+    return UnitIsFeignDeath and R(UnitIsFeignDeath(u)) and true or false
+end
+
+function ns.IsDead(u)
+    return R(UnitIsDead(u)) and not FeigningDeath(u) or false
+end
+
+function ns.IsGhost(u)
+    return R(UnitIsGhost(u)) and true or false
+end
+
+function ns.IsDeadOrGhost(u)
+    return ns.IsDead(u) or ns.IsGhost(u)
+end
+
+-- PvP flag: for the player, the toggle they chose (or its timer still running);
+-- the game gives no such thing for other units
+function ns.IsPvPFreeForAll(u)
+    return UnitIsPVPFreeForAll and R(UnitIsPVPFreeForAll(u)) and true or false
+end
+
+function ns.IsPvP(u)
+    if ns.IsPvPFreeForAll(u) then return true end
+    if u == "player" and GetPVPDesired then
+        return GetPVPDesired() or (IsPVPTimerRunning and IsPVPTimerRunning()) and true or false
+    end
+    return R(UnitIsPVP(u)) and true or false
+end
+
+-------------------------------------------------------------------------------
 -- Chat
 -------------------------------------------------------------------------------
 function ns.Print(msg)
@@ -189,6 +237,92 @@ end
 function ns.ResetUnit(unit)
     ns.P.units[unit] = DeepCopy(ns.DEFAULTS.units[unit])
     ns.ApplyUnit(unit)
+end
+
+-- Replaces every setting of one unit (undo of a copy)
+function ns.SetUnitSettings(unit, data)
+    ns.P.units[unit] = data
+    Fill(ns.P, ns.DEFAULTS)
+    ns.ApplyUnit(unit)
+end
+
+-------------------------------------------------------------------------------
+-- Copy settings from one frame to another, by section (the option tabs).
+-- Only what every frame has: never its position, Enabled, the Blizzard frame
+-- or the parts of one frame only (combo points, experience, party layout...).
+-------------------------------------------------------------------------------
+ns.COPY_SECTIONS = {
+    { "frame", { "width", "height", "scale", "background", "border", "borderSize", "alpha",
+        "portrait", "portraitStyle", "portraitWidth", "visibility", "visibilityCustom", "highlight" } },
+    { "bars", { "health", "power" } },
+    { "texts", { "texts" } },
+    { "auras", { "auras" } },
+    { "icons", { "icons" } },
+    { "castbar", { "castbar" } },
+    { "extras", { "fader", "threat", "threatBar", "combatText" } },
+}
+
+-- Settings a frame does not show in its options: never copied from or into it
+local HIDDEN = {
+    player = { fader = { range = true, phase = true, hostility = true }, threatBar = true },
+    target = { highlight = { target = true } },
+}
+
+local PLACE = { anchor = true, point = true, relPoint = true, x = true, y = true }
+
+local function Union(a, b)
+    if a == true or b == true then return true end
+    if not a then return b end
+    if not b then return a end
+    local u = {}
+    for k, v in pairs(a) do u[k] = v end
+    for k, v in pairs(b) do u[k] = Union(u[k], v) end
+    return u
+end
+
+-- A copied piece placed on the screen would sit on top of the original:
+-- it goes back to the frame
+local function Unscreen(t)
+    if type(t) ~= "table" then return t end
+    if t.anchor == "screen" then t.anchor, t.x, t.y = nil, 0, 0 end
+    for _, v in pairs(t) do Unscreen(v) end
+    return t
+end
+
+-- src into dst, key by key. Lists are replaced whole; keys dst does not have
+-- (parts of the other frame only) are skipped; a piece placed on the screen
+-- (in either frame) keeps the place dst had.
+local function Merge(dst, src, skip)
+    local keepPlace = dst.anchor == "screen" or src.anchor == "screen"
+    for k, v in pairs(src) do
+        local s = skip and skip[k]
+        if s == true or dst[k] == nil or (keepPlace and PLACE[k]) then
+            -- left as it is
+        elseif type(v) == "table" and type(dst[k]) == "table" and not LISTS[k] then
+            Merge(dst[k], v, type(s) == "table" and s or nil)
+        else
+            dst[k] = Unscreen(DeepCopy(v))
+        end
+    end
+end
+
+-- sections: { frame = true, texts = true, ... }
+function ns.CopyUnit(from, to, sections)
+    local src, dst = ns.P.units[from], ns.P.units[to]
+    if not src or not dst or from == to then return end
+    local skip = Union(HIDDEN[from], HIDDEN[to]) or {}
+    local pick, picked = {}, {}
+    for _, sec in ipairs(ns.COPY_SECTIONS) do
+        if sections[sec[1]] then
+            for _, key in ipairs(sec[2]) do
+                pick[key], picked[key] = src[key], dst[key]
+            end
+        end
+    end
+    Merge(picked, pick, skip)
+    for k, v in pairs(picked) do dst[k] = v end
+    Fill(ns.P, ns.DEFAULTS)
+    ns.ApplyUnit(to)
 end
 
 -------------------------------------------------------------------------------

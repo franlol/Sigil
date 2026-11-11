@@ -55,7 +55,7 @@ local readyUntil = 0
 local ICONS = {
     combat = {
         active = function(u)
-            if u == "player" then return InCombatLockdown() end
+            if u == "player" then return ns.InCombat() end
             return R(UnitAffectingCombat(u)) and true or false
         end,
         apply = function(tex) SetTex(tex, STATE, 0.5, 1, 0, 0.49) end,
@@ -109,10 +109,10 @@ local ICONS = {
         end,
     },
     pvp = {
-        active = function(u) return R(UnitIsPVP(u)) and true or false end,
+        active = function(u) return ns.IsPvP(u) end,
         apply = function(tex, u, test)
             local faction = test and UnitFactionGroup("player") or R(UnitFactionGroup(u))
-            if faction ~= "Horde" and faction ~= "Alliance" then faction = "FFA" end
+            if (not test and ns.IsPvPFreeForAll(u)) or (faction ~= "Horde" and faction ~= "Alliance") then faction = "FFA" end
             SetTex(tex, "Interface\\TargetingFrame\\UI-PVP-" .. faction, 0, 0.65, 0, 0.65)
         end,
     },
@@ -248,7 +248,7 @@ for _, ev in ipairs({
     "PARTY_LEADER_CHANGED", "GROUP_ROSTER_UPDATE", "RAID_TARGET_UPDATE", "PARTY_LOOT_METHOD_CHANGED",
     "PLAYER_ROLES_ASSIGNED", "READY_CHECK_CONFIRM", "INCOMING_RESURRECT_CHANGED",
     "INCOMING_SUMMON_CHANGED", "UNIT_PHASE", "UNIT_CLASSIFICATION_CHANGED",
-    "UNIT_FLAGS", "UNIT_FACTION", "UNIT_HAPPINESS", "PET_UI_UPDATE",
+    "UNIT_FLAGS", "UNIT_FACTION", "UNIT_HAPPINESS", "PET_UI_UPDATE", "PLAYER_FLAGS_CHANGED",
 }) do
     ns.On(ev, function(f) ns.UpdateIcons(f) end)
 end

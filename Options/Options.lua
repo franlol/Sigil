@@ -626,6 +626,11 @@ function Tabs.texts(page, unit)
     end
     page:HookScript("OnShow", function() page.LoadEditor() end)
     page.LoadEditor()
+    -- the whole list was replaced (copy, undo, reset)
+    function page.Reload()
+        state.sel = 1
+        page.LoadEditor()
+    end
 end
 
 -- Auras: list of groups on the left, the selected group's settings on the right
@@ -640,6 +645,7 @@ function Tabs.auras(page, unit)
     local function On() return U(unit).auras.enabled end
     local function SelOn() return On() and Sel() ~= nil end
     local function Harmful() return Sel() and Sel().kind == "HARMFUL" end
+    function page.Reload() state.sel = 1 end   -- the groups were replaced (copy, undo, reset)
 
     -- get/set for a key of the selected group
     local function SB(key)
@@ -1157,11 +1163,85 @@ local function ColorsPage(container)
     card:Add(reset)
 end
 
-local TAB_LIST = {
+-- The tabs whose settings can be copied between frames (Core: ns.COPY_SECTIONS)
+local COPY_PARTS = {
     { "frame", "Frame" }, { "bars", "Bars" }, { "texts", "Texts" }, { "auras", "Auras" },
     { "icons", "Icons" }, { "castbar", "Cast bar" }, { "extras", "Extras" },
 }
 
+local TAB_LIST = {
+    { "frame", "Frame" }, { "bars", "Bars" }, { "texts", "Texts" }, { "auras", "Auras" },
+    { "icons", "Icons" }, { "castbar", "Cast bar" }, { "extras", "Extras" }, { "copy", "Copy" },
+}
+
+-------------------------------------------------------------------------------
+-- Copy: the settings of another frame into this one, by tab
+-------------------------------------------------------------------------------
+local UNIT_ORDER = { "player", "target", "targettarget", "focus", "pet", "party" }
+local undo          -- { unit, from, data, profile }: the last copy, to take it back
+
+function Tabs.copy(page, unit)
+    local state = { from = unit == "player" and "target" or "player", parts = {} }
+    for _, t in ipairs(COPY_PARTS) do state.parts[t[1]] = true end
+    local function CanCopy()
+        for _, on in pairs(state.parts) do if on then return true end end
+        return false
+    end
+    local function CanUndo() return undo and undo.unit == unit and undo.profile == ns.profileName end
+
+    local card = page:Add(1, UI.Card(page.content, L["Copy from another frame"],
+        L["The checked tabs replace the ones of this frame."]))
+    card:Add(UI.Dropdown(card, L["Copy from"], function()
+        local out = {}
+        for _, u in ipairs(UNIT_ORDER) do
+            if u ~= unit then out[#out + 1] = { u, L[UNIT_NAMES[u]] } end
+        end
+        return out
+    end, function() return state.from end, function(v) state.from = v end))
+    local parts = {}
+    for i, t in ipairs(COPY_PARTS) do parts[i] = { t[1], L[t[2]] } end
+    card:Add(UI.CheckGroup(card, L["Tabs to copy"], parts,
+        function(key) return state.parts[key] end,
+        function(key, v) state.parts[key] = v end, { columns = 2 }))
+    card:Add(UI.Buttons(card, {
+        { L["Select all"], function()
+            for k in pairs(state.parts) do state.parts[k] = true end
+            Changed()
+        end },
+        { L["Select none"], function()
+            for k in pairs(state.parts) do state.parts[k] = false end
+            Changed()
+        end },
+    }))
+    card:Add(UI.Buttons(card, {
+        { L["Copy"], function()
+            if not CanCopy() then return end
+            undo = { unit = unit, from = state.from, data = ns.DeepCopy(U(unit)), profile = ns.profileName }
+            ns.CopyUnit(state.from, unit, state.parts)
+            page.ReloadUnit()
+        end, "accent" },
+    }, { enableIf = CanCopy }))
+
+    card = page:Add(2, UI.Card(page.content, L["Not copied"]))
+    card:Add(UI.Note(card, L["The position, Enabled, the Blizzard frame and what only this frame has (combo points, experience bar, party layout...) stay as they are."]))
+
+    card = page:Add(2, UI.Card(page.content, L["Undo"]))
+    local note = card:Add(UI.Note(card, ""))
+    note.Refresh = function()
+        note:SetText(CanUndo()
+            and L["Back to the settings this frame had before copying from"] .. " |cffffffff" .. L[UNIT_NAMES[undo.from]] .. "|r."
+            or L["Nothing to undo."])
+    end
+    table.insert(UI.widgets, note)
+    card:Add(UI.Buttons(card, {
+        { L["Undo copy"], function()
+            if not CanUndo() then return end
+            ns.SetUnitSettings(unit, undo.data)
+            undo = nil
+            page.ReloadUnit()
+        end },
+    }, { enableIf = function() return CanUndo() and true or false end }))
+end
 
 -------------------------------------------------------------------------------
 -- Unit page: title, on/off, reset and tabs
@@ -1169,9 +1249,17 @@ local TAB_LIST = {
 local function UnitPage(container, unit)
     PageTitle(container, L[UNIT_NAMES[unit]])
 
+    local tabPages = {}
+    -- the unit's settings were replaced as a whole: lists start at their first item
+    local function Reload()
+        for _, p in pairs(tabPages) do if p.Reload then p.Reload() end end
+        Changed()
+    end
+
     local reset = UI.Button(container, L["Reset frame"], 100, 20, function()
         ns.ResetUnit(unit)
-        Changed()
+        if undo and undo.unit == unit then undo = nil end
+        Reload()
     end, "danger")
     reset:SetPoint("TOPRIGHT", -12, 0)
     UI.Confirm(reset)
@@ -1189,7 +1277,6 @@ local function UnitPage(container, unit)
     local holder = CreateFrame("Frame", nil, container)
     holder:SetPoint("TOPLEFT", 0, -64)
     holder:SetPoint("BOTTOMRIGHT")
-    local tabPages = {}
 
     local labels = {}
     for i, t in ipairs(TAB_LIST) do labels[i] = { t[1], L[t[2]] } end
@@ -1198,6 +1285,7 @@ local function UnitPage(container, unit)
         local p = tabPages[key]
         if not p then
             p = UI.Page(holder, 2)
+            p.ReloadUnit = Reload
             Tabs[key](p, unit)
             tabPages[key] = p
         end

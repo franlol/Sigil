@@ -60,6 +60,8 @@ local function PlaceMover(m)
     m:SetPoint(p, pos.anchor == "screen" and UIParent or m.frame, pos.relPoint or p, (pos.x or 0) * ratio, (pos.y or 0) * ratio)
 end
 
+local function NoSkip() return false end
+
 local function NewMover(f, entry)
     local m = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
     m:SetFrameStrata("HIGH")
@@ -80,8 +82,15 @@ local function NewMover(f, entry)
             local s = ns.PieceScale(e.region)
             e.pos.x = math.floor(x0 + (x - cx) / s + 0.5)
             e.pos.y = math.floor(y0 + (y - cy) / s + 0.5)
-            ns.Place(e.region, self.frame, e.pos)
             PlaceMover(self)
+            local dx, dy = ns.SnapOffset(self, NoSkip)
+            if dx ~= 0 or dy ~= 0 then
+                local ratio = s / UIParent:GetEffectiveScale()
+                e.pos.x = math.floor(e.pos.x + dx / ratio + 0.5)
+                e.pos.y = math.floor(e.pos.y + dy / ratio + 0.5)
+                PlaceMover(self)
+            end
+            ns.Place(e.region, self.frame, e.pos)
         end)
     end)
     m:SetScript("OnDragStop", function(self)
@@ -131,3 +140,132 @@ end
 function ns.RefreshAllMovers()
     for _, f in pairs(ns.frames) do ns.RefreshMovers(f) end
 end
+
+-------------------------------------------------------------------------------
+-- Alignment grid (shown behind everything while unlocked)
+-------------------------------------------------------------------------------
+local GRID_STEP = 32
+local grid
+
+-- Size of one screen pixel in UIParent units, so lines are always 1px sharp
+local function PixelSize()
+    local physH = GetPhysicalScreenSize and select(2, GetPhysicalScreenSize()) or 768
+    return 768 / physH / UIParent:GetScale()
+end
+
+local function BuildGrid()
+    grid = grid or CreateFrame("Frame", nil, UIParent)
+    grid:SetAllPoints(UIParent)
+    grid:SetFrameStrata("BACKGROUND")
+    grid:EnableMouse(false)
+    grid.lines = grid.lines or {}
+    for _, t in ipairs(grid.lines) do t:Hide() end
+
+    local px = PixelSize()
+    local w, h = UIParent:GetWidth(), UIParent:GetHeight()
+    local used = 0
+    local function Line(vertical, offset, center)
+        used = used + 1
+        local t = grid.lines[used]
+        if not t then
+            t = grid:CreateTexture(nil, "BACKGROUND")
+            t:SetTexture(FLAT)
+            grid.lines[used] = t
+        end
+        t:ClearAllPoints()
+        if center then
+            t:SetVertexColor(1, 0.2, 0.2, 0.8)
+        else
+            t:SetVertexColor(0, 0, 0, 0.45)
+        end
+        local thick = center and px * 2 or px
+        if vertical then
+            t:SetSize(thick, h)
+            t:SetPoint("CENTER", grid, "CENTER", offset, 0)
+        else
+            t:SetSize(w, thick)
+            t:SetPoint("CENTER", grid, "CENTER", 0, offset)
+        end
+        t:Show()
+    end
+
+    -- lines grow from the center outwards so the center is always on the grid
+    for i = 1, math.floor(w / 2 / GRID_STEP) do
+        Line(true, i * GRID_STEP); Line(true, -i * GRID_STEP)
+    end
+    for i = 1, math.floor(h / 2 / GRID_STEP) do
+        Line(false, i * GRID_STEP); Line(false, -i * GRID_STEP)
+    end
+    Line(true, 0, true)
+    Line(false, 0, true)
+end
+
+-------------------------------------------------------------------------------
+-- Snapping: while dragging, a box sticks to the screen center and edges, the
+-- grid lines and the edges/centers of the other boxes. Hold Shift to move
+-- freely.
+-------------------------------------------------------------------------------
+local SNAP = 8        -- distance (UI units) that sticks to centers, edges and boxes
+local SNAP_GRID = 4   -- weaker pull for the plain grid lines
+
+-- Rectangle of an object in UIParent units: left, right, bottom, top
+local function Rect(obj)
+    local l, r, b, t = obj:GetLeft(), obj:GetRight(), obj:GetBottom(), obj:GetTop()
+    if not (l and r and b and t) then return nil end
+    local s = obj:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    return l * s, r * s, b * s, t * s
+end
+
+-- Best correction for one axis: edges = {low, mid, high} of the dragged box
+local function Best(edges, targets, center)
+    local bestD, bestDist = nil, math.huge
+    for _, e in ipairs(edges) do
+        for _, t in ipairs(targets) do
+            local d = t - e
+            if math.abs(d) <= SNAP and math.abs(d) < bestDist then bestD, bestDist = d, math.abs(d) end
+        end
+        local g = center + math.floor((e - center) / GRID_STEP + 0.5) * GRID_STEP
+        local d = g - e
+        if math.abs(d) <= SNAP_GRID and math.abs(d) < bestDist then bestD, bestDist = d, math.abs(d) end
+    end
+    return bestD or 0
+end
+
+-- Correction (UIParent units) that makes `box` stick to something.
+-- skip(m) returns true for boxes that move together with the dragged one.
+function ns.SnapOffset(box, skip)
+    if IsShiftKeyDown() then return 0, 0 end
+    local l, r, b, t = Rect(box)
+    if not l then return 0, 0 end
+    local w, h = UIParent:GetWidth(), UIParent:GetHeight()
+    local xs, ys = { 0, w / 2, w }, { 0, h / 2, h }
+    local function Add(m)
+        if m == box or not m:IsShown() or skip(m) then return end
+        local ol, or_, ob, ot = Rect(m)
+        if not ol then return end
+        xs[#xs + 1], xs[#xs + 2], xs[#xs + 3] = ol, or_, (ol + or_) / 2
+        ys[#ys + 1], ys[#ys + 2], ys[#ys + 3] = ob, ot, (ob + ot) / 2
+    end
+    for _, f in pairs(ns.frames) do
+        if f.mover then Add(f.mover) end
+        for _, m in pairs(f.movers or {}) do Add(m) end
+    end
+    return Best({ l, (l + r) / 2, r }, xs, w / 2), Best({ b, (b + t) / 2, t }, ys, h / 2)
+end
+
+function ns.ShowGrid(on)
+    if on then
+        BuildGrid()
+        grid:Show()
+    elseif grid then
+        grid:Hide()
+    end
+end
+
+-- Rebuild if the resolution or UI scale changes while it is visible
+local gridEvents = CreateFrame("Frame")
+gridEvents:RegisterEvent("UI_SCALE_CHANGED")
+gridEvents:RegisterEvent("DISPLAY_SIZE_CHANGED")
+gridEvents:SetScript("OnEvent", function()
+    if grid and grid:IsShown() then BuildGrid() end
+end)
