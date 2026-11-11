@@ -403,8 +403,8 @@ function lib:New(theme)
     end
 
     ---------------------------------------------------------------------------
-    -- Slider: label and value on top, track below. The mouse wheel and the
-    -- < > buttons move it one step; clicking the value lets you type it.
+    -- Slider: label and value on top, track below. The < > buttons move it
+    -- one step; clicking the value lets you type it.
     -- opts.format(value) -> text shown as the value
     ---------------------------------------------------------------------------
     function UI.Slider(parent, label, minV, maxV, step, get, set, opts)
@@ -1329,7 +1329,8 @@ function lib:New(theme)
     ---------------------------------------------------------------------------
     -- Window: header (logo, title, version, subtitle, buttons on the right),
     -- navigation buttons on the left, page area and an optional status line.
-    --   opts = { name, title, version, width, height, logo (texture path) }
+    --   opts = { name, title, version, width, height, navWidth,
+    --            logo (texture path), status (false: no status line) }
     --   win:AddNav(key, label, build, dot)  build(container) runs on first open;
     --                                       dot() -> true/false shows a dot
     --   win:AddSection(label)               small caption in the navigation
