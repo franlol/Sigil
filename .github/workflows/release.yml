@@ -1,0 +1,25 @@
+name: Release
+
+# A pushed tag (v1.0.0...) builds the zip and uploads it to GitHub,
+# CurseForge and Wago. Project IDs come from the TOC (X-Curse-Project-ID,
+# X-Wago-ID); a missing ID or token just skips that site.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: BigWigsMods/packager@v2

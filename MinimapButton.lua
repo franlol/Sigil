@@ -65,9 +65,8 @@ btn:SetScript("OnClick", function(_, button)
     end
 end)
 btn:SetScript("OnEnter", function(self)
-    local version = C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata("Sigil", "Version") or ""
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-    GameTooltip:AddDoubleLine("Sigil", "v" .. version, ACCENT[1], ACCENT[2], ACCENT[3], 0.5, 0.5, 0.5)
+    GameTooltip:AddDoubleLine("Sigil", "v" .. ns.version, ACCENT[1], ACCENT[2], ACCENT[3], 0.5, 0.5, 0.5)
     GameTooltip:AddDoubleLine(L["Profile:"], ns.profileName or "?", 0.7, 0.7, 0.7, 1, 1, 1)
     GameTooltip:AddLine(" ")
     GameTooltip:AddDoubleLine(L["Click"], L["Open the options"], 1, 0.82, 0, 1, 1, 1)

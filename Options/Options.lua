@@ -1437,8 +1437,7 @@ end
 -- Window
 -------------------------------------------------------------------------------
 local function Build()
-    local version = C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata("Sigil", "Version")
-    win = UI.Window({ name = "SigilOptions", title = "Sigil", version = version,
+    win = UI.Window({ name = "SigilOptions", title = "Sigil", version = ns.version,
         logo = "Interface\\AddOns\\Sigil\\Media\\Icon" })
 
     win:AddHeaderButton(L["Unlock frames"], function() ns.SetUnlocked(not ns.unlocked) C_Timer.After(0, Changed) end,
