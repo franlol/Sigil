@@ -607,7 +607,7 @@ function ns.Layout(f)
         Attach(f.health)
         f.health:SetPoint("TOPLEFT", left, -inset)
         f.health:SetPoint("TOPRIGHT", -right, -inset)
-        f.health:SetHeight(powerInside and (inner - ph - 1) or inner)
+        f.health:SetHeight(powerInside and (inner - ph) or inner)
     end
     if powerInside then
         f.power:SetPoint("BOTTOMLEFT", left, inset)
