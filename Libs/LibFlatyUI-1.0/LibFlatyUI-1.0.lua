@@ -27,12 +27,13 @@
 --                   the gap)
 --     enableIf() -> the row is greyed out and ignores clicks when false
 --     tip        -> help text shown in a tooltip when hovering the row
+--     sub        -> a sub-option: sits close under the row before it
 --   get/set pairs read and write the value the control shows. After a user
 --   change the instance calls UI.OnChange(), if defined (usually to call
 --   UI.RefreshAll()).
 -------------------------------------------------------------------------------
 
-local MAJOR, MINOR = "LibFlatyUI-1.0", 7
+local MAJOR, MINOR = "LibFlatyUI-1.0", 8
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -62,6 +63,7 @@ lib.defaultTheme = {
     titleFont = "GameFontNormal",
     rowHeight = 18,        -- height of a one-line control
     gap = 10,              -- space between rows of a card
+    subGap = 2,            -- space above a sub-option (opts.sub) under its row
     pad = 10,              -- inner margin of a card
 }
 
@@ -142,7 +144,7 @@ function lib:New(theme)
         local r = CreateFrame("Frame", nil, parent)
         r:SetSize(200, height)
         opts = opts or {}
-        r.showIf, r.enableIf = opts.showIf, opts.enableIf
+        r.showIf, r.enableIf, r.sub = opts.showIf, opts.enableIf, opts.sub
         if opts.tip then
             r:EnableMouse(true)
             if r.SetMouseClickEnabled then r:SetMouseClickEnabled(false) end
@@ -1149,6 +1151,8 @@ function lib:New(theme)
                     if w.enableIf then UI.SetEnabled(w, w.enableIf() and true or false) end
                     w:SetWidth(inner)
                     if w.OnWidth then w.OnWidth(inner) end
+                    -- a sub-option sits close under the row it depends on
+                    if w.sub then y = y + T.gap - T.subGap end
                     w:ClearAllPoints()
                     w:SetPoint("TOPLEFT", P, y)
                     y = y - w:GetHeight() - T.gap
