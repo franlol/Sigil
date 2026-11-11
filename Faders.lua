@@ -60,9 +60,6 @@ function ns.UpdateFader(f)
     f:SetAlpha(base)
 end
 
--- Older name, used by the polling in Frames.lua
-ns.UpdateRange = ns.UpdateFader
-
 ns.On("PLAYER_REGEN_DISABLED", function(f) ns.UpdateFader(f) end)
 ns.On("PLAYER_REGEN_ENABLED", function(f) ns.UpdateFader(f) end)
 ns.On("UNIT_PHASE", function(f) ns.UpdateFader(f) end)

@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Sigil - Unit frames (player, target, target of target)
+-- Sigil - Unit frames (player, target, target of target, focus, pet, party)
 --
 -- Each frame is a secure unit button: left click targets, right click opens
 -- the unit menu. Health and power are drawn with the values as the game
@@ -486,8 +486,8 @@ function ns.BuildTexts(f)
             fs:SetWordWrap(false)
             f.fontStrings[i] = fs
         end
-        -- a damaged size (not a number) goes back to the default; texts from
-        -- older versions get the look settings every text has
+        -- texts are a list the defaults never fill: missing look settings
+        -- (new or imported texts) get theirs here, a bad size goes back to 11
         if type(cfg.size) ~= "number" then cfg.size = 11 end
         if cfg.font == nil then cfg.font = false end
         if cfg.outline == nil then cfg.outline = false end

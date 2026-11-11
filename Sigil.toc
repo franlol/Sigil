@@ -36,6 +36,5 @@ GCD.lua
 Sounds.lua
 HideBlizzard.lua
 MinimapButton.lua
-Probe.lua
 Options\UI.lua
 Options\Options.lua

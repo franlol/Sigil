@@ -12,7 +12,6 @@ ns.translations.esES = {
     ["lock the frames"] = "bloquea los marcos",
     ["show or hide the test frames"] = "muestra u oculta los marcos de prueba",
     ["back to the default settings of this character"] = "vuelve a la configuración por defecto de este personaje",
-    ["probe the game API and save the results"] = "sondea la API del juego y guarda los resultados",
     ["language: en or es"] = "idioma: en o es",
     ["Language: English"] = "Idioma: español",
     ["Settings reset."] = "Configuración restablecida.",
@@ -99,10 +98,8 @@ ns.translations.esES = {
     ["Mana, rage, energy or focus."] = "Maná, ira, energía o foco.",
     ["Class / reaction"] = "Clase / reacción",
     ["Custom"] = "Personalizado",
-    ["Class / reaction: class color for players; red, yellow or green for the rest."] = "Clase / reacción: color de clase en jugadores; rojo, amarillo o verde en el resto.",
     ["Custom color"] = "Color personalizado",
     ["Background brightness"] = "Brillo del fondo",
-    ["Color of the empty part of the bars, compared with the filled part."] = "Color de la parte vacía de las barras, comparado con la parte llena.",
 
     -- Options: Texts tab
     ["Click to edit · drag to reorder"] = "Pulsa para editar · arrastra para ordenar",
@@ -155,19 +152,14 @@ ns.translations.esES = {
     ["Name in class color"] = "Nombre con color de clase",
 
     -- Options: Auras tab
-    ["Drawn by the game, so they also work in combat and instances."] = "Las dibuja el juego, así que también funcionan en combate e instancias.",
     ["Show auras"] = "Mostrar auras",
-    ["First row"] = "Primera fila",
     ["Buffs"] = "Beneficios",
     ["Debuffs"] = "Perjuicios",
     ["Icon size"] = "Tamaño de icono",
     ["Spacing"] = "Separación",
     ["Icons per row"] = "Iconos por fila",
     ["Show time left"] = "Mostrar tiempo restante",
-    ["Only mine"] = "Solo míos",
-    ["Only the ones you cast."] = "Solo los que lanzas tú.",
     ["Maximum"] = "Máximo",
-    ["Attach to frame at"] = "Unir al marco por",
     ["Corner of the block"] = "Esquina del bloque",
     ["Grow"] = "Crecer hacia",
 
@@ -179,7 +171,6 @@ ns.translations.esES = {
     ["PvP"] = "JcJ",
 
     -- Options: Cast bar tab
-    ["Orange: cast · blue: channel · grey: cannot be interrupted."] = "Naranja: lanzamiento · azul: canalización · gris: no se puede interrumpir.",
     ["Show cast bar"] = "Mostrar barra de lanzamiento",
     ["Hide the game's cast bar"] = "Ocultar la barra del juego",
     ["Spell icon"] = "Icono del hechizo",
@@ -189,8 +180,6 @@ ns.translations.esES = {
 
     -- Options: Extras tab
     ["Fading"] = "Atenuación",
-    ["Makes the frame transparent in some situations."] = "Hace el marco transparente en algunas situaciones.",
-    ["Fade"] = "Atenuar",
     ["Never"] = "Nunca",
     ["Out of range"] = "Fuera de alcance",
     ["Out of combat"] = "Fuera de combate",
@@ -245,7 +234,6 @@ ns.translations.esES = {
     ["Import"] = "Importar",
     ["Copied to the box: press Ctrl+C."] = "Copiado en el cuadro: pulsa Ctrl+C.",
     ["Profile imported."] = "Perfil importado.",
-    ["This replaces the profile. Click again"] = "Esto sustituye el perfil. Pulsa otra vez",
 
     -- Frames
     ["Player"] = "Jugador",
@@ -546,10 +534,4 @@ ns.translations.esES = {
     ["Drag"] = "Arrastrar",
     ["Open the options"] = "Abrir las opciones",
     ["Move this button"] = "Mover este botón",
-
-    -- Probe
-    ["Probe saved for context %s: %d missing, %d secret, %d errors."] = "Sondeo guardado para el contexto %s: %d faltan, %d secretos, %d errores.",
-    ["Type /reload to write it to disk."] = "Escribe /reload para guardarlo en disco.",
-    ["Cast any spell: the global cooldown is probed right after it."] = "Lanza cualquier hechizo: el tiempo de reutilización global se sondea justo después.",
-    ["Tip: run it with a target, a focus and your pet, in the open world, in a dungeon and in combat."] = "Consejo: hazlo con objetivo, foco y mascota, en el mundo, en una mazmorra y en combate.",
 }

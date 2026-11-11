@@ -133,7 +133,7 @@ local function FlushPending()
 end
 
 -------------------------------------------------------------------------------
--- Profile (one per character): missing keys are filled from the defaults
+-- Settings: missing keys are filled from the defaults
 -------------------------------------------------------------------------------
 -- Lists the user edits (add, remove, reorder): never filled item by item
 local LISTS = { texts = true, point = true, groups = true, spells = true, events = true }
@@ -174,21 +174,12 @@ local function LoadProfile()
     db.profiles = db.profiles or {}
     db.profileOf = db.profileOf or {}
     ns.charKey = CharKey()
-    -- old versions kept one settings table per character in db.chars
-    if db.chars then
-        for char, settings in pairs(db.chars) do
-            if not db.profiles[char] then db.profiles[char] = settings end
-            db.profileOf[char] = db.profileOf[char] or char
-        end
-        db.chars = nil
-    end
     local name = db.profileOf[ns.charKey] or ns.charKey
     if not db.profiles[name] then db.profiles[name] = {} end
     db.profileOf[ns.charKey] = name
     ns.profileName = name
     ns.P = db.profiles[name]
     Fill(ns.P, ns.DEFAULTS)
-    ns.Migrate(ns.P)
     ns.ResetGradient()
 end
 
@@ -200,7 +191,6 @@ function ns.UseProfile(name)
     ns.profileName = name
     ns.P = db.profiles[name]
     Fill(ns.P, ns.DEFAULTS)
-    ns.Migrate(ns.P)
     ns.ResetGradient()
     ns.ApplyAll()
 end
@@ -212,7 +202,6 @@ function ns.CopyProfile(from)
     wipe(ns.P)
     for k, v in pairs(DeepCopy(src)) do ns.P[k] = v end
     Fill(ns.P, ns.DEFAULTS)
-    ns.Migrate(ns.P)
     ns.ResetGradient()
     ns.ApplyAll()
 end
@@ -228,7 +217,6 @@ end
 function ns.ResetProfile()
     wipe(ns.P)
     Fill(ns.P, ns.DEFAULTS)
-    ns.Migrate(ns.P)
     ns.ResetGradient()
     ns.ApplyAll()
 end
@@ -370,7 +358,6 @@ function ns.ImportProfile(text)
     wipe(ns.P)
     for k, v in pairs(data) do ns.P[k] = v end
     Fill(ns.P, ns.DEFAULTS)
-    ns.Migrate(ns.P)
     ns.ResetGradient()
     ns.ApplyAll()
     return true
@@ -410,17 +397,12 @@ local function Help()
     print("  /sigil test - " .. L["show or hide the test frames"])
     print("  /sigil reset - " .. L["back to the default settings of this character"])
     print("  /sigil lang en|es - " .. L["language: en or es"])
-    print("  /sigil probe - " .. L["probe the game API and save the results"])
 end
 
 SLASH_SIGIL1 = "/sigil"
 SlashCmdList.SIGIL = function(msg)
     local cmd, arg = strtrim(msg or ""):lower():match("^(%S*)%s*(.-)$")
-    if cmd == "probe" or cmd == "sondeo" then
-        ns.Probe()
-    elseif cmd == "gcd" then
-        if tonumber(arg) then ns.ProbeGCD(tonumber(arg)) else ns.ProbeNextGCD() end
-    elseif cmd == "move" or cmd == "mover" or cmd == "unlock" then
+    if cmd == "move" or cmd == "mover" or cmd == "unlock" then
         ns.SetUnlocked(true)
     elseif cmd == "lock" or cmd == "bloquear" then
         ns.SetUnlocked(false)

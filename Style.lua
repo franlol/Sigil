@@ -190,35 +190,3 @@ function ns.OffsetsFor(region, target, pos)
     return math.floor((rx - tx) / s + 0.5), math.floor((ry - ty) / s + 0.5)
 end
 ns.PieceScale = Scale
-
--------------------------------------------------------------------------------
--- Old settings -> the shared blocks (runs after the defaults are filled in)
--------------------------------------------------------------------------------
-function ns.Migrate(P)
-    for _, u in pairs(P.units or {}) do
-        if u.powerHeight ~= nil then
-            u.power.height = u.powerHeight
-            u.powerHeight = nil
-        end
-        if u.healthColor ~= nil then
-            u.health.style.color = u.healthColor == "custom" and "custom" or "auto"
-            if u.customColor then u.health.style.custom = u.customColor end
-            u.healthColor, u.customColor = nil, nil
-        end
-        if u.bgBrightness ~= nil then
-            u.health.style.bgBrightness = u.bgBrightness
-            u.power.style.bgBrightness = u.bgBrightness
-            u.bgBrightness = nil
-        end
-        if u.fader and u.fader.mode ~= nil then
-            u.fader.range = u.fader.mode == "range"
-            u.fader.combat = u.fader.mode == "combat"
-            u.fader.mode = nil
-        end
-        if u.combo and u.combo.color then
-            u.combo.style.color = "custom"
-            u.combo.style.custom = u.combo.color
-            u.combo.color = nil
-        end
-    end
-end
