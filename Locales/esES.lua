@@ -125,6 +125,7 @@ ns.translations.esES = {
     ["Short number: 12.3K, 1.2M"] = "Número corto: 12.3K, 1.2M",
     ["Text in a color (0-1)"] = "Texto en un color (0-1)",
     ["Class color: r, g, b"] = "Color de clase: r, g, b",
+    ["Class color for players, reaction color for the rest: r, g, b"] = "Color de clase en jugadores, color de reacción en el resto: r, g, b",
     ["Level color by difficulty: r, g, b"] = "Color del nivel según dificultad: r, g, b",
     ["Mouse"] = "Ratón",
     ["Mouse over this frame or any of its parts"] = "Ratón sobre este marco o cualquiera de sus partes",

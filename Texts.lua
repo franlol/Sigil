@@ -124,6 +124,24 @@ function H.ClassColor(u)
     return 1, 1, 1
 end
 
+-- Class color for players, reaction color (hostile, neutral, friendly) for
+-- the rest: the same colors as the health bar's Class / reaction
+function H.UnitColor(u)
+    local f = ns.Fake(u)
+    if f then
+        if f.player then
+            local r, g, b = ns.ClassRGB(f.classToken)
+            if r then return r, g, b end
+        end
+        return ns.ReactionRGB(f.reaction)
+    end
+    if R(UnitIsPlayer(u)) then
+        local r, g, b = ns.ClassRGB(R(select(2, UnitClass(u))))
+        if r then return r, g, b end
+    end
+    return ns.ReactionRGB(R(UnitReaction(u, "player")))
+end
+
 -- Color of the level by difficulty compared with the player
 function H.DifficultyColor(u)
     local f = ns.Fake(u)

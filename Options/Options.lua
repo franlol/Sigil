@@ -459,6 +459,7 @@ local HELP = {
         { "Short(number)", "Short number: 12.3K, 1.2M" },
         { "Colorize(text, r, g, b)", "Text in a color (0-1)" },
         { "ClassColor(unit)", "Class color: r, g, b" },
+        { "UnitColor(unit)", "Class color for players, reaction color for the rest: r, g, b" },
         { "DifficultyColor(unit)", "Level color by difficulty: r, g, b" },
     } },
 }
