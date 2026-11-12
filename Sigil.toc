@@ -5,6 +5,7 @@
 ## Notes-esMX: Marcos de unidad para jugador, objetivo, foco, mascota y grupo.
 ## Author: franlol
 ## X-License: MIT
+## X-Curse-Project-ID: 1799492
 ## Version: @project-version@
 ## IconTexture: Interface\AddOns\Sigil\Media\Icon
 ## SavedVariables: SigilDB
