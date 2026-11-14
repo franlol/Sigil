@@ -1007,6 +1007,12 @@ function Tabs.auras(page, unit)
         rows = 6,
     }))
 
+    list:Add(UI.Input(list, L["Name"], function() return Sel() and L[Sel().name or ""] or "" end, function(v)
+        if Sel() then Sel().name = v end
+        apply()
+        Changed()
+    end, { enableIf = SelOn }))
+
     local add = { tpl = "debuffs" }
     local tpl = {}
     for _, t in ipairs(ns.AURA_TEMPLATES) do tpl[#tpl + 1] = { t[1], L[t[2]] } end
@@ -1035,11 +1041,64 @@ function Tabs.auras(page, unit)
         end, "accent" },
     }))
 
+    -- how the icons line up, and where the block goes
+    local lay = HasSel(page:Add(1, UI.Card(page.content, L["Layout"])))
+    g, s = SB("fill")
+    lay:Add(UI.Segmented(lay, L["Fill"], { { "rows", L["Rows"] }, { "columns", L["Columns"] } }, g, s, { enableIf = SelOn }))
+    g, s = SB("perRow")
+    lay:Add(UI.Slider(lay, L["Icons per line"], 1, 20, 1, g, s, { enableIf = SelOn }))
+    g, s = SB("max")
+    lay:Add(UI.Slider(lay, L["Maximum"], 1, 40, 1, g, s, { enableIf = SelOn }))
+    g, s = SB("spacing")
+    lay:Add(UI.Slider(lay, L["Space between icons"], 0, 10, 1, g, s, { format = Px, enableIf = SelOn }))
+    g, s = SB("lineSpacing")
+    lay:Add(UI.Slider(lay, L["Space between lines"], 0, 10, 1, g, s, { format = Px, enableIf = SelOn }))
+    g, s = SB("growX")
+    lay:Add(UI.Segmented(lay, L["Grow"], { { "RIGHT", L["Right"] }, { "LEFT", L["Left"] } }, g, s, { enableIf = SelOn }))
+    g, s = SB("growY")
+    lay:Add(UI.Segmented(lay, nil, { { "DOWN", L["Down"] }, { "UP", L["Up"] } }, g, s, { enableIf = SelOn }))
+    g, s = SB("sort")
+    lay:Add(UI.Dropdown(lay, L["Order"], SORTS, g, s, { enableIf = SelOn }))
+
+    local pos = HasSel(page:Add(1, UI.Card(page.content, L["Position"])))
+    PositionRows(pos, Sel, apply, { unit = unit, enableIf = SelOn, cornerLabel = L["Corner of the block"] })
+
+    -- selected group: which auras it shows
+    local filt = HasSel(page:Add(2, UI.Card(page.content, L["Filters"])))
+    g, s = SB("kind")
+    filt:Add(UI.Segmented(filt, L["Type"], { { "HELPFUL", L["Buffs"] }, { "HARMFUL", L["Debuffs"] } }, g, s, { enableIf = SelOn }))
+    g, s = SB("caster")
+    filt:Add(UI.Segmented(filt, L["Cast by"], {
+        { "all", L["Anyone"] }, { "mine", L["Me"] }, { "others", L["Others"] },
+    }, g, s, { enableIf = SelOn }))
+    g, s = SB("boss")
+    filt:Add(UI.Check(filt, L["Only boss auras"], g, s, { enableIf = SelOn }))
+    g, s = SB("dispellable")
+    filt:Add(UI.Check(filt, L["Only the ones I can dispel"], g, s, { enableIf = Both(SelOn, Harmful) }))
+    g, s = SB("stealable")
+    filt:Add(UI.Check(filt, L["Only the ones I can purge or steal"], g, s, {
+        enableIf = Both(SelOn, function() return not Harmful() end),
+    }))
+    local kinds = {}
+    for _, kind in ipairs(ns.DISPEL_KINDS) do kinds[#kinds + 1] = { kind, L[kind] } end
+    filt:Add(UI.CheckGroup(filt, L["Debuff types"], kinds,
+        function(kind) return Sel() and Sel().types[kind] end,
+        function(kind, v)
+            if Sel() then Sel().types[kind] = v end
+            apply()
+        end, { columns = 2, enableIf = Both(SelOn, Harmful) }))
+    g, s = SB("maxDuration")
+    filt:Add(UI.Slider(filt, L["Hide longer than"], 0, 600, 5, g, s, {
+        enableIf = SelOn, tip = L["Hides auras that last longer than this, and permanent ones. 0: no limit."],
+        format = function(v) if v == 0 then return L["No limit"] end
+            return v >= 60 and ("%d min %02d s"):format(v / 60, v % 60) or ("%d s"):format(v) end,
+    }))
+
     -- spell list
-    local spells = HasSel(page:Add(1, UI.Card(page.content, L["Spell list"], L["Show only some spells, or hide some."])))
+    local spells = HasSel(page:Add(2, UI.Card(page.content, L["Spell list"], L["Show only some spells, or hide some."])))
     g, s = SB("listMode")
     spells:Add(UI.Segmented(spells, nil, {
-        { "off", L["Off"] }, { "only", L["Only these"] }, { "hide", L["All except these"] },
+        { "off", L["All spells"] }, { "only", L["Only these"] }, { "hide", L["All except these"] },
     }, g, s, { enableIf = SelOn }))
     local where = spells:Add(UI.Note(spells, ""))
     where.Refresh = function()
@@ -1086,40 +1145,6 @@ function Tabs.auras(page, unit)
         enableIf = ListOn,
     }))
 
-    -- how the icons line up
-    local lay = HasSel(page:Add(1, UI.Card(page.content, L["Layout"])))
-    g, s = SB("fill")
-    lay:Add(UI.Segmented(lay, L["Fill"], { { "rows", L["Rows"] }, { "columns", L["Columns"] } }, g, s, { enableIf = SelOn }))
-    g, s = SB("perRow")
-    lay:Add(UI.Slider(lay, L["Icons per line"], 1, 20, 1, g, s, { enableIf = SelOn }))
-    g, s = SB("max")
-    lay:Add(UI.Slider(lay, L["Maximum"], 1, 40, 1, g, s, { enableIf = SelOn }))
-    g, s = SB("spacing")
-    lay:Add(UI.Slider(lay, L["Space between icons"], 0, 10, 1, g, s, { format = Px, enableIf = SelOn }))
-    g, s = SB("lineSpacing")
-    lay:Add(UI.Slider(lay, L["Space between lines"], 0, 10, 1, g, s, { format = Px, enableIf = SelOn }))
-    g, s = SB("growX")
-    lay:Add(UI.Segmented(lay, L["Grow"], { { "RIGHT", L["Right"] }, { "LEFT", L["Left"] } }, g, s, { enableIf = SelOn }))
-    g, s = SB("growY")
-    lay:Add(UI.Segmented(lay, nil, { { "DOWN", L["Down"] }, { "UP", L["Up"] } }, g, s, { enableIf = SelOn }))
-
-    local pos = HasSel(page:Add(1, UI.Card(page.content, L["Position"])))
-    PositionRows(pos, Sel, apply, { unit = unit, enableIf = SelOn, cornerLabel = L["Corner of the block"] })
-
-    -- selected group: what it shows
-    local what = HasSel(page:Add(2, UI.Card(page.content, L["Group"])))
-    what:Add(UI.Input(what, L["Name"], function() return Sel() and L[Sel().name or ""] or "" end, function(v)
-        if Sel() then Sel().name = v end
-        apply()
-        Changed()
-    end, { enableIf = SelOn }))
-    g, s = SB("kind")
-    what:Add(UI.Segmented(what, L["Type"], { { "HELPFUL", L["Buffs"] }, { "HARMFUL", L["Debuffs"] } }, g, s, { enableIf = SelOn }))
-    g, s = SB("caster")
-    what:Add(UI.Segmented(what, L["Cast by"], {
-        { "all", L["Anyone"] }, { "mine", L["Me"] }, { "others", L["Others"] },
-    }, g, s, { enableIf = SelOn }))
-
     local when = HasSel(page:Add(2, UI.Card(page.content, L["When to show"], L["The game decides it, so it also works in combat."])))
     g, s = SB("visibility")
     when:Add(UI.Segmented(when, nil, {
@@ -1133,28 +1158,6 @@ function Tabs.auras(page, unit)
     when:Add(UI.Segmented(when, L["Unit"], {
         { "any", L["Any"] }, { "friendly", L["Friendly"] }, { "hostile", L["Hostile"] },
     }, g, s, { enableIf = SelOn }))
-
-    local filt = HasSel(page:Add(2, UI.Card(page.content, L["Filters"])))
-    g, s = SB("dispellable")
-    filt:Add(UI.Check(filt, L["Only the ones I can dispel"], g, s, { enableIf = Both(SelOn, Harmful) }))
-    g, s = SB("boss")
-    filt:Add(UI.Check(filt, L["Only boss auras"], g, s, { enableIf = SelOn }))
-    g, s = SB("stealable")
-    filt:Add(UI.Check(filt, L["Only the ones I can purge or steal"], g, s, {
-        enableIf = Both(SelOn, function() return not Harmful() end),
-    }))
-    for _, kind in ipairs(ns.DISPEL_KINDS) do
-        g, s = TB(function() return Sel() and Sel().types end, kind, apply)
-        filt:Add(UI.Check(filt, L[kind], g, s, { enableIf = Both(SelOn, Harmful) }))
-    end
-    g, s = SB("maxDuration")
-    filt:Add(UI.Slider(filt, L["Hide longer than"], 0, 600, 5, g, s, {
-        enableIf = SelOn, tip = L["Hides auras that last longer than this, and permanent ones. 0: no limit."],
-        format = function(v) if v == 0 then return L["No limit"] end
-            return v >= 60 and ("%d min %02d s"):format(v / 60, v % 60) or ("%d s"):format(v) end,
-    }))
-    g, s = SB("sort")
-    filt:Add(UI.Dropdown(filt, L["Order"], SORTS, g, s, { enableIf = SelOn }))
 
     -- selected group: how each icon looks
     local icons = HasSel(page:Add(2, UI.Card(page.content, L["Icons"])))
