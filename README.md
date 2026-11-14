@@ -1,7 +1,7 @@
 # Sigil
 
-Unit frames for WoW Forever: player, target, target of target, focus, pet and
-party.
+Unit frames for WoW Forever: player, target, target of target, target of target
+of target, focus, pet and party.
 
 ## Features
 

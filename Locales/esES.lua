@@ -241,6 +241,7 @@ ns.translations.esES = {
     ["Player"] = "Jugador",
     ["Target"] = "Objetivo",
     ["Target of target"] = "Objetivo del objetivo",
+    ["The game has no frame for this unit."] = "El juego no tiene marco para esta unidad.",
     ["Focus"] = "Foco",
     ["Pet"] = "Mascota",
     ["Test cast"] = "Lanzamiento de prueba",

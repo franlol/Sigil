@@ -79,6 +79,9 @@ local function SetBarHidden(name, hide)
     end
 end
 
+-- Whether the game has a frame for this unit (target of target of target has none)
+function ns.HasBlizzardFrame(unit) return BLIZZARD[unit] ~= nil end
+
 function ns.HideBlizzard()
     ns.RunOOC("hideBlizzard", function()
         for unit, names in pairs(BLIZZARD) do

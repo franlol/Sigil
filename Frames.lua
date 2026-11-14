@@ -1,5 +1,6 @@
 -------------------------------------------------------------------------------
--- Sigil - Unit frames (player, target, target of target, focus, pet, party)
+-- Sigil - Unit frames (player, target, target of target, target of target of
+-- target, focus, pet, party)
 --
 -- Each frame is a secure unit button: left click targets, right click opens
 -- the unit menu. Health and power are drawn with the values as the game
@@ -13,7 +14,8 @@ local S, R = ns.S, ns.R
 local FLAT = "Interface\\Buttons\\WHITE8X8"
 local SMOOTH = Enum and Enum.StatusBarInterpolation and Enum.StatusBarInterpolation.ExponentialEaseOut
 
-ns.UNITS = { "player", "target", "targettarget", "focus", "pet", "party1", "party2", "party3", "party4" }
+ns.UNITS = { "player", "target", "targettarget", "targettargettarget", "focus", "pet",
+    "party1", "party2", "party3", "party4" }
 ns.frames = {}
 
 -- Settings key of each unit: the four party frames share "party"
@@ -30,11 +32,12 @@ function ns.UnitsOf(key)
 end
 
 -- Units whose events do not fire: they are refreshed every POLL seconds
-local POLLED = { targettarget = true }
+local POLLED = { targettarget = true, targettargettarget = true }
 local POLL = 0.2
 
 local UNIT_LABEL = {
-    player = "Player", target = "Target", targettarget = "Target of target", focus = "Focus", pet = "Pet",
+    player = "Player", target = "Target", targettarget = "Target of target",
+    targettargettarget = "ToTT", focus = "Focus", pet = "Pet",
 }
 
 local function Label(unit)
@@ -314,7 +317,7 @@ ns.On("PLAYER_REGEN_DISABLED", function(f) ns.UpdateTextVisibility(f) end)
 ns.On("PLAYER_REGEN_ENABLED", function(f) ns.UpdateTextVisibility(f) end)
 
 -- Units whose frame shows someone else when the target changes
-local FOLLOWS_TARGET = { target = true, targettarget = true }
+local FOLLOWS_TARGET = { target = true, targettarget = true, targettargettarget = true }
 
 local function OnEvent(f, event, ...)
     if event == "PLAYER_TARGET_CHANGED" and not FOLLOWS_TARGET[f.unit] then
@@ -342,7 +345,11 @@ local function RegisterEvents(f)
     if FOLLOWS_TARGET[f.unit] or (f.cfg.highlight and f.cfg.highlight.target) then
         f:RegisterEvent("PLAYER_TARGET_CHANGED")
     end
-    if f.unit == "targettarget" then f:RegisterUnitEvent("UNIT_TARGET", "target") end
+    -- target of target of target: the target of target changing its own target
+    -- fires nothing, the poll sees it
+    if f.unit == "targettarget" or f.unit == "targettargettarget" then
+        f:RegisterUnitEvent("UNIT_TARGET", "target")
+    end
     if f.unit == "focus" then f:RegisterEvent("PLAYER_FOCUS_CHANGED") end
     if f.unit == "pet" then f:RegisterUnitEvent("UNIT_PET", "player") end
     if CFG_KEY[f.unit] == "party" then f:RegisterEvent("GROUP_ROSTER_UPDATE") end
@@ -470,6 +477,12 @@ local function Build(unit)
         elapsed = 0
         if ns.Fake(self.unit) then return end
         if POLLED[self.unit] then
+            -- someone else now and no event said so: everything, portrait and auras too
+            local guid = R(UnitGUID(self.unit))
+            if guid ~= self.polledGUID then
+                self.polledGUID = guid
+                ns.UpdateAll(self)
+            end
             ns.UpdateColor(self)
             ns.UpdateHealth(self, true)
             ns.UpdatePowerValue(self, true)

@@ -17,8 +17,8 @@ local C = UI.theme
 local win               -- the options window (built on first open)
 
 local UNIT_NAMES = {
-    player = "Player", target = "Target", targettarget = "Target of target", focus = "Focus", pet = "Pet",
-    party = "Party",
+    player = "Player", target = "Target", targettarget = "Target of target",
+    targettargettarget = "ToTT", focus = "Focus", pet = "Pet", party = "Party",
 }
 
 -------------------------------------------------------------------------------
@@ -363,8 +363,11 @@ function Tabs.frame(page, unit)
 
     card = page:Add(2, UI.Card(page.content, L["Blizzard frame"]))
     g, s = Bind(unit, "hideBlizzard")
+    local hasFrame = ns.HasBlizzardFrame(unit)
     card:Add(UI.Check(card, L["Hide the game's frame"], g, s, {
-        tip = L["Hides the Blizzard frame this one replaces. Turning it off brings it back after /reload."],
+        tip = hasFrame and L["Hides the Blizzard frame this one replaces. Turning it off brings it back after /reload."]
+            or L["The game has no frame for this unit."],
+        enableIf = function() return hasFrame end,
     }))
 end
 
@@ -1179,7 +1182,7 @@ local TAB_LIST = {
 -------------------------------------------------------------------------------
 -- Copy: the settings of another frame into this one, by tab
 -------------------------------------------------------------------------------
-local UNIT_ORDER = { "player", "target", "targettarget", "focus", "pet", "party" }
+local UNIT_ORDER = { "player", "target", "targettarget", "targettargettarget", "focus", "pet", "party" }
 local undo          -- { unit, from, data, profile }: the last copy, to take it back
 
 function Tabs.copy(page, unit)
@@ -1449,7 +1452,7 @@ local function Build()
 
     win:AddNav("general", L["General"], GeneralPage)
     win:AddSection(L["FRAMES"])
-    for _, unit in ipairs({ "player", "target", "targettarget", "focus", "pet", "party" }) do
+    for _, unit in ipairs(UNIT_ORDER) do
         win:AddNav(unit, L[UNIT_NAMES[unit]], function(container) UnitPage(container, unit) end,
             function() return ns.P and U(unit).enabled end)
     end

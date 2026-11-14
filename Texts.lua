@@ -13,8 +13,9 @@ local L = ns.L
 local S, R = ns.S, ns.R
 
 -------------------------------------------------------------------------------
--- Test data (test mode). Player, target, target of target and pet are at
--- 80 % health and power, so the empty part (bar background) can be seen and tuned.
+-- Test data (test mode). Player, target, target of target, target of target
+-- of target and pet are at 80 % health and power, so the empty part (bar
+-- background) can be seen and tuned.
 -------------------------------------------------------------------------------
 local FAKE = {
     player = {
@@ -28,6 +29,10 @@ local FAKE = {
     targettarget = {
         name = "Test unit", level = 20, classification = "normal", class = "Warrior", classToken = "WARRIOR",
         hp = 800, maxhp = 1000, power = 80, maxpower = 100, powerToken = "RAGE", reaction = 5, player = true,
+    },
+    targettargettarget = {
+        name = "Test unit", level = 21, classification = "normal", class = "Priest", classToken = "PRIEST",
+        hp = 480, maxhp = 600, power = 720, maxpower = 900, powerToken = "MANA", reaction = 5, player = true,
     },
     focus = {
         name = "Test focus", level = 22, classification = "rare", class = "Undead",

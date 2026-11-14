@@ -265,6 +265,20 @@ ns.DEFAULTS = {
             castbar = Castbar(false, true, 14),
             threat = Threat(false),
         },
+        targettargettarget = {
+            enabled = false,
+            point = { "TOPLEFT", "UIParent", "CENTER", 404, -186 },
+            width = 140, height = 26,
+            portrait = "none",
+            portraitStyle = "2d",
+            power = { height = 0, style = Bar("auto") },  -- height 0 = no power bar
+            texts = { Text(NAME, { point = "CENTER", x = 0, size = 11, justify = "CENTER", events = {} }) },
+            auras = { enabled = false, groups = { Group("Debuffs", "HARMFUL", { size = 16, perRow = 8, max = 8 }) } },
+            icons = Icons({ "raidTarget" }, { raidTarget = { point = "LEFT", size = 14 } }),
+            fader = Fader(true, 0.5),
+            castbar = Castbar(false, true, 14),
+            threat = Threat(false),
+        },
         focus = {
             enabled = true,
             point = { "CENTER", "UIParent", "CENTER", -280, -100 },
@@ -335,7 +349,7 @@ ns.DEFAULTS = {
 }
 
 -- Settings every unit has (each unit can change them)
-local HIGHLIGHT_TARGET = { party = true, focus = true, targettarget = true }
+local HIGHLIGHT_TARGET = { party = true, focus = true, targettarget = true, targettargettarget = true }
 for key, u in pairs(ns.DEFAULTS.units) do
     -- detached: the bar leaves the frame and is placed with point/relPoint/x/y
     -- (width 0 = frame width)
