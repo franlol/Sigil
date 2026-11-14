@@ -1306,18 +1306,23 @@ function Tabs.castbar(page, unit)
     PositionRows(card, CB, apply, { unit = unit, enableIf = On, pieceLabel = L["Point of the bar"] })
 end
 
--- Extras: fading, threat, combo points, experience, totems
+-- Extras. Left: what changes the frame (fading, threat), then the extra bars
+-- and the combat text; right: the look and text of each one, in the same
+-- order. Every bar: Show, what it does, Height, position | look | text.
 function Tabs.extras(page, unit)
     local apply = function() ns.ApplyUnit(unit) end
+    local player = unit == "player"
+
+    -- fading
     local card = page:Add(1, UI.Card(page.content, L["Fading"], L["The frame becomes transparent when any checked situation happens."]))
     local g, s
-    if unit ~= "player" then
+    if not player then
         g, s = Bind(unit, "fader", "range")
         card:Add(UI.Check(card, L["Out of range"], g, s, { tip = L["Out of range: farther than about 28 yards."] }))
     end
     g, s = Bind(unit, "fader", "combat")
     card:Add(UI.Check(card, L["Out of combat"], g, s))
-    if unit ~= "player" then
+    if not player then
         g, s = Bind(unit, "fader", "phase")
         card:Add(UI.Check(card, L["In another phase"], g, s))
         g, s = Bind(unit, "fader", "hostility")
@@ -1328,34 +1333,8 @@ function Tabs.extras(page, unit)
     g, s = Bind(unit, "fader", "alpha")
     card:Add(UI.Slider(card, L["Opacity when faded"], 0, 1, 0.05, g, s, { format = UI.pct }))
 
-    -- combat text
-    local function CT() return U(unit).combatText end
-    local function CTOn() return CT().enabled end
-    card = page:Add(2, UI.Card(page.content, L["Combat text"], L["Damage, heals and misses over the frame."]))
-    g, s = Bind(unit, "combatText", "enabled")
-    card:Add(UI.Check(card, L["Show combat text"], g, s))
-    g, s = Bind(unit, "combatText", "duration")
-    card:Add(UI.Slider(card, L["Duration"], 0.5, 4, 0.1, g, s, { enableIf = CTOn, format = function(v) return ("%.1f s"):format(v) end }))
-    PositionRows(card, CT, apply, { unit = unit, text = true, enableIf = CTOn })
-    TextRows(card, function() return CT().textStyle end, apply, { enableIf = CTOn })
-
-    -- threat bar
-    if unit ~= "player" then
-        local function TBr() return U(unit).threatBar end
-        local function TBOn() return TBr().enabled end
-        card = page:Add(2, UI.Card(page.content, L["Threat bar"], L["Your threat on this unit, from 0 to 100 %."]))
-        g, s = Bind(unit, "threatBar", "enabled")
-        card:Add(UI.Check(card, L["Show threat bar"], g, s))
-        g, s = Bind(unit, "threatBar", "height")
-        card:Add(UI.Slider(card, L["Height"], 3, 24, 1, g, s, { format = Px, enableIf = TBOn }))
-        g, s = Bind(unit, "threatBar", "text")
-        card:Add(UI.Check(card, L["Show percentage"], g, s, { enableIf = TBOn }))
-        PositionRows(card, TBr, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = TBOn })
-        BarCard(page, 2, L["Threat bar look"], function() return TBr().style end, apply, { box = true,
-            autoLabel = L["Threat status"], enableIf = TBOn })
-    end
-
-    card = page:Add(2, UI.Card(page.content, L["Threat"], unit == "player"
+    -- threat: the border, and (on other units) the bar
+    card = page:Add(1, UI.Card(page.content, L["Threat border"], player
         and L["Border with your highest threat on any enemy."] or L["Border with your threat on this unit."]))
     g, s = Bind(unit, "threat", "enabled")
     card:Add(UI.Check(card, L["Show threat border"], g, s))
@@ -1364,39 +1343,69 @@ function Tabs.extras(page, unit)
         format = Px, enableIf = function() return U(unit).threat.enabled end,
     }))
 
-    if unit == "player" then
+    if not player then
+        local function TBr() return U(unit).threatBar end
+        local function TBOn() return TBr().enabled end
+        card = page:Add(1, UI.Card(page.content, L["Threat bar"], L["Your threat on this unit, from 0 to 100 %."]))
+        g, s = Bind(unit, "threatBar", "enabled")
+        card:Add(UI.Check(card, L["Show threat bar"], g, s))
+        g, s = Bind(unit, "threatBar", "height")
+        card:Add(UI.Slider(card, L["Height"], 2, 24, 1, g, s, { format = Px, enableIf = TBOn }))
+        PositionRows(card, TBr, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = TBOn })
+        BarCard(page, 2, L["Threat bar look"], function() return TBr().style end, apply, { box = true,
+            autoLabel = L["Threat status"], enableIf = TBOn })
+        card = page:Add(2, UI.Card(page.content, L["Threat bar text"]))
+        g, s = Bind(unit, "threatBar", "text")
+        card:Add(UI.Check(card, L["Show percentage"], g, s, { enableIf = TBOn }))
+        TextRows(card, function() return TBr().textStyle end, apply, {
+            auto = true, enableIf = function() return TBOn() and TBr().text end })
+    end
+
+    if player then
         local function GC() return U(unit).gcd end
         local function GCOn() return GC().enabled end
-        card = page:Add(2, UI.Card(page.content, L["Global cooldown"], L["A thin bar that empties while the global cooldown runs."]))
+        card = page:Add(1, UI.Card(page.content, L["Global cooldown"]))
         g, s = Bind(unit, "gcd", "enabled")
         card:Add(UI.Check(card, L["Show global cooldown"], g, s))
         g, s = Bind(unit, "gcd", "fillUp")
         card:Add(UI.Check(card, L["Fill up"], g, s, { enableIf = GCOn,
             tip = L["The bar fills while the global cooldown runs, instead of emptying."] }))
         g, s = Bind(unit, "gcd", "height")
-        card:Add(UI.Slider(card, L["Height"], 2, 16, 1, g, s, { format = Px, enableIf = GCOn }))
+        card:Add(UI.Slider(card, L["Height"], 2, 24, 1, g, s, { format = Px, enableIf = GCOn }))
         PositionRows(card, GC, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = GCOn })
         BarCard(page, 2, L["Global cooldown look"], function() return GC().style end, apply, { box = true, enableIf = GCOn })
 
         local function XP() return U(unit).xp end
         local function On() return XP().enabled end
-        card = page:Add(1, UI.Card(page.content, L["Experience / reputation"], L["A thin bar under your frame."]))
+        card = page:Add(1, UI.Card(page.content, L["Experience / reputation"]))
         g, s = Bind(unit, "xp", "enabled")
-        card:Add(UI.Check(card, L["Show the bar"], g, s))
+        card:Add(UI.Check(card, L["Show experience bar"], g, s))
         g, s = Bind(unit, "xp", "mode")
         card:Add(UI.Segmented(card, L["Shows"], {
             { "auto", L["Automatic"] }, { "xp", L["Experience"] }, { "rep", L["Reputation"] },
         }, g, s, { enableIf = On, tip = L["Automatic: experience until max level, then the reputation you watch."] }))
         g, s = Bind(unit, "xp", "height")
-        card:Add(UI.Slider(card, L["Height"], 4, 24, 1, g, s, { format = Px, enableIf = On }))
+        card:Add(UI.Slider(card, L["Height"], 2, 24, 1, g, s, { format = Px, enableIf = On }))
         PositionRows(card, XP, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = On })
-        BarCard(page, 1, L["Experience bar look"], function() return XP().style end, apply, { box = true, enableIf = On })
+        BarCard(page, 2, L["Experience bar look"], function() return XP().style end, apply, { box = true, enableIf = On })
         card = page:Add(2, UI.Card(page.content, L["Experience text"]))
         g, s = Bind(unit, "xp", "text")
         card:Add(UI.Check(card, L["Show numbers"], g, s, { enableIf = On }))
         TextRows(card, function() return XP().textStyle end, apply, {
             auto = true, enableIf = function() return On() and XP().text end })
     end
+
+    -- combat text: a text, so one anchor and the text look
+    local function CT() return U(unit).combatText end
+    local function CTOn() return CT().enabled end
+    card = page:Add(1, UI.Card(page.content, L["Combat text"], L["Damage, heals and misses over the frame."]))
+    g, s = Bind(unit, "combatText", "enabled")
+    card:Add(UI.Check(card, L["Show combat text"], g, s))
+    g, s = Bind(unit, "combatText", "duration")
+    card:Add(UI.Slider(card, L["Duration"], 0.5, 4, 0.1, g, s, { enableIf = CTOn, format = function(v) return ("%.1f s"):format(v) end }))
+    PositionRows(card, CT, apply, { unit = unit, text = true, enableIf = CTOn })
+    card = page:Add(2, UI.Card(page.content, L["Combat text look"]))
+    TextRows(card, function() return CT().textStyle end, apply, { enableIf = CTOn })
 end
 
 -- Class: what only some classes use. The tab only shows on the frames
@@ -1422,7 +1431,7 @@ function Tabs.class(page, unit)
         g, s = Bind(unit, "combo", "enabled")
         card:Add(UI.Check(card, L["Show combo points"], g, s))
         g, s = Bind(unit, "combo", "height")
-        card:Add(UI.Slider(card, L["Height"], 3, 20, 1, g, s, { format = Px, enableIf = On }))
+        card:Add(UI.Slider(card, L["Height"], 2, 24, 1, g, s, { format = Px, enableIf = On }))
         PositionRows(card, Combo, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = On })
         BarCard(page, 2, L["Combo points look"], function() return Combo().style end, apply, { box = true, enableIf = On })
     end
@@ -1434,12 +1443,15 @@ function Tabs.class(page, unit)
         g, s = Bind(unit, "altMana", "enabled")
         card:Add(UI.Check(card, L["Show druid mana"], g, s))
         g, s = Bind(unit, "altMana", "height")
-        card:Add(UI.Slider(card, L["Height"], 3, 24, 1, g, s, { format = Px, enableIf = AMOn }))
-        g, s = Bind(unit, "altMana", "text")
-        card:Add(UI.Check(card, L["Show numbers"], g, s, { enableIf = AMOn }))
+        card:Add(UI.Slider(card, L["Height"], 2, 24, 1, g, s, { format = Px, enableIf = AMOn }))
         PositionRows(card, AM, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = AMOn })
         BarCard(page, 2, L["Druid mana look"], function() return AM().style end, apply, { box = true,
             autoLabel = L["Power type"], enableIf = AMOn })
+        card = page:Add(2, UI.Card(page.content, L["Druid mana text"]))
+        g, s = Bind(unit, "altMana", "text")
+        card:Add(UI.Check(card, L["Show numbers"], g, s, { enableIf = AMOn }))
+        TextRows(card, function() return AM().textStyle end, apply, {
+            auto = true, enableIf = function() return AMOn() and AM().text end })
     end
 
     if unit == "player" and class == "SHAMAN" then

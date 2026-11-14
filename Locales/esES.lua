@@ -365,8 +365,6 @@ ns.translations.esES = {
 
     -- Experience, totems
     ["Experience / reputation"] = "Experiencia / reputación",
-    ["A thin bar under your frame."] = "Una barra fina bajo tu marco.",
-    ["Show the bar"] = "Mostrar la barra",
     ["Shows"] = "Muestra",
     ["Automatic"] = "Automático",
     ["Experience"] = "Experiencia",
@@ -444,6 +442,11 @@ ns.translations.esES = {
     ["Combo points look"] = "Aspecto de los puntos de combo",
     ["Experience bar look"] = "Aspecto de la barra de experiencia",
     ["Experience text"] = "Texto de experiencia",
+    ["Show experience bar"] = "Mostrar barra de experiencia",
+    ["Threat border"] = "Borde de amenaza",
+    ["Threat bar text"] = "Texto de la barra de amenaza",
+    ["Druid mana text"] = "Texto del maná de druida",
+    ["Combat text look"] = "Aspecto del texto de combate",
 
     -- Auras look
     ["Duration sweep"] = "Giro de duración",
@@ -507,7 +510,6 @@ ns.translations.esES = {
     ["Show druid mana"] = "Mostrar maná del druida",
     ["Druid mana look"] = "Aspecto del maná del druida",
     ["Global cooldown"] = "Tiempo de reutilización global",
-    ["A thin bar that empties while the global cooldown runs."] = "Una barra fina que se vacía mientras corre el tiempo de reutilización global.",
     ["Show global cooldown"] = "Mostrar tiempo de reutilización global",
     ["Fill up"] = "Llenar",
     ["The bar fills while the global cooldown runs, instead of emptying."] = "La barra se llena mientras corre el tiempo de reutilización global, en vez de vaciarse.",
