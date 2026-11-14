@@ -525,7 +525,7 @@ local function BuildHelp()
     exText:SetText([[return "%s / %s", Short(HP(unit)), Short(MaxHP(unit))]])
     exText:SetTextColor(0.85, 0.85, 0.85)
 
-    local hint = UI.Text(box, L["Click a function to insert it in the code."], C.labelFont, A)
+    local hint = UI.Text(box, L["Click to insert."], C.labelFont, A)
 
     -- the two columns of topics
     local cols = { {}, {} }
@@ -706,13 +706,10 @@ local function BuildBigEditor()
         if onDone then onDone(m.code.edit:GetText()) end
     end, "accent")
     done:SetPoint("TOPRIGHT", -P, -P + 2)
-    UI.Tip(done, L["Done"], L["Take the code back to the editor. Save it there to keep it."])
     local cancel = UI.Button(box, L["Cancel"], 90, 22, function() m:Hide() end)
     cancel:SetPoint("RIGHT", done, "LEFT", -6, 0)
-    UI.Tip(cancel, L["Cancel"], L["Close without the changes made here."])
     local format = UI.Button(box, L["Format"], 90, 22, function() FormatBox(m.code.edit) end)
     format:SetPoint("RIGHT", cancel, "LEFT", -18, 0)
-    UI.Tip(format, L["Format"], L["Fix the indentation of the code."])
     local funcs = UI.Button(box, L["Functions"], 90, 22, function()
         ShowHelp(function(call)
             m.code.edit:SetFocus()
@@ -720,17 +717,12 @@ local function BuildBigEditor()
         end)
     end)
     funcs:SetPoint("RIGHT", format, "LEFT", -6, 0)
-    UI.Tip(funcs, L["Functions"], L["Every function a text can use. Click one to insert it."])
 
-    m.code = UI.CodeBox(box, H - 2 * P - 30 - 22)
+    m.code = UI.CodeBox(box, H - 2 * P - 30)
     m.code:SetPoint("TOPLEFT", P, -P - 30)
     m.code:SetWidth(W - 2 * P)
     m.code.OnWidth(W - 2 * P)
     m.code.edit:SetScript("OnTabPressed", function(self) self:Insert(INDENT) end)
-
-    local hint = UI.Text(box, L["Tab indents · Done takes the code back to the editor · Cancel or Esc drops the changes"],
-        C.labelFont, C.muted)
-    hint:SetPoint("BOTTOMLEFT", P, P - 2)
 
     m:SetScript("OnHide", function(self)
         self.onDone = nil
@@ -771,7 +763,7 @@ function Tabs.texts(page, unit)
         Changed()
     end
     local REGIONS = { health = "Health bar", power = "Power bar", frame = "Whole frame" }
-    local list = page:Add(1, UI.Card(page.content, L["Texts"], L["Click to edit · drag to reorder · tick to turn on or off"]))
+    local list = page:Add(1, UI.Card(page.content, L["Texts"], L["Click to edit · drag to reorder"]))
     list:Add(UI.List(list, {
         items = Texts,
         label = TextLabel,
@@ -798,7 +790,7 @@ function Tabs.texts(page, unit)
             Changed()
             page.LoadEditor()
         end,
-        empty = L["No texts yet: pick a template and press Add text."],
+        empty = L["No texts."],
         rows = 12,
     }))
 
@@ -851,14 +843,14 @@ function Tabs.texts(page, unit)
                 code.edit:SetFocus()
                 code.edit:Insert(call)
             end)
-        end, nil, L["Every function a text can use. Click one to insert it."] },
-        { L["Format"], function() FormatBox(code.edit) end, nil, L["Fix the indentation of the code."] },
+        end },
+        { L["Format"], function() FormatBox(code.edit) end },
         { L["Expand"], function()
             ShowBigEditor(Sel() and TextLabel(Sel()) or "", code.edit:GetText(), function(text)
                 code.edit:SetText(text)
                 ShowDirty()
             end)
-        end, nil, L["Edit the code in a big window."] },
+        end },
     }))
     code = ed:Add(UI.CodeBox(ed, 200))
     code.edit:SetScript("OnTabPressed", function(self) self:Insert("    ") end)
@@ -867,6 +859,7 @@ function Tabs.texts(page, unit)
         function(v) draft.events = v; ShowDirty() end,
         { saveOnBlur = true, tip = L["Game events that refresh this text, separated by commas. It is also refreshed when the unit changes."] }))
     status = ed:Add(UI.Note(ed, ""))
+    status.showIf = function() return (status.text:GetText() or "") ~= "" end
 
     -- Compiles the editor's code and runs it once (compiled is not enough:
     -- errors can happen at run time). Shows any error. true if it works.
@@ -887,7 +880,7 @@ function Tabs.texts(page, unit)
             status:SetText("|cff6bd66b" .. L["The code works."] .. "|r"
                 .. (Dirty() and ("  |cffffc35c" .. L["Not saved yet."] .. "|r") or ""))
             Changed()
-        end, nil, L["Test the code without saving it."] },
+        end },
         { L["Save"], function()
             local t = Sel()
             if not t then return end
@@ -905,8 +898,8 @@ function Tabs.texts(page, unit)
             ns.ApplyUnit(unit)
             status:SetText("|cff6bd66b" .. L["Saved."] .. "|r")
             Changed()
-        end, "accent", L["Keep the name, code and events. Code with errors is not saved."] },
-        { L["Undo changes"], function() page.LoadEditor() end, nil, L["Go back to the saved name, code and events."] },
+        end, "accent" },
+        { L["Undo changes"], function() page.LoadEditor() end },
     }))
 
     local place = page:Add(2, UI.Card(page.content, L["Placement"]))
@@ -945,7 +938,7 @@ function Tabs.texts(page, unit)
         draft.events = t and EventsText(t) or ""
         code.edit:SetText(t and t.code or "")
         code.edit:SetCursorPosition(0)
-        status:SetText(L["Edit, then Validate to test or Save to keep. Code with errors is not saved."])
+        status:SetText("")
         nameRow.Refresh()
         events.Refresh()
         page:Layout()
