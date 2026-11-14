@@ -684,8 +684,6 @@ function Tabs.texts(page, unit)
     -- editor
     local ed = page:Add(2, UI.Card(page.content, L["Edit text"]))
     ed.showIf = function() return Sel() ~= nil end
-    ed:Add(UI.Switch(ed, L["Enabled"], function() return Sel() and Sel().enabled ~= false end,
-        function(v) if Sel() then SetEnabled(Sel(), v) end end))
     local nameRow = ed:Add(UI.Input(ed, L["Name"], function() return Sel() and Sel().name or "" end,
         function(v)
             if Sel() then Sel().name = v end
