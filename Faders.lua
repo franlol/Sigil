@@ -27,11 +27,16 @@ end
 
 -- Is the unit in range? Can be a secret yes/no
 local function InRange(u)
-    if u:find("^party") and UnitInRange then
+    if R(UnitIsUnit(u, "player")) then return true end
+    -- group members (also as targettarget etc.): the game's check works in combat
+    if UnitInRange and (R(UnitInParty(u)) or R(UnitInRaid(u))) then
         local r, checked = UnitInRange(u)
         if not S(checked) and checked == false then return true end
         return r
     end
+    -- the distance check does not work in combat on non-hostile units:
+    -- unknown counts as in range
+    if InCombatLockdown() and not R(UnitCanAttack("player", u)) then return true end
     return CheckInteractDistance(u, 4)
 end
 
