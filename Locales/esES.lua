@@ -103,9 +103,7 @@ ns.translations.esES = {
 
     -- Options: Texts tab
     ["Click to edit · drag to reorder · tick to turn on or off"] = "Pulsa para editar · arrastra para ordenar · marca para activar o desactivar",
-    ["off"] = "desactivado",
-    ["On / off"] = "Activar / desactivar",
-    ["Turn this text on or off without deleting it."] = "Activa o desactiva este texto sin borrarlo.",
+    ["No texts yet: pick a template and press Add text."] = "Aún no hay textos: elige una plantilla y pulsa Añadir texto.",
     ["Functions and examples"] = "Funciones y ejemplos",
     ["Click a function to insert it in the code."] = "Pulsa una función para insertarla en el código.",
     ["Template"] = "Plantilla",

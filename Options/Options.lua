@@ -628,48 +628,37 @@ function Tabs.texts(page, unit)
         ns.ApplyUnit(unit)
         Changed()
     end
+    local REGIONS = { health = "Health bar", power = "Power bar", frame = "Whole frame" }
     local list = page:Add(1, UI.Card(page.content, L["Texts"], L["Click to edit · drag to reorder · tick to turn on or off"]))
-    local rows = list:Add(SelectList(list, Texts, function(t)
-        if t.enabled == false then
-            return "|cff6a6a6a" .. TextLabel(t) .. "  ·  " .. L["off"] .. "|r"
-        end
-        return TextLabel(t)
-    end, function() return state.sel end, function(i)
-        state.sel = i
-        if page.LoadEditor then page.LoadEditor() end
-    end, function(row, t)
-        if not row.toggle then
-            local c = CreateFrame("Button", nil, row, "BackdropTemplate")
-            c:SetSize(14, 14)
-            c:SetPoint("LEFT", 8, 0)
-            UI.Backdrop(c, C.field, C.border)
-            c.mark = c:CreateTexture(nil, "OVERLAY")
-            c.mark:SetPoint("TOPLEFT", 3, -3)
-            c.mark:SetPoint("BOTTOMRIGHT", -3, 3)
-            c.mark:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
-            c:SetScript("OnEnter", function(self)
-                self:SetBackdropBorderColor(C.accent[1], C.accent[2], C.accent[3], 1)
-            end)
-            c:SetScript("OnLeave", function(self) self:SetBackdropBorderColor(unpack(C.border)) end)
-            UI.Tip(c, L["On / off"], L["Turn this text on or off without deleting it."])
-            row.toggle = c
-            row.text:SetPoint("LEFT", c, "RIGHT", 8, 0)
-        end
-        row.toggle.mark:SetShown(t.enabled ~= false)
-        row.toggle:SetScript("OnClick", function() SetEnabled(t, t.enabled == false) end)
-    end, 22, function(from, to)
-        local t = table.remove(Texts(), from)
-        table.insert(Texts(), to, t)
-        state.sel = to
-        ns.ApplyUnit(unit)
-        if page.LoadEditor then page.LoadEditor() end
-    end))
-    -- always room for several texts, so the list does not jump as it grows
-    local listRefresh = rows.Refresh
-    rows.Refresh = function(self, ...)
-        listRefresh(self, ...)
-        self:SetHeight(math.max(self:GetHeight(), 12 * 23 + 1))
-    end
+    list:Add(UI.List(list, {
+        items = Texts,
+        label = TextLabel,
+        secondary = function(t) return L[REGIONS[t.region] or "Health bar"] end,
+        off = function(t) return t.enabled == false end,
+        checked = function(t) return t.enabled ~= false end,
+        onCheck = function(t, v) SetEnabled(t, v) end,
+        selected = function() return state.sel end,
+        onSelect = function(i)
+            state.sel = i
+            if page.LoadEditor then page.LoadEditor() end
+        end,
+        onReorder = function(from, to)
+            local t = table.remove(Texts(), from)
+            table.insert(Texts(), to, t)
+            state.sel = to
+            ns.ApplyUnit(unit)
+            if page.LoadEditor then page.LoadEditor() end
+        end,
+        onRemove = function(i)
+            table.remove(Texts(), i)
+            if state.sel > i or state.sel > #Texts() then state.sel = math.max(1, state.sel - 1) end
+            ns.ApplyUnit(unit)
+            Changed()
+            page.LoadEditor()
+        end,
+        empty = L["No texts yet: pick a template and press Add text."],
+        rows = 12,
+    }))
 
     local add = { tpl = "name" }
     local tplOptions = {}
@@ -691,18 +680,6 @@ function Tabs.texts(page, unit)
             page.LoadEditor()
         end, "accent" },
     }))
-    local delete = UI.Buttons(list, {
-        { L["Delete selected"], function()
-            if not Sel() then return end
-            table.remove(Texts(), state.sel)
-            state.sel = math.max(1, math.min(state.sel, #Texts()))
-            ns.ApplyUnit(unit)
-            Changed()
-            page.LoadEditor()
-        end, "danger" },
-    }, { enableIf = function() return Sel() ~= nil end })
-    UI.Confirm(delete.buttons[1])
-    list:Add(delete)
 
     -- editor
     local ed = page:Add(2, UI.Card(page.content, L["Edit text"]))
