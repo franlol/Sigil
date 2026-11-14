@@ -186,15 +186,19 @@ function ns.UpdatePortrait(f)
     local u = f.unit
     local p = f.portrait
     -- sample picture only for units that do not exist (your own stays real)
+    -- p.tex only ever gets SetPortraitTexture and p.icon only ever gets
+    -- files: switching one texture between both crashes the client
     if ns.Fake(u) and not UnitExists(u) then
         p.model:Hide()
-        p.tex:Show()
-        p.tex:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-        p.tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        p.tex:Hide()
+        p.icon:Show()
+        p.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+        p.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         return
     end
     if c.portraitStyle == "3d" then
         p.tex:Hide()
+        p.icon:Hide()
         p.model:Show()
         if R(UnitIsVisible(u)) then
             p.model:SetUnit(u)
@@ -206,13 +210,16 @@ function ns.UpdatePortrait(f)
         return
     end
     p.model:Hide()
-    p.tex:Show()
     local token = c.portraitStyle == "class" and R(UnitIsPlayer(u)) and R(select(2, UnitClass(u)))
     local coords = token and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[token]
     if coords then
-        p.tex:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
-        p.tex:SetTexCoord(unpack(coords))
+        p.tex:Hide()
+        p.icon:Show()
+        p.icon:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
+        p.icon:SetTexCoord(unpack(coords))
     else
+        p.icon:Hide()
+        p.tex:Show()
         SetPortraitTexture(p.tex, u)
         p.tex:SetTexCoord(0.15, 0.85, 0.15, 0.85)
     end
@@ -407,6 +414,9 @@ local function Build(unit)
     f.portrait = CreateFrame("Frame", nil, f)
     f.portrait.tex = f.portrait:CreateTexture(nil, "ARTWORK")
     f.portrait.tex:SetAllPoints()
+    f.portrait.icon = f.portrait:CreateTexture(nil, "ARTWORK")
+    f.portrait.icon:SetAllPoints()
+    f.portrait.icon:Hide()
     f.portrait.model = CreateFrame("PlayerModel", nil, f.portrait)
     f.portrait.model:SetAllPoints()
     f.portrait.model:Hide()
