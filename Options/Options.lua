@@ -77,24 +77,6 @@ end
 
 local function Px(v) return ("%d px"):format(v) end
 
--- Class-specific pieces: enabled only for the classes that use them (a profile
--- can be shared by characters of several classes, so they stay visible)
-local function ClassIs(...)
-    local classes = {}
-    for _, c in ipairs({ ... }) do classes[c] = true end
-    return function()
-        local _, class = UnitClass("player")
-        return classes[class] or false
-    end
-end
-
--- Note shown when your class does not use a card
--- (the class does not change while playing, so the card never changes size)
-local function ClassNote(card, check)
-    if check() then return end
-    card:Add(UI.Note(card, "|cffffb347" .. L["Your class does not use this. It stays saved for characters that do."] .. "|r"))
-end
-
 -- Enabled only when every given condition holds (nil conditions are skipped).
 -- Dependent options are greyed out instead of hidden, so the layout never moves.
 local function Both(...)
@@ -1382,36 +1364,7 @@ function Tabs.extras(page, unit)
         format = Px, enableIf = function() return U(unit).threat.enabled end,
     }))
 
-    if unit == "target" then
-        local function Combo() return U(unit).combo end
-        local ComboClass = ClassIs("ROGUE", "DRUID")
-        local function On() return ComboClass() and Combo().enabled end
-        card = page:Add(1, UI.Card(page.content, L["Combo points"], L["Rogues and druids only."]))
-        ClassNote(card, ComboClass)
-        g, s = Bind(unit, "combo", "enabled")
-        card:Add(UI.Check(card, L["Show combo points"], g, s, { enableIf = ComboClass }))
-        g, s = Bind(unit, "combo", "height")
-        card:Add(UI.Slider(card, L["Height"], 3, 20, 1, g, s, { format = Px, enableIf = On }))
-        PositionRows(card, Combo, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = On })
-        BarCard(page, 1, L["Combo points look"], function() return Combo().style end, apply, { box = true, enableIf = On })
-    end
-
     if unit == "player" then
-        local function AM() return U(unit).altMana end
-        local DruidClass = ClassIs("DRUID")
-        local function AMOn() return DruidClass() and AM().enabled end
-        card = page:Add(1, UI.Card(page.content, L["Druid mana"], L["Your mana while in bear or cat form."]))
-        ClassNote(card, DruidClass)
-        g, s = Bind(unit, "altMana", "enabled")
-        card:Add(UI.Check(card, L["Show druid mana"], g, s, { enableIf = DruidClass }))
-        g, s = Bind(unit, "altMana", "height")
-        card:Add(UI.Slider(card, L["Height"], 3, 24, 1, g, s, { format = Px, enableIf = AMOn }))
-        g, s = Bind(unit, "altMana", "text")
-        card:Add(UI.Check(card, L["Show numbers"], g, s, { enableIf = AMOn }))
-        PositionRows(card, AM, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = AMOn })
-        BarCard(page, 1, L["Druid mana look"], function() return AM().style end, apply, { box = true,
-            autoLabel = L["Power type"], enableIf = AMOn })
-
         local function GC() return U(unit).gcd end
         local function GCOn() return GC().enabled end
         card = page:Add(2, UI.Card(page.content, L["Global cooldown"], L["A thin bar that empties while the global cooldown runs."]))
@@ -1443,13 +1396,57 @@ function Tabs.extras(page, unit)
         card:Add(UI.Check(card, L["Show numbers"], g, s, { enableIf = On }))
         TextRows(card, function() return XP().textStyle end, apply, {
             auto = true, enableIf = function() return On() and XP().text end })
+    end
+end
 
-        local ShamanClass = ClassIs("SHAMAN")
-        local function TOn() return ShamanClass() and U(unit).totems.enabled end
-        card = page:Add(2, UI.Card(page.content, L["Totems"], L["The game's totem bar, moved under your frame (shamans)."]))
-        ClassNote(card, ShamanClass)
+-- Class: what only some classes use. The tab only shows on the frames
+-- where your class has something (the settings stay saved for the others).
+local CLASS_TAB = {
+    player = { DRUID = true, SHAMAN = true },   -- druid mana, totems
+    target = { ROGUE = true, DRUID = true },    -- combo points
+}
+local function HasClassTab(unit)
+    local _, class = UnitClass("player")
+    return CLASS_TAB[unit] and CLASS_TAB[unit][class] or false
+end
+
+function Tabs.class(page, unit)
+    local apply = function() ns.ApplyUnit(unit) end
+    local _, class = UnitClass("player")
+    local g, s, card
+
+    if unit == "target" then
+        local function Combo() return U(unit).combo end
+        local function On() return Combo().enabled end
+        card = page:Add(1, UI.Card(page.content, L["Combo points"]))
+        g, s = Bind(unit, "combo", "enabled")
+        card:Add(UI.Check(card, L["Show combo points"], g, s))
+        g, s = Bind(unit, "combo", "height")
+        card:Add(UI.Slider(card, L["Height"], 3, 20, 1, g, s, { format = Px, enableIf = On }))
+        PositionRows(card, Combo, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = On })
+        BarCard(page, 2, L["Combo points look"], function() return Combo().style end, apply, { box = true, enableIf = On })
+    end
+
+    if unit == "player" and class == "DRUID" then
+        local function AM() return U(unit).altMana end
+        local function AMOn() return AM().enabled end
+        card = page:Add(1, UI.Card(page.content, L["Druid mana"], L["Your mana while in bear or cat form."]))
+        g, s = Bind(unit, "altMana", "enabled")
+        card:Add(UI.Check(card, L["Show druid mana"], g, s))
+        g, s = Bind(unit, "altMana", "height")
+        card:Add(UI.Slider(card, L["Height"], 3, 24, 1, g, s, { format = Px, enableIf = AMOn }))
+        g, s = Bind(unit, "altMana", "text")
+        card:Add(UI.Check(card, L["Show numbers"], g, s, { enableIf = AMOn }))
+        PositionRows(card, AM, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = AMOn })
+        BarCard(page, 2, L["Druid mana look"], function() return AM().style end, apply, { box = true,
+            autoLabel = L["Power type"], enableIf = AMOn })
+    end
+
+    if unit == "player" and class == "SHAMAN" then
+        local function TOn() return U(unit).totems.enabled end
+        card = page:Add(1, UI.Card(page.content, L["Totems"], L["The game's totem bar, moved under your frame."]))
         g, s = Bind(unit, "totems", "enabled")
-        card:Add(UI.Check(card, L["Move the totem bar"], g, s, { enableIf = ShamanClass, tip = L["Turning it off brings it back after /reload."] }))
+        card:Add(UI.Check(card, L["Move the totem bar"], g, s, { tip = L["Turning it off brings it back after /reload."] }))
         g, s = Bind(unit, "totems", "scale")
         card:Add(UI.Slider(card, L["Scale"], 0.5, 2, 0.05, g, s, { format = UI.pct, enableIf = TOn }))
         PositionRows(card, function() return U(unit).totems end, apply, { unit = unit, pieceLabel = L["Point of the totems"], enableIf = TOn })
@@ -1536,7 +1533,7 @@ local COPY_PARTS = {
 
 local TAB_LIST = {
     { "frame", "Frame" }, { "bars", "Bars" }, { "texts", "Texts" }, { "auras", "Auras" },
-    { "icons", "Icons" }, { "castbar", "Cast bar" }, { "extras", "Extras" }, { "copy", "Copy" },
+    { "icons", "Icons" }, { "castbar", "Cast bar" }, { "extras", "Extras" }, { "class", "Class" }, { "copy", "Copy" },
 }
 
 -------------------------------------------------------------------------------
@@ -1644,7 +1641,9 @@ local function UnitPage(container, unit)
     holder:SetPoint("BOTTOMRIGHT")
 
     local labels = {}
-    for i, t in ipairs(TAB_LIST) do labels[i] = { t[1], L[t[2]] } end
+    for _, t in ipairs(TAB_LIST) do
+        if t[1] ~= "class" or HasClassTab(unit) then labels[#labels + 1] = { t[1], L[t[2]] } end
+    end
     local tabs = UI.Tabs(container, labels, function(key)
         for _, p in pairs(tabPages) do p:Hide() end
         local p = tabPages[key]

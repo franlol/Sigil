@@ -203,7 +203,6 @@ ns.translations.esES = {
     ["Show threat border"] = "Mostrar borde de amenaza",
     ["Thickness"] = "Grosor",
     ["Combo points"] = "Puntos de combo",
-    ["Rogues and druids only."] = "Solo pícaros y druidas.",
     ["Show combo points"] = "Mostrar puntos de combo",
 
     -- Options: General
@@ -375,7 +374,7 @@ ns.translations.esES = {
     ["Automatic: experience until max level, then the reputation you watch."] = "Automático: experiencia hasta el nivel máximo, después la reputación que sigues.",
     ["Show numbers"] = "Mostrar números",
     ["Totems"] = "Tótems",
-    ["The game's totem bar, moved under your frame (shamans)."] = "La barra de tótems del juego, movida bajo tu marco (chamanes).",
+    ["The game's totem bar, moved under your frame."] = "La barra de tótems del juego, movida bajo tu marco.",
     ["Move the totem bar"] = "Mover la barra de tótems",
     ["Scale"] = "Escala",
 
@@ -522,7 +521,6 @@ ns.translations.esES = {
     ["Detach from the frame"] = "Separar del marco",
     ["The bar leaves the frame and goes where you place it. Clicks on it do not target the unit."] = "La barra sale del marco y va donde la coloques. Los clics sobre ella no seleccionan la unidad.",
 
-    ["Your class does not use this. It stays saved for characters that do."] = "Tu clase no lo usa. Se queda guardado para los personajes que sí.",
 
     -- Anchoring and dragging pieces
     ["Anchored to"] = "Unida a",
