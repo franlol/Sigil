@@ -9,7 +9,6 @@ local _, ns = ...
 local L = ns.L
 local S = ns.S
 
-
 local function Build(f)
     local g = CreateFrame("Frame", nil, f, "BackdropTemplate")
     g.bar = CreateFrame("StatusBar", nil, g)
