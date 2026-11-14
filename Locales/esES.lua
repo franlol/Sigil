@@ -351,11 +351,9 @@ ns.translations.esES = {
 
     -- Status icons
     ["Status icons"] = "Iconos de estado",
-    ["Turn them on, and click Edit to place one."] = "Actívalos y pulsa Editar para colocar uno.",
-    ["Edit"] = "Editar",
-    ["Place"] = "Colocación",
-    ["Editing:"] = "Editando:",
-    ["Tip: turn on Test mode to see every icon on the frame."] = "Consejo: activa el modo de prueba para ver todos los iconos en el marco.",
+    ["Click to edit"] = "Clic para editar",
+    ["Point of the icon"] = "Punto del icono",
+    ["NPCs"] = "PNJ",
     ["Raid assistant"] = "Ayudante de banda",
     ["Master looter"] = "Maestro despojador",
     ["Role"] = "Rol",

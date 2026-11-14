@@ -11,6 +11,7 @@
 
 local _, ns = ...
 local R = ns.R
+local L = ns.L
 
 local STATE = "Interface\\CharacterFrame\\UI-StateIcon"
 
@@ -202,6 +203,21 @@ ns.ICON_KEYS = {
     "pvp", "readyCheck", "resurrect", "summon", "phase", "questBoss", "happiness",
 }
 
+ns.ICON_NAMES = {
+    combat = "In combat", resting = "Resting", leader = "Group leader", assistant = "Raid assistant",
+    masterLooter = "Master looter", role = "Role", raidTarget = "Raid target", pvp = "PvP",
+    readyCheck = "Ready check", resurrect = "Being resurrected", summon = "Summon", phase = "Other phase",
+    questBoss = "Quest boss", happiness = "Pet happiness",
+}
+
+-- Icons that only some frames can show: key -> { frames, label }.
+-- The rest can show on any frame.
+ns.ICON_ONLY = {
+    resting = { { player = true }, "Player" },
+    happiness = { { pet = true }, "Pet" },
+    questBoss = { { target = true, targettarget = true, targettargettarget = true, focus = true }, "NPCs" },
+}
+
 function ns.LayoutIcons(f)
     f.icons = f.icons or {}
     for _, key in ipairs(ns.ICON_KEYS) do
@@ -215,9 +231,10 @@ function ns.LayoutIcons(f)
         tex:Hide()
         if tex.hit then tex.hit:Hide() end
         if cfg and cfg.show then
-            tex:ClearAllPoints()
-            tex:SetPoint("CENTER", f, cfg.point, cfg.x or 0, cfg.y or 0)
+            -- a piece like any other: it can be dragged while unlocked
+            ns.PlacePiece(f, "icon:" .. key, L[ns.ICON_NAMES[key]], tex, cfg)
             tex:SetSize(cfg.size, cfg.size)
+            tex:SetAlpha(cfg.alpha or 1)
         end
     end
 end

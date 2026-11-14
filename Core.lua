@@ -157,6 +157,24 @@ local function Fill(dst, src)
     end
 end
 
+-- Older settings in today's shape, before the defaults fill the gaps
+local function Migrate(p)
+    for _, u in pairs(type(p.units) == "table" and p.units or {}) do
+        for _, ic in pairs(type(u) == "table" and type(u.icons) == "table" and u.icons or {}) do
+            -- icons: `point` was the point of the frame the icon centers on
+            if type(ic) == "table" and ic.relPoint == nil and ic.point then
+                ic.relPoint, ic.point = ic.point, "CENTER"
+            end
+        end
+    end
+end
+
+-- The profile in use, ready: migrated and filled from the defaults
+local function Prepare()
+    Migrate(ns.P)
+    Fill(ns.P, ns.DEFAULTS)
+end
+
 local function CharKey()
     return (UnitName("player") or "?") .. "-" .. (GetRealmName() or "?")
 end
@@ -183,7 +201,7 @@ local function LoadProfile()
     db.profileOf[ns.charKey] = name
     ns.profileName = name
     ns.P = db.profiles[name]
-    Fill(ns.P, ns.DEFAULTS)
+    Prepare()
     ns.ResetGradient()
 end
 
@@ -194,7 +212,7 @@ function ns.UseProfile(name)
     db.profileOf[ns.charKey] = name
     ns.profileName = name
     ns.P = db.profiles[name]
-    Fill(ns.P, ns.DEFAULTS)
+    Prepare()
     ns.ResetGradient()
     ns.ApplyAll()
 end
@@ -205,7 +223,7 @@ function ns.CopyProfile(from)
     if not src or from == ns.profileName then return end
     wipe(ns.P)
     for k, v in pairs(DeepCopy(src)) do ns.P[k] = v end
-    Fill(ns.P, ns.DEFAULTS)
+    Prepare()
     ns.ResetGradient()
     ns.ApplyAll()
 end
@@ -220,7 +238,7 @@ end
 
 function ns.ResetProfile()
     wipe(ns.P)
-    Fill(ns.P, ns.DEFAULTS)
+    Prepare()
     ns.ResetGradient()
     ns.ApplyAll()
 end
@@ -234,7 +252,7 @@ end
 -- Replaces every setting of one unit (undo of a copy)
 function ns.SetUnitSettings(unit, data)
     ns.P.units[unit] = data
-    Fill(ns.P, ns.DEFAULTS)
+    Prepare()
     ns.ApplyUnit(unit)
 end
 
@@ -313,7 +331,7 @@ function ns.CopyUnit(from, to, sections)
     end
     Merge(picked, pick, skip)
     for k, v in pairs(picked) do dst[k] = v end
-    Fill(ns.P, ns.DEFAULTS)
+    Prepare()
     ns.ApplyUnit(to)
 end
 
@@ -361,7 +379,7 @@ function ns.ImportProfile(text)
     if not ok or type(data) ~= "table" then return false, L["The text is damaged."] end
     wipe(ns.P)
     for k, v in pairs(data) do ns.P[k] = v end
-    Fill(ns.P, ns.DEFAULTS)
+    Prepare()
     ns.ResetGradient()
     ns.ApplyAll()
     return true

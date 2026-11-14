@@ -1205,67 +1205,53 @@ function Tabs.auras(page, unit)
     IconText(stackCard, "stackText", SelOn)
 end
 
--- Icons: every icon with its switch on the left, the chosen one's place on the right
-local ICON_NAMES = {
-    combat = "In combat", resting = "Resting", leader = "Group leader", assistant = "Raid assistant",
-    masterLooter = "Master looter", role = "Role", raidTarget = "Raid target", pvp = "PvP",
-    readyCheck = "Ready check", resurrect = "Being resurrected", summon = "Summon", phase = "Other phase",
-    questBoss = "Quest boss", happiness = "Pet happiness",
-}
-
+-- Icons: every icon with its switch on the left, the chosen one's look and place on the right
 function Tabs.icons(page, unit)
     local state = { sel = ns.ICON_KEYS[1] }
+    local apply = function() ns.ApplyUnit(unit) end
     local function Cfg(key)
         local icons = U(unit).icons
-        if not icons[key] then icons[key] = { show = false, point = "TOP", x = 0, y = 0, size = 16 } end
+        if not icons[key] then
+            icons[key] = { show = false, point = "CENTER", relPoint = "TOP", x = 0, y = 0, size = 16, alpha = 1 }
+        end
         return icons[key]
     end
+    local function Sel() return Cfg(state.sel) end
+    -- the frames an icon can show on (nil: any)
+    local function Fits(key)
+        local only = ns.ICON_ONLY[key]
+        return not only or only[1][unit] or false
+    end
 
-    local list = page:Add(1, UI.Card(page.content, L["Status icons"], L["Turn them on, and click Edit to place one."]))
-    for _, key in ipairs(ns.ICON_KEYS) do
-        local row = UI.Check(list, L[ICON_NAMES[key]], function() return Cfg(key).show end, function(v)
+    local list = page:Add(1, UI.Card(page.content, L["Status icons"], L["Click to edit"]))
+    list:Add(UI.List(list, {
+        items = function() return ns.ICON_KEYS end,
+        label = function(key) return L[ns.ICON_NAMES[key]] end,
+        secondary = function(key)
+            local only = ns.ICON_ONLY[key]
+            return only and L[only[2]] or ""
+        end,
+        off = function(key) return not Fits(key) end,
+        checked = function(key) return Cfg(key).show and true or false end,
+        onCheck = function(key, v)
             Cfg(key).show = v
             state.sel = key
-            ns.ApplyUnit(unit)
-            Changed()
-        end)
-        -- "Edit" at the end of the row: chooses the icon to place
-        local edit = UI.Button(row, L["Edit"], 44, 16, function()
-            state.sel = key
-            Changed()
-        end)
-        edit:SetPoint("RIGHT")
-        edit:SetFrameLevel(row.box:GetFrameLevel() + 3)
-        row.label:SetPoint("RIGHT", edit, "LEFT", -6, 0)
-        local base = row.Refresh
-        row.Refresh = function(...)
-            base(...)
-            edit.text:SetTextColor(unpack(state.sel == key and C.accent or C.muted))
-        end
-        list:Add(row)
-    end
+            apply()
+        end,
+        selected = function(key) return key == state.sel end,
+        onSelect = function(_, key) state.sel = key end,
+        rows = #ns.ICON_KEYS,
+    }))
 
-    local place = page:Add(2, UI.Card(page.content, L["Place"]))
-    local title = place:Add(UI.Note(place, ""))
-    title.Refresh = function() title:SetText(L["Editing:"] .. " |cffffffff" .. L[ICON_NAMES[state.sel]] .. "|r") end
-    table.insert(UI.widgets, title)
-    local function IB(k)
-        return function() return Cfg(state.sel)[k] end,
-            function(v)
-                Cfg(state.sel)[k] = v
-                ns.ApplyUnit(unit)
-            end
-    end
-    local function On() return Cfg(state.sel).show end
-    local g, s = IB("point")
-    place:Add(UI.Dropdown(place, L["Position"], POINTS, g, s, { enableIf = On }))
-    g, s = IB("size")
-    place:Add(UI.Slider(place, L["Size"], 8, 40, 1, g, s, { format = Px, enableIf = On }))
-    g, s = IB("x")
-    place:Add(UI.Slider(place, L["Horizontal offset"], -60, 60, 1, g, s, { format = Px, enableIf = On }))
-    g, s = IB("y")
-    place:Add(UI.Slider(place, L["Vertical offset"], -60, 60, 1, g, s, { format = Px, enableIf = On }))
-    place:Add(UI.Note(place, L["Tip: turn on Test mode to see every icon on the frame."]))
+    local function On() return Sel().show end
+    local look = page:Add(2, UI.Card(page.content, L["Look"]))
+    local g, s = TB(Sel, "size", apply)
+    look:Add(UI.Slider(look, L["Size"], 8, 40, 1, g, s, { format = Px, enableIf = On }))
+    g, s = TB(Sel, "alpha", apply)
+    look:Add(UI.Slider(look, L["Opacity"], 0.1, 1, 0.05, g, s, { format = UI.pct, enableIf = On }))
+
+    local place = page:Add(2, UI.Card(page.content, L["Position"]))
+    PositionRows(place, Sel, apply, { unit = unit, enableIf = On, cornerLabel = L["Point of the icon"] })
 end
 
 

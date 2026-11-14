@@ -138,8 +138,9 @@ end
 -------------------------------------------------------------------------------
 -- Icons: centered on `point` of the frame, plus x/y
 -------------------------------------------------------------------------------
-local function Icon(show, point, x, y, size)
-    return { show = show, point = point, x = x, y = y, size = size }
+-- relPoint: the point of the frame; point: the point of the icon on it
+local function Icon(show, relPoint, x, y, size)
+    return { show = show, point = "CENTER", relPoint = relPoint, x = x, y = y, size = size, alpha = 1 }
 end
 
 -- Every icon; `on` = the ones shown, `where` = custom positions
@@ -161,7 +162,8 @@ local function Icons(on, where)
         happiness = Icon(false, "RIGHT", 10, 0, 16),
     }
     for key, v in pairs(where or {}) do
-        for k, val in pairs(v) do base[key][k] = val end
+        -- `point` in the overrides below is the point of the frame
+        for k, val in pairs(v) do base[key][k == "point" and "relPoint" or k] = val end
     end
     for _, key in ipairs(on) do base[key].show = true end
     return base
