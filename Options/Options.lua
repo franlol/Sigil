@@ -559,26 +559,37 @@ function Tabs.texts(page, unit)
         end))
     local code = ed:Add(UI.CodeBox(ed, 150))
     local status = ed:Add(UI.Note(ed, ""))
+    -- Compiles the editor's code and runs it once (compiled is not enough:
+    -- errors can happen at run time). Shows any error. true if it works.
+    local function Validate()
+        local fn, err = ns.CompileText(code.edit:GetText())
+        if fn then
+            local ok, runErr = ns.TryText(unit, fn)
+            if ok then return true end
+            err = runErr
+        end
+        status:SetText("|cffff6b61" .. L["Error:"] .. "|r " .. tostring(err))
+        Changed()
+        return false
+    end
     ed:Add(UI.Buttons(ed, {
-        { L["Apply code"], function()
+        { L["Validate"], function()
+            if not Sel() or not Validate() then return end
+            status:SetText("|cff6bd66b" .. L["The code works. Not saved yet."] .. "|r")
+            Changed()
+        end },
+        { L["Save"], function()
             local t = Sel()
             if not t then return end
-            local text = code.edit:GetText()
-            local fn, err = ns.CompileText(text)
-            if not fn then
-                status:SetText("|cffff6b61" .. L["Error:"] .. "|r " .. tostring(err))
+            -- broken code is never saved: the text keeps its last good code
+            if not Validate() then
+                status:SetText(status.text:GetText() .. "\n" .. L["Not saved."])
                 Changed()
                 return
             end
-            t.code = text
+            t.code = code.edit:GetText()
             ns.ApplyUnit(unit)
-            -- compiled is not enough: run it once to catch errors at run time
-            local ok, runErr = ns.TryText(unit, fn)
-            if ok then
-                status:SetText("|cff6bd66b" .. L["Applied."] .. "|r")
-            else
-                status:SetText("|cffff6b61" .. L["Error:"] .. "|r " .. tostring(runErr))
-            end
+            status:SetText("|cff6bd66b" .. L["Saved."] .. "|r")
             Changed()
         end, "accent" },
         { L["Undo changes"], function() page.LoadEditor() end },
@@ -627,7 +638,7 @@ function Tabs.texts(page, unit)
         local t = Sel()
         code.edit:SetText(t and t.code or "")
         code.edit:SetCursorPosition(0)
-        status:SetText(L["Edit the code and press Apply. Errors are shown here."])
+        status:SetText(L["Edit the code, then Validate to test it or Save to keep it. Code with errors is not saved."])
         nameRow.Refresh()
         events.Refresh()
         page:Layout()
