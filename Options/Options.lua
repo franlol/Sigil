@@ -662,8 +662,9 @@ local function FormatBox(edit)
     edit:SetFocus()
 end
 
--- Big editor: the code in a large window. Closing it (Done, Esc, a click
--- outside, or leaving the tab) hands the code back to onDone.
+-- Big editor: the code in a large window. Done hands the code back to
+-- onDone; Cancel, Esc or leaving the tab drop the changes. A click outside
+-- does nothing, so a stray click never loses work.
 local bigEditor
 
 local function BuildBigEditor()
@@ -677,7 +678,6 @@ local function BuildBigEditor()
     local dim = m:CreateTexture(nil, "BACKGROUND")
     dim:SetAllPoints()
     dim:SetColorTexture(0, 0, 0, 0.55)
-    m:SetScript("OnMouseDown", function(self) self:Hide() end)
     m:EnableKeyboard(true)
     m:SetScript("OnKeyDown", function(self, key)
         if key == "ESCAPE" then
@@ -699,10 +699,19 @@ local function BuildBigEditor()
     m.name = UI.Text(box, "", C.labelFont, C.muted)
     m.name:SetPoint("LEFT", title, "RIGHT", 8, 0)
 
-    local done = UI.Button(box, L["Done"], 90, 22, function() m:Hide() end, "accent")
+    -- tools on the left of the header gap, the closing pair on the right
+    local done = UI.Button(box, L["Done"], 90, 22, function()
+        local onDone = m.onDone
+        m:Hide()
+        if onDone then onDone(m.code.edit:GetText()) end
+    end, "accent")
     done:SetPoint("TOPRIGHT", -P, -P + 2)
+    UI.Tip(done, L["Done"], L["Take the code back to the editor. Save it there to keep it."])
+    local cancel = UI.Button(box, L["Cancel"], 90, 22, function() m:Hide() end)
+    cancel:SetPoint("RIGHT", done, "LEFT", -6, 0)
+    UI.Tip(cancel, L["Cancel"], L["Close without the changes made here."])
     local format = UI.Button(box, L["Format"], 90, 22, function() FormatBox(m.code.edit) end)
-    format:SetPoint("RIGHT", done, "LEFT", -6, 0)
+    format:SetPoint("RIGHT", cancel, "LEFT", -18, 0)
     UI.Tip(format, L["Format"], L["Fix the indentation of the code."])
     local funcs = UI.Button(box, L["Functions"], 90, 22, function()
         ShowHelp(function(call)
@@ -719,16 +728,12 @@ local function BuildBigEditor()
     m.code.OnWidth(W - 2 * P)
     m.code.edit:SetScript("OnTabPressed", function(self) self:Insert(INDENT) end)
 
-    local hint = UI.Text(box, L["Tab indents · Done or Esc takes the code back to the editor, then Save it there"],
+    local hint = UI.Text(box, L["Tab indents · Done takes the code back to the editor · Cancel or Esc drops the changes"],
         C.labelFont, C.muted)
     hint:SetPoint("BOTTOMLEFT", P, P - 2)
 
     m:SetScript("OnHide", function(self)
-        if self.onDone then
-            local onDone = self.onDone
-            self.onDone = nil
-            onDone(self.code.edit:GetText())
-        end
+        self.onDone = nil
         if helpModal then helpModal:Hide() end
     end)
     return m
