@@ -607,6 +607,143 @@ local function ShowHelp(onPick)
     helpModal.Layout()
 end
 
+-- Format: indents the code again by its blocks, 4 spaces per level. Plain
+-- text work: strings and comments are left out when counting blocks.
+-- Blocks opened on the same line count as one level, so
+-- "CallMe(function()" indents its body once, and "end)" closes both.
+local INDENT = "    "
+local OPENERS = { ["function"] = true, ["do"] = true, ["then"] = true, ["repeat"] = true,
+    ["else"] = true, ["{"] = true, ["("] = true }
+local CLOSERS = { ["end"] = true, ["until"] = true, ["else"] = true, ["elseif"] = true,
+    ["}"] = true, [")"] = true }
+
+local function Reindent(text)
+    local out, open = {}, {} -- open: the line number of every block still open
+    local function Level()
+        local n, last = 0, nil
+        for _, ln in ipairs(open) do
+            if ln ~= last then n, last = n + 1, ln end
+        end
+        return n
+    end
+    local ln = 0
+    for line in (text .. "\n"):gmatch("(.-)\r?\n") do
+        ln = ln + 1
+        line = line:match("^%s*(.-)%s*$")
+        -- only the code part: no escaped quotes, strings or comments
+        local bare = line:gsub("\\.", ""):gsub('"[^"]*"', '""'):gsub("'[^']*'", "''"):gsub("%-%-.*$", "")
+        local level, i = nil, 1
+        while i <= #bare do
+            local s, e = bare:find("^[%a_][%w_]*", i)
+            local tok = s and bare:sub(s, e) or bare:sub(i, i)
+            i = (e or i) + 1
+            if CLOSERS[tok] then table.remove(open) end
+            -- closers at the start pull this line back; anything else fixes
+            -- its level ("else" closes a block and opens the next one)
+            if not level and (not CLOSERS[tok] or tok == "else") and not tok:find("^%s$") then
+                level = Level()
+            end
+            if OPENERS[tok] then table.insert(open, ln) end
+        end
+        level = level or Level()
+        out[#out + 1] = line == "" and "" or INDENT:rep(math.max(0, level)) .. line
+    end
+    -- the loop adds one empty line for the final newline
+    if out[#out] == "" then out[#out] = nil end
+    return table.concat(out, "\n")
+end
+
+-- Reindents an edit box, keeping the cursor about where it was
+local function FormatBox(edit)
+    local pos = edit:GetCursorPosition()
+    local text = Reindent(edit:GetText())
+    edit:SetText(text)
+    edit:SetCursorPosition(math.min(pos, #text))
+    edit:SetFocus()
+end
+
+-- Big editor: the code in a large window. Closing it (Done, Esc, a click
+-- outside, or leaving the tab) hands the code back to onDone.
+local bigEditor
+
+local function BuildBigEditor()
+    local A = C.accent
+    local W, H, P = 860, 600, 16
+    local m = CreateFrame("Frame", nil, UIParent)
+    m:SetAllPoints()
+    m:SetFrameStrata("FULLSCREEN") -- under the help window (FULLSCREEN_DIALOG)
+    m:EnableMouse(true)
+    m:Hide()
+    local dim = m:CreateTexture(nil, "BACKGROUND")
+    dim:SetAllPoints()
+    dim:SetColorTexture(0, 0, 0, 0.55)
+    m:SetScript("OnMouseDown", function(self) self:Hide() end)
+    m:EnableKeyboard(true)
+    m:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            self:SetPropagateKeyboardInput(false)
+            self:Hide()
+        else
+            self:SetPropagateKeyboardInput(true)
+        end
+    end)
+
+    local box = CreateFrame("Frame", nil, m, "BackdropTemplate")
+    box:SetSize(W, H)
+    box:SetPoint("CENTER")
+    box:EnableMouse(true)
+    UI.Backdrop(box, C.window, { A[1], A[2], A[3], 1 })
+
+    local title = UI.Text(box, L["Code"], C.titleFont, A)
+    title:SetPoint("TOPLEFT", P, -P - 3)
+    m.name = UI.Text(box, "", C.labelFont, C.muted)
+    m.name:SetPoint("LEFT", title, "RIGHT", 8, 0)
+
+    local done = UI.Button(box, L["Done"], 90, 22, function() m:Hide() end, "accent")
+    done:SetPoint("TOPRIGHT", -P, -P + 2)
+    local format = UI.Button(box, L["Format"], 90, 22, function() FormatBox(m.code.edit) end)
+    format:SetPoint("RIGHT", done, "LEFT", -6, 0)
+    UI.Tip(format, L["Format"], L["Fix the indentation of the code."])
+    local funcs = UI.Button(box, L["Functions"], 90, 22, function()
+        ShowHelp(function(call)
+            m.code.edit:SetFocus()
+            m.code.edit:Insert(call)
+        end)
+    end)
+    funcs:SetPoint("RIGHT", format, "LEFT", -6, 0)
+    UI.Tip(funcs, L["Functions"], L["Every function a text can use. Click one to insert it."])
+
+    m.code = UI.CodeBox(box, H - 2 * P - 30 - 22)
+    m.code:SetPoint("TOPLEFT", P, -P - 30)
+    m.code:SetWidth(W - 2 * P)
+    m.code.OnWidth(W - 2 * P)
+    m.code.edit:SetScript("OnTabPressed", function(self) self:Insert(INDENT) end)
+
+    local hint = UI.Text(box, L["Tab indents · Done or Esc takes the code back to the editor, then Save it there"],
+        C.labelFont, C.muted)
+    hint:SetPoint("BOTTOMLEFT", P, P - 2)
+
+    m:SetScript("OnHide", function(self)
+        if self.onDone then
+            local onDone = self.onDone
+            self.onDone = nil
+            onDone(self.code.edit:GetText())
+        end
+        if helpModal then helpModal:Hide() end
+    end)
+    return m
+end
+
+local function ShowBigEditor(name, text, onDone)
+    bigEditor = bigEditor or BuildBigEditor()
+    bigEditor.name:SetText(name or "")
+    bigEditor.onDone = onDone
+    bigEditor:Show()
+    bigEditor.code.edit:SetText(text or "")
+    bigEditor.code.edit:SetCursorPosition(0)
+    bigEditor.code.edit:SetFocus()
+end
+
 -- Its name, or else the start of its code (the same for every text)
 local function TextLabel(t)
     if t.name and t.name ~= "" then return t.name end
@@ -681,25 +818,51 @@ function Tabs.texts(page, unit)
         end, "accent" },
     }))
 
-    -- editor
+    -- editor: name, code and events are a draft; Save keeps all three at
+    -- once (only when the code works), Undo goes back to the saved ones
+    local draft = {}
+    local function EventsText(t) return table.concat(t.events or {}, ", ") end
     local ed = page:Add(2, UI.Card(page.content, L["Edit text"]))
     ed.showIf = function() return Sel() ~= nil end
-    local nameRow = ed:Add(UI.Input(ed, L["Name"], function() return Sel() and Sel().name or "" end,
-        function(v)
-            if Sel() then Sel().name = v end
+    local code, status -- built below
+    local function Dirty()
+        local t = Sel()
+        return t and (draft.name ~= (t.name or "") or code.edit:GetText() ~= (t.code or "")
+            or draft.events ~= EventsText(t))
+    end
+    local function ShowDirty()
+        if Dirty() then
+            status:SetText("|cffffc35c" .. L["Unsaved changes."] .. "|r")
             Changed()
-        end))
-    local code -- the code box, below
+        end
+    end
+    local nameRow = ed:Add(UI.Input(ed, L["Name"], function() return draft.name end,
+        function(v) draft.name = v; ShowDirty() end, { saveOnBlur = true }))
+
+    -- tools over the code
     ed:Add(UI.Buttons(ed, {
-        { L["Functions and examples"], function()
+        { L["Functions"], function()
             ShowHelp(function(call)
                 code.edit:SetFocus()
                 code.edit:Insert(call)
             end)
-        end },
+        end, nil, L["Every function a text can use. Click one to insert it."] },
+        { L["Format"], function() FormatBox(code.edit) end, nil, L["Fix the indentation of the code."] },
+        { L["Expand"], function()
+            ShowBigEditor(Sel() and TextLabel(Sel()) or "", code.edit:GetText(), function(text)
+                code.edit:SetText(text)
+                ShowDirty()
+            end)
+        end, nil, L["Edit the code in a big window."] },
     }))
-    code = ed:Add(UI.CodeBox(ed, 150))
-    local status = ed:Add(UI.Note(ed, ""))
+    code = ed:Add(UI.CodeBox(ed, 200))
+    code.edit:SetScript("OnTabPressed", function(self) self:Insert("    ") end)
+    code.edit:HookScript("OnTextChanged", function(_, userInput) if userInput then ShowDirty() end end)
+    local events = ed:Add(UI.Input(ed, L["Update on"], function() return draft.events end,
+        function(v) draft.events = v; ShowDirty() end,
+        { saveOnBlur = true, tip = L["Game events that refresh this text, separated by commas. It is also refreshed when the unit changes."] }))
+    status = ed:Add(UI.Note(ed, ""))
+
     -- Compiles the editor's code and runs it once (compiled is not enough:
     -- errors can happen at run time). Shows any error. true if it works.
     local function Validate()
@@ -716,34 +879,30 @@ function Tabs.texts(page, unit)
     ed:Add(UI.Buttons(ed, {
         { L["Validate"], function()
             if not Sel() or not Validate() then return end
-            status:SetText("|cff6bd66b" .. L["The code works. Not saved yet."] .. "|r")
+            status:SetText("|cff6bd66b" .. L["The code works."] .. "|r"
+                .. (Dirty() and ("  |cffffc35c" .. L["Not saved yet."] .. "|r") or ""))
             Changed()
-        end },
+        end, nil, L["Test the code without saving it."] },
         { L["Save"], function()
             local t = Sel()
             if not t then return end
-            -- broken code is never saved: the text keeps its last good code
+            -- broken code is never saved: the text keeps its last good version
             if not Validate() then
                 status:SetText(status.text:GetText() .. "\n" .. L["Not saved."])
                 Changed()
                 return
             end
+            t.name = draft.name
             t.code = code.edit:GetText()
+            t.events = {}
+            for ev in draft.events:gmatch("[%w_]+") do table.insert(t.events, ev:upper()) end
+            draft.events = EventsText(t)
             ns.ApplyUnit(unit)
             status:SetText("|cff6bd66b" .. L["Saved."] .. "|r")
             Changed()
-        end, "accent" },
-        { L["Undo changes"], function() page.LoadEditor() end },
+        end, "accent", L["Keep the name, code and events. Code with errors is not saved."] },
+        { L["Undo changes"], function() page.LoadEditor() end, nil, L["Go back to the saved name, code and events."] },
     }))
-    local events = ed:Add(UI.Input(ed, L["Update on"], function()
-        return Sel() and table.concat(Sel().events or {}, ", ") or ""
-    end, function(v)
-        local t = Sel()
-        if not t then return end
-        t.events = {}
-        for ev in v:gmatch("[%w_]+") do table.insert(t.events, ev:upper()) end
-        ns.ApplyUnit(unit)
-    end, { tip = L["Game events that refresh this text, separated by commas. It is also refreshed when the unit changes."] }))
 
     local place = page:Add(2, UI.Card(page.content, L["Placement"]))
     place.showIf = function() return Sel() ~= nil end
@@ -777,15 +936,20 @@ function Tabs.texts(page, unit)
 
     function page.LoadEditor()
         local t = Sel()
+        draft.name = t and t.name or ""
+        draft.events = t and EventsText(t) or ""
         code.edit:SetText(t and t.code or "")
         code.edit:SetCursorPosition(0)
-        status:SetText(L["Edit the code, then Validate to test it or Save to keep it. Code with errors is not saved."])
+        status:SetText(L["Edit, then Validate to test or Save to keep. Code with errors is not saved."])
         nameRow.Refresh()
         events.Refresh()
         page:Layout()
     end
     page:HookScript("OnShow", function() page.LoadEditor() end)
-    page:HookScript("OnHide", function() if helpModal then helpModal:Hide() end end)
+    page:HookScript("OnHide", function()
+        if helpModal then helpModal:Hide() end
+        if bigEditor then bigEditor:Hide() end
+    end)
     page.LoadEditor()
     -- the whole list was replaced (copy, undo, reset)
     function page.Reload()
