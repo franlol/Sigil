@@ -21,6 +21,9 @@ local UNIT_NAMES = {
     targettargettarget = "ToTT", focus = "Focus", pet = "Pet", party = "Party",
 }
 
+-- Page titles have room for the full name (the menu does not)
+local PAGE_TITLES = { targettargettarget = "Target of target of target" }
+
 -------------------------------------------------------------------------------
 -- Helpers
 -------------------------------------------------------------------------------
@@ -1252,7 +1255,7 @@ end
 -- Unit page: title, on/off, reset and tabs
 -------------------------------------------------------------------------------
 local function UnitPage(container, unit)
-    PageTitle(container, L[UNIT_NAMES[unit]])
+    PageTitle(container, L[PAGE_TITLES[unit] or UNIT_NAMES[unit]])
 
     local tabPages = {}
     -- the unit's settings were replaced as a whole: lists start at their first item
