@@ -66,60 +66,46 @@ end
 
 -- Where the global cooldown is read from: the Classic reference spell 29515.
 -- On Forever the retail global cooldown spell (61304) always reports none.
+-- isActive (readable in combat too) says whether it runs:
 --   plain times: the bar moves itself and hides at the end
---   hidden times: the game moves the bar (duration object); it hides when
---     the game says the global cooldown stopped, or MAX_GCD after it started
---     when the game hides that too
---   hidden "is it running": the bar only starts on a cast (a cast starting,
---     an instant one going off, or a cooldown update right after them), so
---     unrelated updates and the end of a cast with a cast time do not
---     start it again
+--   hidden times (combat): the game moves the bar (duration object); it
+--     hides on the cooldown update that says it stopped, and the game is
+--     asked again once the longest global cooldown has passed, in case that
+--     update does not come
 local REF = 29515
 local MAX_GCD = 1.5
-local lastCastAt, casting = 0, nil
 local token = 0
 
--- true / false, or nil when the game hides it
+local Update
+
 local function Running(info)
     local a = info and info.isActive
-    if a == nil or S(a) then return nil end
-    return a == true
+    return a ~= nil and not S(a) and a == true
 end
 
--- hides the bar MAX_GCD after it started, unless a newer one started
-local function HideLater(g)
+-- asks the game again when the longest global cooldown has passed
+local function CheckLater()
     token = token + 1
     local mine = token
     C_Timer.After(MAX_GCD + 0.1, function()
-        if token == mine and not g.finish then g:Hide() end
+        if token == mine then Update() end
     end)
 end
 
-local function Update(_, event, _, _, spellID)
-    local fresh = false   -- this update comes from a cast
-    if event == "UNIT_SPELLCAST_START" then
-        casting = ns.R(spellID)
-        fresh = true
-    elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-        local id = ns.R(spellID)
-        if id and id == casting then casting = nil else fresh = true end
-    end
-    if fresh then lastCastAt = GetTime() end
-
+function Update()
     local f = ns.frames and ns.frames.player
     if not f or not f.gcdOn or ns.testMode then return end
     if not (C_Spell and C_Spell.GetSpellCooldown) then return end
     local g = f.gcd
     local info = C_Spell.GetSpellCooldown(REF)
-    local running = Running(info)
-    if running == false then
+    if not Running(info) then
         token = token + 1
         g.finish = nil
         g:Hide()
         return
     end
-    local start, duration = info and info.startTime, info and info.duration
-    if running and not S(start) and not S(duration) and type(duration) == "number" and duration > 0 then
+    local start, duration = info.startTime, info.duration
+    if not S(start) and not S(duration) and type(duration) == "number" and duration > 0 then
         g.finish = start + duration
         g.duration = duration
         g.bar:SetMinMaxValues(0, duration)
@@ -128,8 +114,6 @@ local function Update(_, event, _, _, spellID)
         g:Show()
         return
     end
-    -- hidden times; when it is unknown whether it runs, only right after a cast
-    if running == nil and not fresh and GetTime() - lastCastAt > 0.3 then return end
     local ok = pcall(function()
         g.bar:SetTimerDuration(C_Spell.GetSpellCooldownDuration(REF), Enum.StatusBarInterpolation.Immediate,
             g.fillUp and Enum.StatusBarTimerDirection.ElapsedTime or Enum.StatusBarTimerDirection.RemainingTime)
@@ -137,11 +121,9 @@ local function Update(_, event, _, _, spellID)
     if not ok then return end
     g.finish = nil
     g:Show()
-    HideLater(g)
+    CheckLater()
 end
 
 local watcher = CreateFrame("Frame")
 watcher:RegisterEvent("SPELL_UPDATE_COOLDOWN")
-watcher:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
-watcher:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-watcher:SetScript("OnEvent", Update)
+watcher:SetScript("OnEvent", function() Update() end)
