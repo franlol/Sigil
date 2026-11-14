@@ -204,8 +204,8 @@ local function BuildButton(button, g, cancel)
     end
 end
 
-local function NewContainer(f, g)
-    local c = CreateFrame("AuraContainer", nil, f, "CustomAuraContainerTemplate")
+local function NewContainer(f, g, holder)
+    local c = CreateFrame("AuraContainer", nil, holder, "CustomAuraContainerTemplate")
     ns.Place(c, f, g)
     c:SetFlowLayoutAnchorPoint(g.point)
     local columns = g.fill == "columns"
@@ -246,6 +246,7 @@ local function Samples(f, i, g)
     s:ClearAllPoints()
     -- the sample block has the size of the real one, so it can be dragged
     s:SetSize(ns.AuraBlockSize(g))
+    s:SetAlpha(g.alpha or 1)
     ns.PlacePiece(f, "aura" .. i, L[g.name or ""] or L["Auras"], s, g)
     local w, h = IconSize(g)
     local bs = g.borderSize or 1
@@ -333,6 +334,60 @@ local function Groups(f)
     return ns.AuraGroups(f.cfg.auras)
 end
 
+-- When a group shows: macro conditions the game evaluates itself, so they
+-- also work in combat. Test mode (and unlocked frames) show every group.
+local function Rule(f, g)
+    if ns.testMode then return "show" end
+    local parts = {}
+    if g.reaction == "friendly" then
+        parts[#parts + 1] = ("[@%s,nohelp] hide"):format(f.unit)
+    elseif g.reaction == "hostile" then
+        parts[#parts + 1] = ("[@%s,noharm] hide"):format(f.unit)
+    end
+    local mode = g.visibility or "always"
+    if mode == "combat" then
+        parts[#parts + 1] = "[combat] show; hide"
+    elseif mode == "nocombat" then
+        parts[#parts + 1] = "[nocombat] show; hide"
+    elseif mode == "custom" and g.visibilityCustom and g.visibilityCustom ~= "" then
+        parts[#parts + 1] = g.visibilityCustom
+    else
+        parts[#parts + 1] = "show"
+    end
+    return table.concat(parts, "; ")
+end
+
+-- Each group slot has a holder frame: the game shows and hides it, and it
+-- carries the group's opacity. The container lives inside it.
+local function Holder(f, i)
+    f.auraHolders = f.auraHolders or {}
+    local h = f.auraHolders[i]
+    if not h then
+        h = CreateFrame("Frame", nil, f)
+        h:SetAllPoints(f)
+        f.auraHolders[i] = h
+    end
+    return h
+end
+
+-- Out of combat: sets every holder's rule and opacity
+function ns.ApplyAuraVisibility(f)
+    for i, h in pairs(f.auraHolders or {}) do
+        local block = f.auraBlocks and f.auraBlocks[i]
+        if UnregisterStateDriver then UnregisterStateDriver(h, "visibility") end
+        if not block then
+            h:Hide()
+        else
+            h:SetAlpha(block.group.alpha or 1)
+            if RegisterStateDriver then
+                RegisterStateDriver(h, "visibility", Rule(f, block.group))
+            else
+                h:Show()
+            end
+        end
+    end
+end
+
 -- Out of combat (from ns.Layout): containers cannot be created in combat.
 -- A group whose settings did not change keeps its container.
 function ns.LayoutAuras(f)
@@ -350,7 +405,7 @@ function ns.LayoutAuras(f)
                     block.container:SetUnit("none")
                     block.container:Hide()
                 end
-                local ok, result = pcall(NewContainer, f, g)
+                local ok, result = pcall(NewContainer, f, g, Holder(f, i))
                 if ok then
                     block = { key = key, container = result }
                 else
@@ -366,6 +421,7 @@ function ns.LayoutAuras(f)
             if block.container then
                 ns.PlacePiece(f, "aura" .. i, L[g.name or ""], block.container, g)
             end
+            block.group = g
             used[i] = true
         end
     end
@@ -378,6 +434,7 @@ function ns.LayoutAuras(f)
             f.auraBlocks[i] = nil
         end
     end
+    ns.ApplyAuraVisibility(f)
 end
 
 -- The containers follow the frame's unit. They are set again on every

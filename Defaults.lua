@@ -69,6 +69,9 @@ end
 function ns.NewAuraGroup(name, kind, extra)
     local g = {
         name = name, show = true, kind = kind,                 -- HELPFUL | HARMFUL
+        visibility = "always", visibilityCustom = "",          -- always | combat | nocombat | custom
+        reaction = "any",                                      -- any | friendly | hostile unit
+        alpha = 1,
         caster = "all",                                        -- all | mine | others
         dispellable = false,                                   -- debuffs I can dispel
         boss = false,                                          -- boss auras only

@@ -294,6 +294,7 @@ ns.translations.esES = {
     -- Aura groups
     ["Aura groups"] = "Grupos de auras",
     ["No groups."] = "Sin grupos.",
+    ["Any"] = "Cualquiera",
     ["No spells."] = "Sin hechizos.",
     ["Layout"] = "Disposición",
     ["Fill"] = "Llenar",

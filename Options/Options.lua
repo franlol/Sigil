@@ -1120,6 +1120,20 @@ function Tabs.auras(page, unit)
         { "all", L["Anyone"] }, { "mine", L["Me"] }, { "others", L["Others"] },
     }, g, s, { enableIf = SelOn }))
 
+    local when = HasSel(page:Add(2, UI.Card(page.content, L["When to show"], L["The game decides it, so it also works in combat."])))
+    g, s = SB("visibility")
+    when:Add(UI.Segmented(when, nil, {
+        { "always", L["Always"] }, { "combat", L["In combat"] }, { "nocombat", L["Out of combat"] },
+        { "custom", L["Custom"] },
+    }, g, s, { enableIf = SelOn }))
+    g, s = SB("visibilityCustom")
+    when:Add(UI.Input(when, L["Macro conditions"], g, s, { enableIf = Both(SelOn, Is("visibility", "custom")),
+        tip = L["Like in a macro, for example: [combat] show; [@target,exists] show; hide"] }))
+    g, s = SB("reaction")
+    when:Add(UI.Segmented(when, L["Unit"], {
+        { "any", L["Any"] }, { "friendly", L["Friendly"] }, { "hostile", L["Hostile"] },
+    }, g, s, { enableIf = SelOn }))
+
     local filt = HasSel(page:Add(2, UI.Card(page.content, L["Filters"])))
     g, s = SB("dispellable")
     filt:Add(UI.Check(filt, L["Only the ones I can dispel"], g, s, { enableIf = Both(SelOn, Harmful) }))
@@ -1160,6 +1174,8 @@ function Tabs.auras(page, unit)
     end, apply, { alpha = true, enableIf = Both(SelOn, HasBorder, function()
         return not (Harmful() and Sel().borderByType ~= false)
     end) }))
+    g, s = SB("alpha")
+    icons:Add(UI.Slider(icons, L["Opacity"], 0.1, 1, 0.05, g, s, { format = UI.pct, enableIf = SelOn }))
     g, s = SB("spiral")
     icons:Add(UI.Check(icons, L["Duration sweep"], g, s, { enableIf = SelOn }))
     g, s = SB("pandemic")

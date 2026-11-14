@@ -817,6 +817,7 @@ function ns.SetTestMode(on)
         ns.testMode = on
         for _, f in pairs(ns.frames) do
             ApplyVisibility(f)
+            ns.ApplyAuraVisibility(f)   -- test mode shows every aura group
             ns.UpdateAll(f)
         end
         ns.RefreshAllMovers()
