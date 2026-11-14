@@ -556,6 +556,18 @@ function ns.Layout(f)
     if edge > 0 then f:SetBackdropBorderColor(bd.r, bd.g, bd.b, bd.a or 1) end
     local inset = math.max(0, edge)
 
+    -- dividers: lines of the border's size and color between the portrait
+    -- and the bars, and between the health and the power bar
+    local function Divider(key)
+        local d = f[key] or f:CreateTexture(nil, "BORDER")
+        f[key] = d
+        d:SetColorTexture(bd.r, bd.g, bd.b, bd.a or 1)
+        d:ClearAllPoints()
+        d:Hide()
+        return d
+    end
+    local portraitDiv, powerDiv = Divider("portraitDiv"), Divider("powerDiv")
+
     -- portrait (square, or the chosen width)
     local inner = c.height - 2 * inset
     local left, right = inset, inset
@@ -566,11 +578,17 @@ function ns.Layout(f)
         portrait:SetSize(pw, inner)
         if c.portrait == "left" then
             portrait:SetPoint("TOPLEFT", inset, -inset)
-            left = inset + pw + 1
+            left = inset + pw + inset
+            portraitDiv:SetPoint("TOPLEFT", portrait, "TOPRIGHT")
+            portraitDiv:SetPoint("BOTTOMLEFT", portrait, "BOTTOMRIGHT")
         else
             portrait:SetPoint("TOPRIGHT", -inset, -inset)
-            right = inset + pw + 1
+            right = inset + pw + inset
+            portraitDiv:SetPoint("TOPRIGHT", portrait, "TOPLEFT")
+            portraitDiv:SetPoint("BOTTOMRIGHT", portrait, "BOTTOMLEFT")
         end
+        portraitDiv:SetWidth(inset)
+        portraitDiv:SetShown(inset > 0)
         portrait:Show()
     else
         portrait:Hide()
@@ -617,14 +635,21 @@ function ns.Layout(f)
         Attach(f.health)
         f.health:SetPoint("TOPLEFT", left, -inset)
         f.health:SetPoint("TOPRIGHT", -right, -inset)
-        f.health:SetHeight(powerInside and (inner - ph) or inner)
+        f.health:SetHeight(powerInside and (inner - ph - inset) or inner)
     end
     if powerInside then
         f.power:SetPoint("BOTTOMLEFT", left, inset)
         f.power:SetPoint("BOTTOMRIGHT", -right, inset)
         f.power:SetHeight(ph)
         -- with the health detached, the power bar fills the frame
-        if h.detached then f.power:SetHeight(inner) end
+        if h.detached then
+            f.power:SetHeight(inner)
+        elseif inset > 0 then
+            powerDiv:SetPoint("BOTTOMLEFT", f.power, "TOPLEFT")
+            powerDiv:SetPoint("BOTTOMRIGHT", f.power, "TOPRIGHT")
+            powerDiv:SetHeight(inset)
+            powerDiv:Show()
+        end
     end
     f.health:SetFrameLevel((f.health:GetParent()):GetFrameLevel() + 1)
     f.power:SetFrameLevel((f.power:GetParent()):GetFrameLevel() + 1)
