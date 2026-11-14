@@ -166,6 +166,9 @@ local function Migrate(p)
                 ic.relPoint, ic.point = ic.point, "CENTER"
             end
         end
+        -- combat text is a text: one anchor, the same point on both sides
+        local ct = type(u) == "table" and u.combatText
+        if type(ct) == "table" and ct.relPoint and ct.point ~= ct.relPoint then ct.point = ct.relPoint end
     end
 end
 

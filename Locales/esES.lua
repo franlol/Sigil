@@ -170,7 +170,6 @@ ns.translations.esES = {
     ["Spacing"] = "Separación",
     ["Show time left"] = "Mostrar tiempo restante",
     ["Maximum"] = "Máximo",
-    ["Corner of the block"] = "Esquina del bloque",
     ["Grow"] = "Crecer hacia",
 
     -- Options: Icons tab
@@ -186,7 +185,6 @@ ns.translations.esES = {
     ["Spell icon"] = "Icono del hechizo",
     ["Same as frame"] = "Igual que el marco",
     ["Enemy casts: if the game hides their times, the bar is shown full with the spell name."] = "Lanzamientos enemigos: si el juego oculta sus tiempos, la barra sale llena con el nombre del hechizo.",
-    ["Corner of the bar"] = "Esquina de la barra",
 
     -- Options: Extras tab
     ["Fading"] = "Atenuación",
@@ -304,7 +302,6 @@ ns.translations.esES = {
     ["Space between icons"] = "Espacio entre iconos",
     ["Space between lines"] = "Espacio entre líneas",
     ["Stack count"] = "Acumulaciones",
-    ["Place on the icon"] = "Lugar en el icono",
     ["Add group"] = "Añadir grupo",
     ["Spell list"] = "Lista de hechizos",
     ["Show only some spells, or hide some."] = "Muestra solo algunos hechizos, u oculta algunos.",
@@ -353,6 +350,8 @@ ns.translations.esES = {
     ["Status icons"] = "Iconos de estado",
     ["Click to edit"] = "Clic para editar",
     ["Point of the icon"] = "Punto del icono",
+    ["Point of the bar"] = "Punto de la barra",
+    ["Point of the totems"] = "Punto de los tótems",
     ["NPCs"] = "PNJ",
     ["Raid assistant"] = "Ayudante de banda",
     ["Master looter"] = "Maestro despojador",
@@ -400,7 +399,6 @@ ns.translations.esES = {
     ["Always"] = "Siempre",
     ["Mouseover"] = "Al pasar el ratón",
     ["Not on mouseover"] = "Sin pasar el ratón",
-    ["Corner"] = "Esquina",
     ["Text look"] = "Aspecto del texto",
 
     -- Frame tab

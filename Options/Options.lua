@@ -255,16 +255,35 @@ local function AnchorRow(card, unit, getPos, enableIf)
         }))
 end
 
--- Position rows (anchored to, attach point, corner, offsets, optional width),
--- added to a card. opts.unit: the frame the piece belongs to
+-- Position rows (anchored to, points, offsets, optional width), added to a
+-- card. One rule for every piece:
+--   fixed size (bars, icons, totems): opts.pieceLabel = "Point of the bar"...,
+--     the point of the piece that sits on the point of the frame
+--   grows (aura blocks): opts.grows, only the point of the frame (the
+--     piece's own corner comes from its growth)
+--   text: opts.text, one "Anchor" for both (as the frame texts)
+-- opts.unit: the frame the piece belongs to
 local function PositionRows(card, getPos, apply, opts)
     opts = opts or {}
     local on = opts.enableIf
     if opts.unit then AnchorRow(card, opts.unit, getPos, on) end
-    local g, s = TB(getPos, "relPoint", apply)
-    card:Add(UI.Dropdown(card, L["Point of the frame or screen"], POINTS, g, s, { enableIf = on }))
-    g, s = TB(getPos, "point", apply)
-    card:Add(UI.Dropdown(card, opts.cornerLabel or L["Corner"], POINTS, g, s, { enableIf = on }))
+    local g, s
+    if opts.text then
+        g = TB(getPos, "point", apply)
+        card:Add(UI.Dropdown(card, L["Anchor"], POINTS, g, function(v)
+            local p = getPos()
+            if not p then return end
+            p.point, p.relPoint = v, v
+            apply()
+        end, { enableIf = on }))
+    else
+        g, s = TB(getPos, "relPoint", apply)
+        card:Add(UI.Dropdown(card, L["Point of the frame or screen"], POINTS, g, s, { enableIf = on }))
+        if not opts.grows then
+            g, s = TB(getPos, "point", apply)
+            card:Add(UI.Dropdown(card, opts.pieceLabel, POINTS, g, s, { enableIf = on }))
+        end
+    end
     g, s = TB(getPos, "x", apply)
     card:Add(UI.Slider(card, L["Horizontal offset"], -300, 300, 1, g, s, { format = Px, enableIf = on }))
     g, s = TB(getPos, "y", apply)
@@ -388,7 +407,7 @@ function Tabs.bars(page, unit)
     card:Add(UI.Check(card, L["Detach from the frame"], g, s, { tip = L["The bar leaves the frame and goes where you place it. Clicks on it do not target the unit."] }))
     g, s = Bind(unit, "health", "height")
     card:Add(UI.Slider(card, L["Height"], 4, 80, 1, g, s, { format = Px, enableIf = HDet }))
-    PositionRows(card, H, apply, { unit = unit, width = true, enableIf = HDet })
+    PositionRows(card, H, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = HDet })
     BarCard(page, 1, L["Health bar look"], function() return U(unit).health.style end, apply, {
         gradient = true, autoLabel = L["Class / reaction"],
         autoTip = L["Class / reaction: class color for players; hostile, neutral or friendly color for the rest. Gradient: from the low to the high health color."],
@@ -405,7 +424,7 @@ function Tabs.bars(page, unit)
     card:Add(UI.Check(card, L["Detach from the frame"], g, s, {
         enableIf = function() return (PW().height or 0) > 0 end,
         tip = L["The bar leaves the frame and goes where you place it. Clicks on it do not target the unit."] }))
-    PositionRows(card, PW, apply, { unit = unit, width = true, enableIf = PDet })
+    PositionRows(card, PW, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = PDet })
     BarCard(page, 2, L["Power bar look"], function() return U(unit).power.style end, apply, {
         autoLabel = L["Power type"], enableIf = function() return (U(unit).power.height or 0) > 0 end,
     })
@@ -1061,7 +1080,7 @@ function Tabs.auras(page, unit)
     lay:Add(UI.Dropdown(lay, L["Order"], SORTS, g, s, { enableIf = SelOn }))
 
     local pos = HasSel(page:Add(1, UI.Card(page.content, L["Position"])))
-    PositionRows(pos, Sel, apply, { unit = unit, enableIf = SelOn, cornerLabel = L["Corner of the block"] })
+    PositionRows(pos, Sel, apply, { unit = unit, enableIf = SelOn, grows = true })
 
     -- selected group: which auras it shows
     local filt = HasSel(page:Add(2, UI.Card(page.content, L["Filters"])))
@@ -1192,7 +1211,7 @@ function Tabs.auras(page, unit)
         local function T() return Sel() and Sel()[key] end
         TextRows(card, T, apply, { auto = true, enableIf = enableIf })
         local tg, ts = TB(T, "point", apply)
-        card:Add(UI.Dropdown(card, L["Place on the icon"], POINTS, tg, ts, { enableIf = enableIf }))
+        card:Add(UI.Dropdown(card, L["Anchor"], POINTS, tg, ts, { enableIf = enableIf }))
         tg, ts = TB(T, "x", apply)
         card:Add(UI.Slider(card, L["Horizontal offset"], -30, 30, 1, tg, ts, { format = Px, enableIf = enableIf }))
         tg, ts = TB(T, "y", apply)
@@ -1254,7 +1273,7 @@ function Tabs.icons(page, unit)
     look:Add(UI.Slider(look, L["Opacity"], 0.1, 1, 0.05, g, s, { format = UI.pct, enableIf = On }))
 
     local place = page:Add(2, UI.Card(page.content, L["Position"]))
-    PositionRows(place, Sel, apply, { unit = unit, enableIf = On, cornerLabel = L["Point of the icon"] })
+    PositionRows(place, Sel, apply, { unit = unit, enableIf = On, pieceLabel = L["Point of the icon"] })
 end
 
 
@@ -1302,7 +1321,7 @@ function Tabs.castbar(page, unit)
     card = page:Add(2, UI.Card(page.content, L["Time text"]))
     TextRows(card, function() return CB().timeText end, apply, { auto = true, enableIf = On })
     card = page:Add(2, UI.Card(page.content, L["Position"]))
-    PositionRows(card, CB, apply, { unit = unit, enableIf = On, cornerLabel = L["Corner of the bar"] })
+    PositionRows(card, CB, apply, { unit = unit, enableIf = On, pieceLabel = L["Point of the bar"] })
 end
 
 -- Extras: fading, threat, combo points, experience, totems
@@ -1335,7 +1354,7 @@ function Tabs.extras(page, unit)
     card:Add(UI.Check(card, L["Show combat text"], g, s))
     g, s = Bind(unit, "combatText", "duration")
     card:Add(UI.Slider(card, L["Duration"], 0.5, 4, 0.1, g, s, { enableIf = CTOn, format = function(v) return ("%.1f s"):format(v) end }))
-    PositionRows(card, CT, apply, { unit = unit, enableIf = CTOn })
+    PositionRows(card, CT, apply, { unit = unit, text = true, enableIf = CTOn })
     TextRows(card, function() return CT().textStyle end, apply, { enableIf = CTOn })
 
     -- threat bar
@@ -1349,7 +1368,7 @@ function Tabs.extras(page, unit)
         card:Add(UI.Slider(card, L["Height"], 3, 24, 1, g, s, { format = Px, enableIf = TBOn }))
         g, s = Bind(unit, "threatBar", "text")
         card:Add(UI.Check(card, L["Show percentage"], g, s, { enableIf = TBOn }))
-        PositionRows(card, TBr, apply, { unit = unit, width = true, enableIf = TBOn })
+        PositionRows(card, TBr, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = TBOn })
         BarCard(page, 2, L["Threat bar look"], function() return TBr().style end, apply, { box = true,
             autoLabel = L["Threat status"], enableIf = TBOn })
     end
@@ -1373,7 +1392,7 @@ function Tabs.extras(page, unit)
         card:Add(UI.Check(card, L["Show combo points"], g, s, { enableIf = ComboClass }))
         g, s = Bind(unit, "combo", "height")
         card:Add(UI.Slider(card, L["Height"], 3, 20, 1, g, s, { format = Px, enableIf = On }))
-        PositionRows(card, Combo, apply, { unit = unit, width = true, enableIf = On })
+        PositionRows(card, Combo, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = On })
         BarCard(page, 1, L["Combo points look"], function() return Combo().style end, apply, { box = true, enableIf = On })
     end
 
@@ -1389,7 +1408,7 @@ function Tabs.extras(page, unit)
         card:Add(UI.Slider(card, L["Height"], 3, 24, 1, g, s, { format = Px, enableIf = AMOn }))
         g, s = Bind(unit, "altMana", "text")
         card:Add(UI.Check(card, L["Show numbers"], g, s, { enableIf = AMOn }))
-        PositionRows(card, AM, apply, { unit = unit, width = true, enableIf = AMOn })
+        PositionRows(card, AM, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = AMOn })
         BarCard(page, 1, L["Druid mana look"], function() return AM().style end, apply, { box = true,
             autoLabel = L["Power type"], enableIf = AMOn })
 
@@ -1403,7 +1422,7 @@ function Tabs.extras(page, unit)
             tip = L["The bar fills while the global cooldown runs, instead of emptying."] }))
         g, s = Bind(unit, "gcd", "height")
         card:Add(UI.Slider(card, L["Height"], 2, 16, 1, g, s, { format = Px, enableIf = GCOn }))
-        PositionRows(card, GC, apply, { unit = unit, width = true, enableIf = GCOn })
+        PositionRows(card, GC, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = GCOn })
         BarCard(page, 2, L["Global cooldown look"], function() return GC().style end, apply, { box = true, enableIf = GCOn })
 
         local function XP() return U(unit).xp end
@@ -1417,7 +1436,7 @@ function Tabs.extras(page, unit)
         }, g, s, { enableIf = On, tip = L["Automatic: experience until max level, then the reputation you watch."] }))
         g, s = Bind(unit, "xp", "height")
         card:Add(UI.Slider(card, L["Height"], 4, 24, 1, g, s, { format = Px, enableIf = On }))
-        PositionRows(card, XP, apply, { unit = unit, width = true, enableIf = On })
+        PositionRows(card, XP, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = On })
         BarCard(page, 1, L["Experience bar look"], function() return XP().style end, apply, { box = true, enableIf = On })
         card = page:Add(2, UI.Card(page.content, L["Experience text"]))
         g, s = Bind(unit, "xp", "text")
@@ -1433,7 +1452,7 @@ function Tabs.extras(page, unit)
         card:Add(UI.Check(card, L["Move the totem bar"], g, s, { enableIf = ShamanClass, tip = L["Turning it off brings it back after /reload."] }))
         g, s = Bind(unit, "totems", "scale")
         card:Add(UI.Slider(card, L["Scale"], 0.5, 2, 0.05, g, s, { format = UI.pct, enableIf = TOn }))
-        PositionRows(card, function() return U(unit).totems end, apply, { unit = unit, enableIf = TOn })
+        PositionRows(card, function() return U(unit).totems end, apply, { unit = unit, pieceLabel = L["Point of the totems"], enableIf = TOn })
     end
 end
 

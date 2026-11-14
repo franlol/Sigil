@@ -88,13 +88,20 @@ function ns.NewAuraGroup(name, kind, extra)
         stackText = ns.TextStyle(0, { point = "BOTTOMRIGHT", x = 2, y = -1 }),
         fill = "rows", perRow = 10, max = 10,                  -- rows | columns; icons per line
         spacing = 2, lineSpacing = 2,                          -- between icons / between lines
-        point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -4,
+        relPoint = "BOTTOMLEFT", x = 0, y = -4,                -- point: set from the growth (ns.AuraCorner)
         growX = "RIGHT", growY = "DOWN",
     }
     for k, v in pairs(extra or {}) do g[k] = v end
+    g.point = ns.AuraCorner(g)
     return g
 end
 local Group = ns.NewAuraGroup
+
+-- The corner of a group's block that sits on the frame: the one the icons
+-- grow away from (right and down: top left)
+function ns.AuraCorner(g)
+    return (g.growY == "UP" and "BOTTOM" or "TOP") .. (g.growX == "LEFT" and "RIGHT" or "LEFT")
+end
 
 -- Groups are a list the user edits, so profile loading does not fill them:
 -- older groups get the keys they miss here (and the old text sizes move in)
@@ -113,6 +120,7 @@ function ns.FillAuraGroup(g)
     if g.stackText == nil and g.stackSize then g.stackText = ns.TextStyle(g.stackSize, { point = "BOTTOMRIGHT", x = 2, y = -1 }) end
     g.timerSize, g.stackSize = nil, nil
     FillGroup(g, Group(g.name, g.kind or "HELPFUL"))
+    g.point = ns.AuraCorner(g)
     return g
 end
 
@@ -242,9 +250,9 @@ local function SmallBar(enabled, point, relPoint, y, height, style, text)
 end
 
 -- Combat text: damage and heals over the frame
-local function CombatText(enabled, point, relPoint, x)
+local function CombatText(enabled, point, x)
     return {
-        enabled = enabled, point = point, relPoint = relPoint or point, x = x or 0, y = 0, duration = 1.5,
+        enabled = enabled, point = point, relPoint = point, x = x or 0, y = 0, duration = 1.5,   -- a text: one anchor
         textStyle = Txt(18, { shadow = true }),
     }
 end
@@ -374,7 +382,7 @@ ns.DEFAULTS = {
             auras = {
                 groups = {
                     Group("Debuffs", "HARMFUL", { size = 20, perRow = 4, max = 4,
-                        point = "LEFT", relPoint = "RIGHT", x = 4, y = 0 }),
+                        relPoint = "TOPRIGHT", x = 4, y = 0 }),
                     Group("My buffs", "HELPFUL", { caster = "mine", size = 14, perRow = 8, max = 8, timer = false,
                         point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -3 }),
                 },
@@ -421,12 +429,12 @@ end
 
 -- Extras of some frames
 local P_ = ns.DEFAULTS.units
-P_.player.combatText = CombatText(true, "CENTER", "LEFT", 26)
+P_.player.combatText = CombatText(true, "LEFT", 8)
 P_.player.altMana = SmallBar(true, "BOTTOMLEFT", "TOPLEFT", 2, 6)
 P_.player.gcd = SmallBar(false, "TOPLEFT", "BOTTOMLEFT", -24, 4, Bar("custom", { custom = { r = 1, g = 1, b = 1 } }))
 P_.player.gcd.fillUp = false
 P_.player.castbar.latency = true
-P_.target.combatText = CombatText(true, "CENTER", "RIGHT", -26)
+P_.target.combatText = CombatText(true, "RIGHT", -8)
 P_.target.threatBar = SmallBar(false, "BOTTOMLEFT", "TOPLEFT", 22, 8, nil, true)
 
 -------------------------------------------------------------------------------
