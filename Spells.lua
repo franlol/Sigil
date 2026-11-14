@@ -104,17 +104,18 @@ function ns.SpellKeyName(key)
     return (type(key) == "string" and key:match("^n:(.+)$")) or tostring(key)
 end
 
+-- A spell ID for a list entry (the first rank for a name), or nil
+function ns.SpellKeyID(key)
+    if type(key) == "number" then return key end
+    local name = ns.SpellKeyName(key)
+    local info = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(name)
+    if info and info.spellID then return info.spellID end
+    local ids = ns.SpellIDs(name)
+    return ids and ids[1]
+end
+
 function ns.SpellKeyIcon(key)
-    local id = type(key) == "number" and key
-    if not id then
-        local name = ns.SpellKeyName(key)
-        local info = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(name)
-        id = info and info.spellID
-        if not id then
-            local ids = ns.SpellIDs(name)
-            id = ids and ids[1]
-        end
-    end
+    local id = ns.SpellKeyID(key)
     return id and ns.GetSpellIcon(id) or 134400
 end
 

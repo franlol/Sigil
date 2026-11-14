@@ -77,9 +77,14 @@ function ns.NewAuraGroup(name, kind, extra)
         types = { Magic = true, Curse = true, Disease = true, Poison = true },
         listMode = "off", spells = {},                         -- off | only | hide
         sort = "default",                                      -- default | time | name
-        size = 22, spacing = 2, perRow = 10, max = 10, timer = true,
+        size = 22, height = 0,                                 -- icon width; height 0 = square
+        borderSize = 1, borderColor = { r = 0, g = 0, b = 0, a = 1 },
         spiral = true, borderByType = true, tooltip = true, pandemic = false,   -- look of each icon
-        timerSize = 0, stackSize = 0,                          -- 0 = follows the icon size
+        timer = true,                                          -- time left, and its text
+        timerText = ns.TextStyle(0, { point = "CENTER", x = 0, y = 0 }),
+        stackText = ns.TextStyle(0, { point = "BOTTOMRIGHT", x = 2, y = -1 }),
+        fill = "rows", perRow = 10, max = 10,                  -- rows | columns; icons per line
+        spacing = 2, lineSpacing = 2,                          -- between icons / between lines
         point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -4,
         growX = "RIGHT", growY = "DOWN",
     }
@@ -87,6 +92,26 @@ function ns.NewAuraGroup(name, kind, extra)
     return g
 end
 local Group = ns.NewAuraGroup
+
+-- Groups are a list the user edits, so profile loading does not fill them:
+-- older groups get the keys they miss here (and the old text sizes move in)
+local function FillGroup(dst, src)
+    for k, v in pairs(src) do
+        if dst[k] == nil then
+            dst[k] = type(v) == "table" and Copy(v) or v
+        elseif type(v) == "table" and type(dst[k]) == "table" and k ~= "spells" then
+            FillGroup(dst[k], v)
+        end
+    end
+end
+
+function ns.FillAuraGroup(g)
+    if g.timerText == nil and g.timerSize then g.timerText = ns.TextStyle(g.timerSize, { point = "CENTER", x = 0, y = 0 }) end
+    if g.stackText == nil and g.stackSize then g.stackText = ns.TextStyle(g.stackSize, { point = "BOTTOMRIGHT", x = 2, y = -1 }) end
+    g.timerSize, g.stackSize = nil, nil
+    FillGroup(g, Group(g.name, g.kind or "HELPFUL"))
+    return g
+end
 
 -------------------------------------------------------------------------------
 -- Icons: centered on `point` of the frame, plus x/y

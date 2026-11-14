@@ -104,7 +104,6 @@ ns.translations.esES = {
     -- Options: Texts tab
     ["Template"] = "Plantilla",
     ["Add text"] = "Añadir texto",
-    ["Delete selected"] = "Borrar el seleccionado",
     ["Functions you can use"] = "Funciones disponibles",
     ["unit is this frame's unit. Return a text, or a format and its values."] = "unit es la unidad de este marco. Devuelve un texto, o un formato y sus valores.",
     ["Health and power can be hidden by the game: they can be shown, but not compared or used in math."] = "El juego puede ocultar la vida y el poder: se pueden mostrar, pero no comparar ni usar en cuentas.",
@@ -170,7 +169,6 @@ ns.translations.esES = {
     ["Debuffs"] = "Perjuicios",
     ["Icon size"] = "Tamaño de icono",
     ["Spacing"] = "Separación",
-    ["Icons per row"] = "Iconos por fila",
     ["Show time left"] = "Mostrar tiempo restante",
     ["Maximum"] = "Máximo",
     ["Corner of the block"] = "Esquina del bloque",
@@ -296,8 +294,17 @@ ns.translations.esES = {
 
     -- Aura groups
     ["Aura groups"] = "Grupos de auras",
-    ["Each group is a block of icons with its own filters, size and place."] = "Cada grupo es un bloque de iconos con sus propios filtros, tamaño y lugar.",
-    ["hidden"] = "oculto",
+    ["No groups."] = "Sin grupos.",
+    ["No spells."] = "Sin hechizos.",
+    ["Layout"] = "Disposición",
+    ["Fill"] = "Llenar",
+    ["Rows"] = "Filas",
+    ["Columns"] = "Columnas",
+    ["Icons per line"] = "Iconos por línea",
+    ["Space between icons"] = "Espacio entre iconos",
+    ["Space between lines"] = "Espacio entre líneas",
+    ["Stack count"] = "Acumulaciones",
+    ["Place on the icon"] = "Lugar en el icono",
     ["Add group"] = "Añadir grupo",
     ["Spell list"] = "Lista de hechizos",
     ["Show only some spells, or hide some."] = "Muestra solo algunos hechizos, u oculta algunos.",
@@ -309,8 +316,6 @@ ns.translations.esES = {
     ["Add spell"] = "Añadir hechizo",
     ["Spell name (every rank) or spell ID. Press Enter."] = "Nombre del hechizo (todos sus rangos) o ID. Pulsa Intro.",
     ["(looking up ranks...)"] = "(buscando rangos...)",
-    ["What to show"] = "Qué mostrar",
-    ["Show this group"] = "Mostrar este grupo",
     ["Type"] = "Tipo",
     ["Cast by"] = "Lanzado por",
     ["Anyone"] = "Cualquiera",
@@ -445,8 +450,6 @@ ns.translations.esES = {
     ["Experience text"] = "Texto de experiencia",
 
     -- Auras look
-    ["Time text size"] = "Tamaño del tiempo",
-    ["Stack text size"] = "Tamaño de las acumulaciones",
     ["Duration sweep"] = "Giro de duración",
     ["Border colored by debuff type"] = "Borde con el color del tipo de perjuicio",
     ["Tooltip on mouseover"] = "Tooltip al pasar el ratón",
@@ -538,7 +541,6 @@ ns.translations.esES = {
     ["Search..."] = "Buscar...",
     ["Accept"] = "Aceptar",
     ["Cancel"] = "Cancelar",
-    ["Drag a group to change its order."] = "Arrastra un grupo para cambiar su orden.",
     ["This replaces every setting of the profile in use. Continue?"] = "Esto sustituye toda la configuración del perfil en uso. ¿Continuar?",
 
     -- Minimap button

@@ -956,85 +956,94 @@ function Tabs.texts(page, unit)
     end
 end
 
--- Auras: list of groups on the left, the selected group's settings on the right
+-- Auras. Left: the groups, the spell list, how the icons line up and where
+-- the block goes. Right: what the selected group shows and how it looks.
 local SORTS = function()
     return { { "default", L["Game order"] }, { "time", L["Time left"] }, { "name", L["Name"] } }
 end
 
 function Tabs.auras(page, unit)
     local state = { sel = 1 }
+    local apply = function() ns.ApplyUnit(unit) end
     local function Groups() return U(unit).auras.groups end
-    local function Sel() return Groups()[state.sel] end
+    local function Sel()
+        local g = Groups()[state.sel]
+        return g and ns.FillAuraGroup(g)
+    end
     local function On() return U(unit).auras.enabled end
     local function SelOn() return On() and Sel() ~= nil end
     local function Harmful() return Sel() and Sel().kind == "HARMFUL" end
+    local function Is(key, value) return function() return Sel() and Sel()[key] == value end end
     function page.Reload() state.sel = 1 end   -- the groups were replaced (copy, undo, reset)
+    local function HasSel(card) card.showIf = function() return Sel() ~= nil end return card end
 
     -- get/set for a key of the selected group
-    local function SB(key)
-        return function() local g = Sel() return g and g[key] end,
-            function(v)
-                local g = Sel()
-                if not g then return end
-                g[key] = v
-                ns.ApplyUnit(unit)
-            end
-    end
+    local function SB(key) return TB(Sel, key, apply) end
 
     -- groups
-    local list = page:Add(1, UI.Card(page.content, L["Aura groups"],
-        L["Each group is a block of icons with its own filters, size and place."]))
+    local list = page:Add(1, UI.Card(page.content, L["Aura groups"], L["Click to edit · drag to reorder"]))
     local g, s = Bind(unit, "auras", "enabled")
     list:Add(UI.Check(list, L["Show auras"], g, s))
-    list:Add(SelectList(list, Groups, function(grp)
-        local kind = grp.kind == "HARMFUL" and L["Debuffs"] or L["Buffs"]
-        local name = L[grp.name or ""] or ""
-        local off = grp.show and "" or ("  |cff777777(" .. L["hidden"] .. ")|r")
-        return name .. "  |cff8f8fa0" .. kind .. "|r" .. off
-    end, function() return state.sel end, function(i) state.sel = i end, nil, 20, function(from, to)
-        local grp = table.remove(Groups(), from)
-        table.insert(Groups(), to, grp)
-        state.sel = to
-        ns.ApplyUnit(unit)
-    end))
-    list:Add(UI.Note(list, L["Drag a group to change its order."]))
+    list:Add(UI.List(list, {
+        items = Groups,
+        label = function(grp) return L[grp.name or ""] or "" end,
+        secondary = function(grp) return grp.kind == "HARMFUL" and L["Debuffs"] or L["Buffs"] end,
+        off = function(grp) return not grp.show end,
+        checked = function(grp) return grp.show and true or false end,
+        onCheck = function(grp, v)
+            grp.show = v
+            apply()
+        end,
+        selected = function() return state.sel end,
+        onSelect = function(i) state.sel = i end,
+        onReorder = function(from, to)
+            local grp = table.remove(Groups(), from)
+            table.insert(Groups(), to, grp)
+            state.sel = to
+            apply()
+        end,
+        onRemove = function(i)
+            table.remove(Groups(), i)
+            if state.sel > i or state.sel > #Groups() then state.sel = math.max(1, state.sel - 1) end
+            apply()
+            Changed()
+        end,
+        empty = L["No groups."],
+        rows = 6,
+        enableIf = On,
+    }))
 
     local add = { tpl = "debuffs" }
     local tpl = {}
     for _, t in ipairs(ns.AURA_TEMPLATES) do tpl[#tpl + 1] = { t[1], L[t[2]] } end
-    list:Add(UI.Dropdown(list, L["Template"], tpl, function() return add.tpl end, function(v) add.tpl = v end))
+    list:Add(UI.Dropdown(list, L["Template"], tpl, function() return add.tpl end, function(v) add.tpl = v end,
+        { enableIf = On }))
     list:Add(UI.Buttons(list, {
         { L["Add group"], function()
             for _, t in ipairs(ns.AURA_TEMPLATES) do
                 if t[1] == add.tpl then
+                    -- the name stays in English and shows in the language in use
                     local grp = t[3]()
-                    grp.name = L[grp.name]
-                    -- below the last group, so they do not overlap
+                    -- right after the last group, the way it grows, so they do not overlap
                     local last = Groups()[#Groups()]
-                    if last then grp.y = (last.y or 0) - (last.size + last.spacing) * math.ceil(last.max / last.perRow) - 4 end
+                    if last then
+                        ns.FillAuraGroup(last)
+                        local _, bh = ns.AuraBlockSize(last)
+                        grp.anchor, grp.point, grp.relPoint = last.anchor, last.point, last.relPoint
+                        grp.x, grp.growX, grp.growY = last.x, last.growX, last.growY
+                        grp.y = (last.y or 0) + (last.growY == "UP" and 1 or -1) * (bh + 4)
+                    end
                     table.insert(Groups(), grp)
                     state.sel = #Groups()
                 end
             end
-            ns.ApplyUnit(unit)
+            apply()
             Changed()
         end, "accent" },
     }, { enableIf = On }))
-    local del = UI.Buttons(list, {
-        { L["Delete selected"], function()
-            if not Sel() then return end
-            table.remove(Groups(), state.sel)
-            state.sel = math.max(1, math.min(state.sel, #Groups()))
-            ns.ApplyUnit(unit)
-            Changed()
-        end, "danger" },
-    }, { enableIf = SelOn })
-    UI.Confirm(del.buttons[1])
-    list:Add(del)
 
     -- spell list
-    local spells = page:Add(1, UI.Card(page.content, L["Spell list"], L["Show only some spells, or hide some."]))
-    spells.showIf = function() return Sel() ~= nil end
+    local spells = HasSel(page:Add(1, UI.Card(page.content, L["Spell list"], L["Show only some spells, or hide some."])))
     g, s = SB("listMode")
     spells:Add(UI.Segmented(spells, nil, {
         { "off", L["Off"] }, { "only", L["Only these"] }, { "hide", L["All except these"] },
@@ -1045,55 +1054,72 @@ function Tabs.auras(page, unit)
             or L["Works for buffs on you, your group and pets. On enemies the game does not allow it (the list is ignored)."])
     end
     table.insert(UI.widgets, where)
+    local function ListOn() return SelOn() and Sel().listMode ~= "off" end
     local typed = { text = "" }
     spells:Add(UI.Input(spells, L["Add spell"], function() return typed.text end, function(v)
         local grp = Sel()
         local key = ns.SpellKeyFromInput(v)
         if grp and key then
-            grp.spells = grp.spells or {}
-            table.insert(grp.spells, key)
-            ns.SpellIDs(ns.SpellKeyName(key))   -- starts looking up its ranks
-            ns.ApplyUnit(unit)
+            local have = false
+            for _, k in ipairs(grp.spells) do if k == key then have = true end end
+            if not have then
+                table.insert(grp.spells, key)
+                ns.SpellIDs(ns.SpellKeyName(key))   -- starts looking up its ranks
+                apply()
+            end
         end
         typed.text = ""
         Changed()
-    end, { enableIf = function() return SelOn() and Sel().listMode ~= "off" end,
-        tip = L["Spell name (every rank) or spell ID. Press Enter."] }))
-    spells:Add(SelectList(spells, function() return Sel() and Sel().spells or {} end,
-        function(key)
-            local name = ns.SpellKeyName(key)
-            if type(key) == "number" then name = name .. "  |cff8f8fa0#" .. key .. "|r"
-            elseif ns.IsSpellLookupPending(name) then name = name .. "  |cff8f8fa0" .. L["(looking up ranks...)"] .. "|r" end
-            return "      " .. name
-        end, nil, nil, function(row, key, i)
-            if not row.icon then
-                row.icon = row:CreateTexture(nil, "OVERLAY")
-                row.icon:SetSize(16, 16)
-                row.icon:SetPoint("LEFT", 8, 0)
-                row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-                row.remove = UI.Button(row, "x", 16, 16)
-                row.remove:SetPoint("RIGHT", -3, 0)
-                row.remove.text:SetTextColor(unpack(C.danger))
-                row.text:SetPoint("RIGHT", row.remove, "LEFT", -4, 0)
-            end
-            row.icon:SetTexture(ns.SpellKeyIcon(key))
-            row.remove:SetScript("OnClick", function()
-                local grp = Sel()
-                if grp then table.remove(grp.spells, i) end
-                ns.ApplyUnit(unit)
-                Changed()
-            end)
-        end, 22))
+    end, { enableIf = ListOn, tip = L["Spell name (every rank) or spell ID. Press Enter."] }))
+    spells:Add(UI.List(spells, {
+        items = function() return Sel() and Sel().spells or {} end,
+        label = ns.SpellKeyName,
+        lead = "icon",
+        icon = ns.SpellKeyIcon,
+        secondary = function(key)
+            if type(key) == "number" then return "#" .. key end
+            if ns.IsSpellLookupPending(ns.SpellKeyName(key)) then return L["(looking up ranks...)"] end
+        end,
+        spell = ns.SpellKeyID,
+        onRemove = function(i)
+            local grp = Sel()
+            if grp then table.remove(grp.spells, i) end
+            apply()
+            Changed()
+        end,
+        empty = L["No spells."],
+        rows = 6,
+        rowHeight = 22,
+        enableIf = ListOn,
+    }))
 
-    -- selected group: what to show
-    local what = page:Add(2, UI.Card(page.content, L["What to show"]))
-    what.showIf = function() return Sel() ~= nil end
+    -- how the icons line up
+    local lay = HasSel(page:Add(1, UI.Card(page.content, L["Layout"])))
+    g, s = SB("fill")
+    lay:Add(UI.Segmented(lay, L["Fill"], { { "rows", L["Rows"] }, { "columns", L["Columns"] } }, g, s, { enableIf = SelOn }))
+    g, s = SB("perRow")
+    lay:Add(UI.Slider(lay, L["Icons per line"], 1, 20, 1, g, s, { enableIf = SelOn }))
+    g, s = SB("max")
+    lay:Add(UI.Slider(lay, L["Maximum"], 1, 40, 1, g, s, { enableIf = SelOn }))
+    g, s = SB("spacing")
+    lay:Add(UI.Slider(lay, L["Space between icons"], 0, 10, 1, g, s, { format = Px, enableIf = SelOn }))
+    g, s = SB("lineSpacing")
+    lay:Add(UI.Slider(lay, L["Space between lines"], 0, 10, 1, g, s, { format = Px, enableIf = SelOn }))
+    g, s = SB("growX")
+    lay:Add(UI.Segmented(lay, L["Grow"], { { "RIGHT", L["Right"] }, { "LEFT", L["Left"] } }, g, s, { enableIf = SelOn }))
+    g, s = SB("growY")
+    lay:Add(UI.Segmented(lay, nil, { { "DOWN", L["Down"] }, { "UP", L["Up"] } }, g, s, { enableIf = SelOn }))
+
+    local pos = HasSel(page:Add(1, UI.Card(page.content, L["Position"])))
+    PositionRows(pos, Sel, apply, { unit = unit, enableIf = SelOn, cornerLabel = L["Corner of the block"] })
+
+    -- selected group: what it shows
+    local what = HasSel(page:Add(2, UI.Card(page.content, L["Group"])))
     what:Add(UI.Input(what, L["Name"], function() return Sel() and L[Sel().name or ""] or "" end, function(v)
         if Sel() then Sel().name = v end
+        apply()
         Changed()
     end, { enableIf = SelOn }))
-    g, s = SB("show")
-    what:Add(UI.Check(what, L["Show this group"], g, s, { enableIf = SelOn }))
     g, s = SB("kind")
     what:Add(UI.Segmented(what, L["Type"], { { "HELPFUL", L["Buffs"] }, { "HARMFUL", L["Debuffs"] } }, g, s, { enableIf = SelOn }))
     g, s = SB("caster")
@@ -1101,8 +1127,7 @@ function Tabs.auras(page, unit)
         { "all", L["Anyone"] }, { "mine", L["Me"] }, { "others", L["Others"] },
     }, g, s, { enableIf = SelOn }))
 
-    local filt = page:Add(2, UI.Card(page.content, L["Filters"]))
-    filt.showIf = function() return Sel() ~= nil end
+    local filt = HasSel(page:Add(2, UI.Card(page.content, L["Filters"])))
     g, s = SB("dispellable")
     filt:Add(UI.Check(filt, L["Only the ones I can dispel"], g, s, { enableIf = Both(SelOn, Harmful) }))
     g, s = SB("boss")
@@ -1112,10 +1137,8 @@ function Tabs.auras(page, unit)
         enableIf = Both(SelOn, function() return not Harmful() end),
     }))
     for _, kind in ipairs(ns.DISPEL_KINDS) do
-        filt:Add(UI.Check(filt, L[kind], function() return Sel() and Sel().types[kind] end, function(v)
-            if Sel() then Sel().types[kind] = v end
-            ns.ApplyUnit(unit)
-        end, { enableIf = Both(SelOn, Harmful) }))
+        g, s = TB(function() return Sel() and Sel().types end, kind, apply)
+        filt:Add(UI.Check(filt, L[kind], g, s, { enableIf = Both(SelOn, Harmful) }))
     end
     g, s = SB("maxDuration")
     filt:Add(UI.Slider(filt, L["Hide longer than"], 0, 600, 5, g, s, {
@@ -1126,49 +1149,51 @@ function Tabs.auras(page, unit)
     g, s = SB("sort")
     filt:Add(UI.Dropdown(filt, L["Order"], SORTS, g, s, { enableIf = SelOn }))
 
-    local look = page:Add(2, UI.Card(page.content, L["Look"]))
-    look.showIf = function() return Sel() ~= nil end
+    -- selected group: how each icon looks
+    local icons = HasSel(page:Add(2, UI.Card(page.content, L["Icons"])))
     g, s = SB("size")
-    look:Add(UI.Slider(look, L["Icon size"], 10, 48, 1, g, s, { format = Px, enableIf = SelOn }))
-    g, s = SB("spacing")
-    look:Add(UI.Slider(look, L["Spacing"], 0, 10, 1, g, s, { format = Px, enableIf = SelOn }))
-    g, s = SB("perRow")
-    look:Add(UI.Slider(look, L["Icons per row"], 1, 20, 1, g, s, { enableIf = SelOn }))
-    g, s = SB("max")
-    look:Add(UI.Slider(look, L["Maximum"], 1, 40, 1, g, s, { enableIf = SelOn }))
-    g, s = SB("timer")
-    look:Add(UI.Check(look, L["Show time left"], g, s, { enableIf = SelOn }))
-    g, s = SB("timerSize")
-    look:Add(UI.Slider(look, L["Time text size"], 0, 24, 1, g, s, { enableIf = function() return SelOn() and Sel().timer end,
-        format = function(v) return v == 0 and L["Automatic"] or Px(v) end }))
-    g, s = SB("stackSize")
-    look:Add(UI.Slider(look, L["Stack text size"], 0, 24, 1, g, s, { enableIf = SelOn,
-        format = function(v) return v == 0 and L["Automatic"] or Px(v) end }))
-    g, s = SB("spiral")
-    look:Add(UI.Check(look, L["Duration sweep"], g, s, { enableIf = SelOn }))
+    icons:Add(UI.Slider(icons, L["Icon size"], 10, 48, 1, g, s, { format = Px, enableIf = SelOn }))
+    g, s = SB("height")
+    icons:Add(UI.Slider(icons, L["Height"], 0, 48, 1, g, s, { enableIf = SelOn,
+        format = function(v) return v == 0 and L["Square"] or Px(v) end }))
+    local function HasBorder() return (Sel().borderSize or 1) > 0 end
+    g, s = SB("borderSize")
+    icons:Add(UI.Slider(icons, L["Border size"], 0, 4, 1, g, s, { enableIf = SelOn,
+        format = function(v) return v == 0 and L["None"] or Px(v) end }))
     g, s = SB("borderByType")
-    look:Add(UI.Check(look, L["Border colored by debuff type"], g, s, { enableIf = Both(SelOn, Harmful) }))
-    g, s = SB("tooltip")
-    look:Add(UI.Check(look, L["Tooltip on mouseover"], g, s, { enableIf = SelOn }))
+    icons:Add(UI.Check(icons, L["Border colored by debuff type"], g, s, { enableIf = Both(SelOn, HasBorder, Harmful) }))
+    icons:Add(UI.Swatch(icons, L["Border color"], function()
+        return Sel() and Sel().borderColor or { r = 0, g = 0, b = 0, a = 1 }
+    end, apply, { alpha = true, enableIf = Both(SelOn, HasBorder, function()
+        return not (Harmful() and Sel().borderByType ~= false)
+    end) }))
+    g, s = SB("spiral")
+    icons:Add(UI.Check(icons, L["Duration sweep"], g, s, { enableIf = SelOn }))
     g, s = SB("pandemic")
-    look:Add(UI.Check(look, L["Glow when it should be renewed"], g, s, { enableIf = SelOn,
+    icons:Add(UI.Check(icons, L["Glow when it should be renewed"], g, s, { enableIf = SelOn,
         tip = L["The last part of the duration, when casting it again does not waste time. The game decides the window."] }))
+    g, s = SB("tooltip")
+    icons:Add(UI.Check(icons, L["Tooltip on mouseover"], g, s, { enableIf = SelOn }))
 
-    local pos = page:Add(1, UI.Card(page.content, L["Position"]))
-    pos.showIf = function() return Sel() ~= nil end
-    AnchorRow(pos, unit, Sel, SelOn)
-    g, s = SB("relPoint")
-    pos:Add(UI.Dropdown(pos, L["Point of the frame or screen"], POINTS, g, s, { enableIf = SelOn }))
-    g, s = SB("point")
-    pos:Add(UI.Dropdown(pos, L["Corner of the block"], POINTS, g, s, { enableIf = SelOn }))
-    g, s = SB("growX")
-    pos:Add(UI.Segmented(pos, L["Grow"], { { "RIGHT", L["Right"] }, { "LEFT", L["Left"] } }, g, s, { enableIf = SelOn }))
-    g, s = SB("growY")
-    pos:Add(UI.Segmented(pos, nil, { { "DOWN", L["Down"] }, { "UP", L["Up"] } }, g, s, { enableIf = SelOn }))
-    g, s = SB("x")
-    pos:Add(UI.Slider(pos, L["Horizontal offset"], -300, 300, 1, g, s, { format = Px, enableIf = SelOn }))
-    g, s = SB("y")
-    pos:Add(UI.Slider(pos, L["Vertical offset"], -300, 300, 1, g, s, { format = Px, enableIf = SelOn }))
+    -- the two texts on each icon: the look rows every text has, and a place on the icon
+    local function IconText(card, key, enableIf)
+        local function T() return Sel() and Sel()[key] end
+        TextRows(card, T, apply, { auto = true, enableIf = enableIf })
+        local tg, ts = TB(T, "point", apply)
+        card:Add(UI.Dropdown(card, L["Place on the icon"], POINTS, tg, ts, { enableIf = enableIf }))
+        tg, ts = TB(T, "x", apply)
+        card:Add(UI.Slider(card, L["Horizontal offset"], -30, 30, 1, tg, ts, { format = Px, enableIf = enableIf }))
+        tg, ts = TB(T, "y", apply)
+        card:Add(UI.Slider(card, L["Vertical offset"], -30, 30, 1, tg, ts, { format = Px, enableIf = enableIf }))
+    end
+
+    local timeCard = HasSel(page:Add(2, UI.Card(page.content, L["Time text"])))
+    g, s = SB("timer")
+    timeCard:Add(UI.Check(timeCard, L["Show time left"], g, s, { enableIf = SelOn }))
+    IconText(timeCard, "timerText", Both(SelOn, Is("timer", true)))
+
+    local stackCard = HasSel(page:Add(2, UI.Card(page.content, L["Stack count"])))
+    IconText(stackCard, "stackText", SelOn)
 end
 
 -- Icons: every icon with its switch on the left, the chosen one's place on the right
