@@ -53,6 +53,7 @@ ns.translations.esES = {
     ["Icons"] = "Iconos",
     ["Cast bar"] = "Lanzamiento",
     ["Extras"] = "Extras",
+    ["Class"] = "Clase",
 
     -- Options: common
     ["Show"] = "Mostrar",
