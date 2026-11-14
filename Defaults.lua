@@ -113,6 +113,25 @@ function ns.FillAuraGroup(g)
     return g
 end
 
+-- A unit's groups, ready to use. The old "Show auras" switch is gone:
+-- where it was off, its groups are hidden instead (once).
+function ns.AuraGroups(auras)
+    if not auras then return {} end
+    if auras.enabled == false then
+        for _, g in ipairs(auras.groups or {}) do g.show = false end
+    end
+    auras.enabled = nil
+    auras.groups = auras.groups or {}
+    for _, g in ipairs(auras.groups) do ns.FillAuraGroup(g) end
+    return auras.groups
+end
+
+-- Default groups that start hidden (ticked on in the Auras tab)
+local function Hidden(groups)
+    for _, g in ipairs(groups) do g.show = false end
+    return groups
+end
+
 -------------------------------------------------------------------------------
 -- Icons: centered on `point` of the frame, plus x/y
 -------------------------------------------------------------------------------
@@ -237,7 +256,7 @@ ns.DEFAULTS = {
             power = { height = 14, style = Bar("auto") },  -- height 0 = no power bar
             hideBlizzard = true,
             texts = { Copy(NAME), Copy(HEALTH), Copy(LEVEL), Copy(POWER) },
-            auras = { enabled = false, groups = { Group("Buffs", "HELPFUL"), Group("Debuffs", "HARMFUL", { y = -30 }) } },
+            auras = { groups = Hidden { Group("Buffs", "HELPFUL"), Group("Debuffs", "HARMFUL", { y = -30 }) } },
             icons = Icons({ "combat", "resting", "leader", "assistant", "masterLooter", "role", "raidTarget",
                 "readyCheck", "resurrect", "summon" }),
             fader = Fader(false, 0.5),
@@ -260,7 +279,6 @@ ns.DEFAULTS = {
             hideBlizzard = true,
             texts = { Copy(NAME), Copy(HEALTH), Copy(LEVEL), Copy(POWER) },
             auras = {
-                enabled = true,
                 groups = {
                     Group("Debuffs", "HARMFUL", { size = 24, perRow = 9, max = 9, y = -4 }),
                     Group("Buffs", "HELPFUL", { size = 20, perRow = 11, max = 22, y = -34 }),
@@ -284,7 +302,7 @@ ns.DEFAULTS = {
             power = { height = 0, style = Bar("auto") },  -- height 0 = no power bar
             hideBlizzard = true,
             texts = { Text(NAME, { point = "CENTER", x = 0, size = 11, justify = "CENTER", events = {} }) },
-            auras = { enabled = false, groups = { Group("Debuffs", "HARMFUL", { size = 16, perRow = 8, max = 8 }) } },
+            auras = { groups = Hidden { Group("Debuffs", "HARMFUL", { size = 16, perRow = 8, max = 8 }) } },
             icons = Icons({ "raidTarget" }, { raidTarget = { point = "LEFT", size = 14 } }),
             fader = Fader(true, 0.5),
             castbar = Castbar(false, true, 14),
@@ -298,7 +316,7 @@ ns.DEFAULTS = {
             portraitStyle = "2d",
             power = { height = 0, style = Bar("auto") },  -- height 0 = no power bar
             texts = { Text(NAME, { point = "CENTER", x = 0, size = 11, justify = "CENTER", events = {} }) },
-            auras = { enabled = false, groups = { Group("Debuffs", "HARMFUL", { size = 16, perRow = 8, max = 8 }) } },
+            auras = { groups = Hidden { Group("Debuffs", "HARMFUL", { size = 16, perRow = 8, max = 8 }) } },
             icons = Icons({ "raidTarget" }, { raidTarget = { point = "LEFT", size = 14 } }),
             fader = Fader(true, 0.5),
             castbar = Castbar(false, true, 14),
@@ -313,7 +331,7 @@ ns.DEFAULTS = {
             power = { height = 8, style = Bar("auto") },  -- height 0 = no power bar
             hideBlizzard = true,
             texts = { Copy(NAME), Copy(HEALTH) },
-            auras = { enabled = false, groups = { Group("My debuffs", "HARMFUL", { caster = "mine", pandemic = true, size = 20, perRow = 9, max = 9, y = -26 }) } },
+            auras = { groups = Hidden { Group("My debuffs", "HARMFUL", { caster = "mine", pandemic = true, size = 20, perRow = 9, max = 9, y = -26 }) } },
             icons = Icons({ "raidTarget" }, { raidTarget = { size = 16 } }),
             fader = Fader(true, 0.5),
             castbar = Castbar(true, true, 16),
@@ -331,7 +349,7 @@ ns.DEFAULTS = {
                 Text(NAME, { size = 10 }),
                 Text(PERCENT, { events = { "UNIT_HEALTH", "UNIT_MAXHEALTH" } }),
             },
-            auras = { enabled = false, groups = { Group("Buffs", "HELPFUL", { size = 16, perRow = 8, max = 8 }) } },
+            auras = { groups = Hidden { Group("Buffs", "HELPFUL", { size = 16, perRow = 8, max = 8 }) } },
             icons = Icons({ "raidTarget", "happiness" }, { raidTarget = { size = 14 } }),
             fader = Fader(false, 0.5),
             castbar = Castbar(false, true, 12),
@@ -349,7 +367,6 @@ ns.DEFAULTS = {
             hideBlizzard = true,
             texts = { Text(NAME, { size = 11 }), Copy(PERCENT) },
             auras = {
-                enabled = true,
                 groups = {
                     Group("Debuffs", "HARMFUL", { size = 20, perRow = 4, max = 4,
                         point = "LEFT", relPoint = "RIGHT", x = 4, y = 0 }),

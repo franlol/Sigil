@@ -965,13 +965,9 @@ end
 function Tabs.auras(page, unit)
     local state = { sel = 1 }
     local apply = function() ns.ApplyUnit(unit) end
-    local function Groups() return U(unit).auras.groups end
-    local function Sel()
-        local g = Groups()[state.sel]
-        return g and ns.FillAuraGroup(g)
-    end
-    local function On() return U(unit).auras.enabled end
-    local function SelOn() return On() and Sel() ~= nil end
+    local function Groups() return ns.AuraGroups(U(unit).auras) end
+    local function Sel() return Groups()[state.sel] end
+    local function SelOn() return Sel() ~= nil end
     local function Harmful() return Sel() and Sel().kind == "HARMFUL" end
     local function Is(key, value) return function() return Sel() and Sel()[key] == value end end
     function page.Reload() state.sel = 1 end   -- the groups were replaced (copy, undo, reset)
@@ -982,8 +978,7 @@ function Tabs.auras(page, unit)
 
     -- groups
     local list = page:Add(1, UI.Card(page.content, L["Aura groups"], L["Click to edit · drag to reorder"]))
-    local g, s = Bind(unit, "auras", "enabled")
-    list:Add(UI.Check(list, L["Show auras"], g, s))
+    local g, s
     list:Add(UI.List(list, {
         items = Groups,
         label = function(grp) return L[grp.name or ""] or "" end,
@@ -1010,14 +1005,12 @@ function Tabs.auras(page, unit)
         end,
         empty = L["No groups."],
         rows = 6,
-        enableIf = On,
     }))
 
     local add = { tpl = "debuffs" }
     local tpl = {}
     for _, t in ipairs(ns.AURA_TEMPLATES) do tpl[#tpl + 1] = { t[1], L[t[2]] } end
-    list:Add(UI.Dropdown(list, L["Template"], tpl, function() return add.tpl end, function(v) add.tpl = v end,
-        { enableIf = On }))
+    list:Add(UI.Dropdown(list, L["Template"], tpl, function() return add.tpl end, function(v) add.tpl = v end))
     list:Add(UI.Buttons(list, {
         { L["Add group"], function()
             for _, t in ipairs(ns.AURA_TEMPLATES) do
@@ -1040,7 +1033,7 @@ function Tabs.auras(page, unit)
             apply()
             Changed()
         end, "accent" },
-    }, { enableIf = On }))
+    }))
 
     -- spell list
     local spells = HasSel(page:Add(1, UI.Card(page.content, L["Spell list"], L["Show only some spells, or hide some."])))

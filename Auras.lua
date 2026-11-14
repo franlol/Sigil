@@ -330,10 +330,7 @@ local function Sig(v, out)
 end
 
 local function Groups(f)
-    local a = f.cfg.auras
-    if not a or not a.enabled then return {} end
-    for _, g in ipairs(a.groups or {}) do ns.FillAuraGroup(g) end
-    return a.groups or {}
+    return ns.AuraGroups(f.cfg.auras)
 end
 
 -- Out of combat (from ns.Layout): containers cannot be created in combat.

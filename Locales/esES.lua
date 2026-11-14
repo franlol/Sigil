@@ -164,7 +164,6 @@ ns.translations.esES = {
     ["Name in class color"] = "Nombre con color de clase",
 
     -- Options: Auras tab
-    ["Show auras"] = "Mostrar auras",
     ["Buffs"] = "Beneficios",
     ["Debuffs"] = "Perjuicios",
     ["Icon size"] = "Tamaño de icono",
