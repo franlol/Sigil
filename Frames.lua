@@ -507,38 +507,41 @@ function ns.BuildTexts(f)
         if fs.hpBox then fs.hpBox:Hide() end
     end
     for i, cfg in ipairs(f.cfg.texts) do
-        local fs = f.fontStrings[i]
-        if not fs then
-            fs = f.overlay:CreateFontString(nil, "OVERLAY")
-            fs:SetWordWrap(false)
-            f.fontStrings[i] = fs
-        end
-        -- texts are a list the defaults never fill: missing look settings
-        -- (new or imported texts) get theirs here, a bad size goes back to 11
-        if type(cfg.size) ~= "number" then cfg.size = 11 end
-        if cfg.font == nil then cfg.font = false end
-        if cfg.outline == nil then cfg.outline = false end
-        if cfg.shadow == nil then cfg.shadow = false end
-        if cfg.colorMode == nil then cfg.colorMode = "code" end
-        if cfg.show == nil then cfg.show = "always" end
-        ns.StyleText(fs, cfg, 11)
-        fs:SetJustifyH(cfg.justify or "LEFT")
-        fs:ClearAllPoints()
-        local region = cfg.region == "power" and f.power:IsShown() and f.power
-            or cfg.region == "frame" and f or f.health
-        fs:SetPoint(cfg.point or "LEFT", region, cfg.point or "LEFT", cfg.x or 0, cfg.y or 0)
-        fs:SetText("")
-        fs:Show()
-        local fn, err = ns.CompileText(cfg.code)
-        if (cfg.code or ""):find("Hover%s*%(") or cfg.show == "mouseover" or cfg.show == "nomouseover" then
-            f.usesHover = true
-        end
-        if not fn then ns.Print(L["Error in a text of %s: %s"]:format(f.unit, tostring(err))) end
-        local t = { fs = fs, fn = fn, cfg = cfg, region = region }
-        f.texts[#f.texts + 1] = t
-        for _, ev in ipairs(cfg.events or {}) do
-            f.textEvents[ev] = f.textEvents[ev] or {}
-            table.insert(f.textEvents[ev], t)
+        -- a disabled text keeps its place (and fontstring) but is not built
+        if cfg.enabled ~= false then
+            local fs = f.fontStrings[i]
+            if not fs then
+                fs = f.overlay:CreateFontString(nil, "OVERLAY")
+                fs:SetWordWrap(false)
+                f.fontStrings[i] = fs
+            end
+            -- texts are a list the defaults never fill: missing look settings
+            -- (new or imported texts) get theirs here, a bad size goes back to 11
+            if type(cfg.size) ~= "number" then cfg.size = 11 end
+            if cfg.font == nil then cfg.font = false end
+            if cfg.outline == nil then cfg.outline = false end
+            if cfg.shadow == nil then cfg.shadow = false end
+            if cfg.colorMode == nil then cfg.colorMode = "code" end
+            if cfg.show == nil then cfg.show = "always" end
+            ns.StyleText(fs, cfg, 11)
+            fs:SetJustifyH(cfg.justify or "LEFT")
+            fs:ClearAllPoints()
+            local region = cfg.region == "power" and f.power:IsShown() and f.power
+                or cfg.region == "frame" and f or f.health
+            fs:SetPoint(cfg.point or "LEFT", region, cfg.point or "LEFT", cfg.x or 0, cfg.y or 0)
+            fs:SetText("")
+            fs:Show()
+            local fn, err = ns.CompileText(cfg.code)
+            if (cfg.code or ""):find("Hover%s*%(") or cfg.show == "mouseover" or cfg.show == "nomouseover" then
+                f.usesHover = true
+            end
+            if not fn then ns.Print(L["Error in a text of %s: %s"]:format(f.unit, tostring(err))) end
+            local t = { fs = fs, fn = fn, cfg = cfg, region = region }
+            f.texts[#f.texts + 1] = t
+            for _, ev in ipairs(cfg.events or {}) do
+                f.textEvents[ev] = f.textEvents[ev] or {}
+                table.insert(f.textEvents[ev], t)
+            end
         end
     end
 end

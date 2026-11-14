@@ -471,15 +471,140 @@ local HELP = {
     } },
 }
 
--- One topic as text: its title, then a call (accent) and what it gives per line
-local function HelpText(topic)
+-- Help window: every function by topic, in two columns. Clicking one
+-- inserts it in the code. Closes with X, Esc or a click outside.
+local HELP_W, HELP_PAD, HELP_GAP = 640, 18, 18
+local helpModal
+
+local function BuildHelp()
     local A = C.accent
-    local hex = ("|cff%02x%02x%02x"):format(A[1] * 255, A[2] * 255, A[3] * 255)
-    local lines = { "|cffffffff" .. L[topic[1]] .. "|r" }
-    for _, fn in ipairs(topic[2]) do
-        lines[#lines + 1] = hex .. fn[1] .. "|r  " .. L[fn[2]]
+    local m = CreateFrame("Frame", nil, UIParent)
+    m:SetAllPoints()
+    m:SetFrameStrata("FULLSCREEN_DIALOG")
+    m:EnableMouse(true)
+    m:Hide()
+    local dim = m:CreateTexture(nil, "BACKGROUND")
+    dim:SetAllPoints()
+    dim:SetColorTexture(0, 0, 0, 0.55)
+    m:SetScript("OnMouseDown", function(self) self:Hide() end)
+    m:EnableKeyboard(true)
+    m:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            self:SetPropagateKeyboardInput(false)
+            self:Hide()
+        else
+            self:SetPropagateKeyboardInput(true)
+        end
+    end)
+
+    local box = CreateFrame("Frame", nil, m, "BackdropTemplate")
+    box:SetWidth(HELP_W)
+    box:SetPoint("CENTER")
+    box:EnableMouse(true) -- clicks inside do not close it
+    UI.Backdrop(box, C.window, { A[1], A[2], A[3], 1 })
+    local inner = HELP_W - 2 * HELP_PAD
+    local colW = (inner - HELP_GAP) / 2
+
+    -- header: title, what a text is, close button, line
+    local title = UI.Text(box, L["Functions you can use"], C.titleFont, A)
+    title:SetPoint("TOPLEFT", HELP_PAD, -HELP_PAD)
+    local close = UI.Button(box, "X", 22, 20, function() m:Hide() end)
+    close:SetPoint("TOPRIGHT", -12, -12)
+    local intro = UI.Text(box, L["unit is this frame's unit. Return a text, or a format and its values."],
+        C.labelFont, C.muted)
+    intro:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
+    intro:SetWidth(inner - 30)
+    intro:SetJustifyH("LEFT")
+
+    -- example in a code-like field
+    local example = CreateFrame("Frame", nil, box, "BackdropTemplate")
+    UI.Backdrop(example, C.fieldDark, C.border)
+    example:SetHeight(26)
+    local exText = example:CreateFontString(nil, "OVERLAY", "ChatFontNormal")
+    exText:SetPoint("LEFT", 10, 0)
+    exText:SetText([[return "%s / %s", Short(HP(unit)), Short(MaxHP(unit))]])
+    exText:SetTextColor(0.85, 0.85, 0.85)
+
+    local hint = UI.Text(box, L["Click a function to insert it in the code."], C.labelFont, A)
+
+    -- the two columns of topics
+    local cols = { {}, {} }
+    for i, topic in ipairs(HELP) do
+        local col = cols[i <= 3 and 1 or 2]
+        local head = UI.Text(box, L[topic[1]], C.titleFont, C.text)
+        col[#col + 1] = { head = head }
+        for _, fn in ipairs(topic[2]) do
+            local b = CreateFrame("Button", nil, box)
+            b:SetWidth(colW)
+            local hl = b:CreateTexture(nil, "HIGHLIGHT")
+            hl:SetAllPoints()
+            hl:SetColorTexture(A[1], A[2], A[3], 0.12)
+            b.call = b:CreateFontString(nil, "OVERLAY", "ChatFontNormal")
+            b.call:SetPoint("TOPLEFT", 8, -5)
+            b.call:SetText(fn[1])
+            b.call:SetTextColor(A[1], A[2], A[3])
+            b.desc = UI.Text(b, L[fn[2]], C.labelFont, C.muted)
+            b.desc:SetPoint("TOPLEFT", b.call, "BOTTOMLEFT", 0, -3)
+            b.desc:SetWidth(colW - 16)
+            b.desc:SetJustifyH("LEFT")
+            b.desc:SetWordWrap(true)
+            b:SetScript("OnClick", function()
+                m:Hide()
+                if m.onPick then m.onPick(fn[1]) end
+            end)
+            col[#col + 1] = { button = b }
+        end
     end
-    return table.concat(lines, "\n")
+
+    local note = UI.Text(box, L["Health and power can be hidden by the game: they can be shown, but not compared or used in math."],
+        C.labelFont, C.muted)
+    note:SetWidth(inner)
+    note:SetJustifyH("LEFT")
+    note:SetWordWrap(true)
+
+    -- places everything; text heights are only known once shown
+    function m.Layout()
+        local y = HELP_PAD + 16 + 6 + intro:GetStringHeight() + 12
+        example:ClearAllPoints()
+        example:SetPoint("TOPLEFT", HELP_PAD, -y)
+        example:SetPoint("TOPRIGHT", -HELP_PAD, -y)
+        y = y + 26 + 10
+        hint:ClearAllPoints()
+        hint:SetPoint("TOPLEFT", HELP_PAD, -y)
+        y = y + 14 + 14
+        local bottom = y
+        for c, col in ipairs(cols) do
+            local x, cy = HELP_PAD + (c - 1) * (colW + HELP_GAP), y
+            for i, item in ipairs(col) do
+                if item.head then
+                    if i > 1 then cy = cy + 10 end
+                    item.head:ClearAllPoints()
+                    item.head:SetPoint("TOPLEFT", x, -cy)
+                    cy = cy + 18
+                else
+                    local b = item.button
+                    b:SetHeight(5 + b.call:GetStringHeight() + 3 + b.desc:GetStringHeight() + 6)
+                    b:ClearAllPoints()
+                    b:SetPoint("TOPLEFT", x, -cy)
+                    cy = cy + b:GetHeight() + 1
+                end
+            end
+            bottom = math.max(bottom, cy)
+        end
+        bottom = bottom + 14
+        note:ClearAllPoints()
+        note:SetPoint("TOPLEFT", HELP_PAD, -bottom)
+        box:SetHeight(bottom + note:GetStringHeight() + HELP_PAD)
+    end
+    return m
+end
+
+-- onPick(call): what to do with the function the user clicked
+local function ShowHelp(onPick)
+    helpModal = helpModal or BuildHelp()
+    helpModal.onPick = onPick
+    helpModal:Show()
+    helpModal.Layout()
 end
 
 -- Its name, or else the start of its code (the same for every text)
@@ -496,18 +621,55 @@ function Tabs.texts(page, unit)
     local function Texts() return U(unit).texts end
     local function Sel() return Texts()[state.sel] end
 
-    -- list
-    local list = page:Add(1, UI.Card(page.content, L["Texts"], L["Click to edit · drag to reorder"]))
-    list:Add(SelectList(list, Texts, TextLabel, function() return state.sel end, function(i)
+    -- list: a check box per row turns the text on or off; disabled ones are grey
+    local function SetEnabled(t, on)
+        -- nil = on (older texts have no field)
+        if on then t.enabled = nil else t.enabled = false end
+        ns.ApplyUnit(unit)
+        Changed()
+    end
+    local list = page:Add(1, UI.Card(page.content, L["Texts"], L["Click to edit · drag to reorder · tick to turn on or off"]))
+    local rows = list:Add(SelectList(list, Texts, function(t)
+        if t.enabled == false then
+            return "|cff6a6a6a" .. TextLabel(t) .. "  ·  " .. L["off"] .. "|r"
+        end
+        return TextLabel(t)
+    end, function() return state.sel end, function(i)
         state.sel = i
         if page.LoadEditor then page.LoadEditor() end
-    end, nil, 20, function(from, to)
+    end, function(row, t)
+        if not row.toggle then
+            local c = CreateFrame("Button", nil, row, "BackdropTemplate")
+            c:SetSize(14, 14)
+            c:SetPoint("LEFT", 8, 0)
+            UI.Backdrop(c, C.field, C.border)
+            c.mark = c:CreateTexture(nil, "OVERLAY")
+            c.mark:SetPoint("TOPLEFT", 3, -3)
+            c.mark:SetPoint("BOTTOMRIGHT", -3, 3)
+            c.mark:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
+            c:SetScript("OnEnter", function(self)
+                self:SetBackdropBorderColor(C.accent[1], C.accent[2], C.accent[3], 1)
+            end)
+            c:SetScript("OnLeave", function(self) self:SetBackdropBorderColor(unpack(C.border)) end)
+            UI.Tip(c, L["On / off"], L["Turn this text on or off without deleting it."])
+            row.toggle = c
+            row.text:SetPoint("LEFT", c, "RIGHT", 8, 0)
+        end
+        row.toggle.mark:SetShown(t.enabled ~= false)
+        row.toggle:SetScript("OnClick", function() SetEnabled(t, t.enabled == false) end)
+    end, 22, function(from, to)
         local t = table.remove(Texts(), from)
         table.insert(Texts(), to, t)
         state.sel = to
         ns.ApplyUnit(unit)
         if page.LoadEditor then page.LoadEditor() end
     end))
+    -- always room for several texts, so the list does not jump as it grows
+    local listRefresh = rows.Refresh
+    rows.Refresh = function(self, ...)
+        listRefresh(self, ...)
+        self:SetHeight(math.max(self:GetHeight(), 12 * 23 + 1))
+    end
 
     local add = { tpl = "name" }
     local tplOptions = {}
@@ -542,22 +704,26 @@ function Tabs.texts(page, unit)
     UI.Confirm(delete.buttons[1])
     list:Add(delete)
 
-    -- reference
-    local ref = page:Add(1, UI.Card(page.content, L["Functions you can use"],
-        L["unit is this frame's unit. Return a text, or a format and its values."]))
-    ref:Add(UI.Note(ref, "|cffd0d0d0return \"%s / %s\", HP(unit), MaxHP(unit)|r"))
-    for _, topic in ipairs(HELP) do ref:Add(UI.Note(ref, HelpText(topic))) end
-    ref:Add(UI.Note(ref, L["Health and power can be hidden by the game: they can be shown, but not compared or used in math."]))
-
     -- editor
     local ed = page:Add(2, UI.Card(page.content, L["Edit text"]))
     ed.showIf = function() return Sel() ~= nil end
+    ed:Add(UI.Switch(ed, L["Enabled"], function() return Sel() and Sel().enabled ~= false end,
+        function(v) if Sel() then SetEnabled(Sel(), v) end end))
     local nameRow = ed:Add(UI.Input(ed, L["Name"], function() return Sel() and Sel().name or "" end,
         function(v)
             if Sel() then Sel().name = v end
             Changed()
         end))
-    local code = ed:Add(UI.CodeBox(ed, 150))
+    local code -- the code box, below
+    ed:Add(UI.Buttons(ed, {
+        { L["Functions and examples"], function()
+            ShowHelp(function(call)
+                code.edit:SetFocus()
+                code.edit:Insert(call)
+            end)
+        end },
+    }))
+    code = ed:Add(UI.CodeBox(ed, 150))
     local status = ed:Add(UI.Note(ed, ""))
     -- Compiles the editor's code and runs it once (compiled is not enough:
     -- errors can happen at run time). Shows any error. true if it works.
@@ -644,6 +810,7 @@ function Tabs.texts(page, unit)
         page:Layout()
     end
     page:HookScript("OnShow", function() page.LoadEditor() end)
+    page:HookScript("OnHide", function() if helpModal then helpModal:Hide() end end)
     page.LoadEditor()
     -- the whole list was replaced (copy, undo, reset)
     function page.Reload()
