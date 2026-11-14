@@ -239,6 +239,7 @@ function ns.UpdateTextVisibility(f)
             or (show == "ooc" and not combat)
             or ns.testMode
         t.fs:SetAlpha(on and 1 or 0)
+        if t.fs.hpBox then t.fs.hpBox:SetAlpha(on and 1 or 0) end
     end
 end
 
@@ -488,7 +489,10 @@ function ns.BuildTexts(f)
     wipe(f.texts)
     wipe(f.textEvents)
     f.usesHover = nil
-    for _, fs in ipairs(f.fontStrings) do fs:Hide() end
+    for _, fs in ipairs(f.fontStrings) do
+        fs:Hide()
+        if fs.hpBox then fs.hpBox:Hide() end
+    end
     for i, cfg in ipairs(f.cfg.texts) do
         local fs = f.fontStrings[i]
         if not fs then
@@ -517,7 +521,7 @@ function ns.BuildTexts(f)
             f.usesHover = true
         end
         if not fn then ns.Print(L["Error in a text of %s: %s"]:format(f.unit, tostring(err))) end
-        local t = { fs = fs, fn = fn, cfg = cfg }
+        local t = { fs = fs, fn = fn, cfg = cfg, region = region }
         f.texts[#f.texts + 1] = t
         for _, ev in ipairs(cfg.events or {}) do
             f.textEvents[ev] = f.textEvents[ev] or {}

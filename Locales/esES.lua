@@ -121,6 +121,7 @@ ns.translations.esES = {
     ["Current"] = "Actual",
     ["Missing"] = "Lo que falta",
     ["Percentage (0-100)"] = "Porcentaje (0-100)",
+    ["Adds | health% when health is not full; long text is shortened to fit. Usage: return text, HPPercentBelowMax(unit)"] = "Añade | vida% cuando falta vida; acorta el texto largo para que quepa. Uso: return texto, HPPercentBelowMax(unit)",
     ["Threat percentage, or nothing"] = "Porcentaje de amenaza, o nada",
     ["Short number: 12.3K, 1.2M"] = "Número corto: 12.3K, 1.2M",
     ["Text in a color (0-1)"] = "Texto en un color (0-1)",

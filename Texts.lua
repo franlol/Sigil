@@ -279,7 +279,98 @@ end
 
 -- Text in a color: Colorize("hello", 1, 0, 0)
 function H.Colorize(text, r, g, b)
+    if not S(text) and text == nil then text = "" end -- no unit: no name
     return ("|cff%02x%02x%02x"):format(r * 255, g * 255, b * 255) .. text .. "|r"
+end
+
+-------------------------------------------------------------------------------
+-- HPPercentBelowMax: "Name | 42%" while health is not full, just "Name" when
+-- full. Usage: return text, HPPercentBelowMax(unit)
+-- Health is secret (it cannot be compared), so both versions are drawn and
+-- the game picks one through their alpha with a step curve. The name is
+-- shortened so the percentage stays inside the bar.
+-------------------------------------------------------------------------------
+local BELOW_MAX = {} -- marker returned by the helper, read by Draw
+local FULL, NOT_FULL -- health (0-1) -> alpha
+
+local function Step(below, full)
+    local c = C_CurveUtil.CreateCurve()
+    c:SetType(Enum.LuaCurveType.Step)
+    c:AddPoint(0, below)
+    c:AddPoint(1, full)
+    return c
+end
+
+-- Holder of both versions, made once per fontstring: full (the text) and
+-- low (the text and the percentage)
+local function Box(fs)
+    local b = fs.hpBox
+    if b then return b end
+    b = CreateFrame("Frame", nil, fs:GetParent())
+    b:SetAllPoints()
+    b.full = b:CreateFontString(nil, "OVERLAY")
+    b.low = CreateFrame("Frame", nil, b)
+    b.name = b.low:CreateFontString(nil, "OVERLAY")
+    b.pct = b.low:CreateFontString(nil, "OVERLAY")
+    for _, s in ipairs({ b.full, b.name, b.pct }) do s:SetWordWrap(false) end
+    b.name:SetPoint("LEFT")
+    b.name:SetJustifyH("LEFT")
+    b.pct:SetPoint("LEFT", b.name, "RIGHT")
+    b.pct:SetJustifyH("LEFT")
+    fs.hpBox = b
+    return b
+end
+
+local function DrawBelowMax(t, text, u)
+    FULL = FULL or Step(0, 1)
+    NOT_FULL = NOT_FULL or Step(1, 0)
+    local fs = t.fs
+    local b = Box(fs)
+    -- style and place again only after the texts are rebuilt
+    if b.t ~= t then
+        b.t = t
+        for _, s in ipairs({ b.full, b.name, b.pct }) do ns.StyleText(s, t.cfg, 11) end
+        b.full:SetJustifyH(t.cfg.justify or "LEFT")
+        -- same place as the text (see ns.BuildTexts)
+        local cfg, region = t.cfg, t.region
+        local point, x, y = cfg.point or "LEFT", cfg.x or 0, cfg.y or 0
+        b.full:ClearAllPoints()
+        b.full:SetPoint(point, region, point, x, y)
+        b.low:ClearAllPoints()
+        b.low:SetPoint(point, region, point, x, y)
+        b.room = math.max(10, (R(region:GetWidth()) or 100) - 2 * math.abs(x) - 4)
+        b.pct:SetText(" | 100%")
+        b.pctW = math.ceil(b.pct:GetUnboundedStringWidth())
+        b.pct:SetWidth(b.pctW)
+    end
+    -- the name's own width (+1 so rounding does not cut it), at most the room
+    b.full:SetText(text)
+    local w = R(b.full:GetUnboundedStringWidth()) -- nil when secret
+    w = w and math.ceil(w) + 1 or b.room
+    local nameW = math.max(1, math.min(w, b.room - b.pctW))
+    b.full:SetWidth(math.min(w, b.room))
+    b.name:SetText(text)
+    b.name:SetWidth(nameW)
+    b.pct:SetFormattedText(" | %d%%", H.HPPercent(u))
+    b.low:SetSize(nameW + b.pctW, R(b.name:GetStringHeight()) or t.cfg.size)
+
+    local fake = ns.Fake(u)
+    if fake then
+        local low = fake.hp < fake.maxhp
+        b.full:SetAlpha(low and 0 or 1)
+        b.low:SetAlpha(low and 1 or 0)
+    else
+        b.full:SetAlpha(UnitHealthPercent(u, true, FULL))
+        b.low:SetAlpha(UnitHealthPercent(u, true, NOT_FULL))
+    end
+    fs:SetText("")
+    b:SetAlpha(fs:GetAlpha()) -- follows the text's show option
+    b:Show()
+end
+
+function H.HPPercentBelowMax(u)
+    BELOW_MAX.unit = u
+    return BELOW_MAX
 end
 
 -------------------------------------------------------------------------------
@@ -310,8 +401,18 @@ local function Show(fs, first, ...)
     end
 end
 
+local function Draw(t, first, ...)
+    local extra = ...
+    if select("#", ...) == 1 and not S(extra) and extra == BELOW_MAX then
+        DrawBelowMax(t, first, BELOW_MAX.unit)
+        return
+    end
+    if t.fs.hpBox then t.fs.hpBox:Hide() end
+    Show(t.fs, first, ...)
+end
+
 local function Run(t)
-    Show(t.fs, t.fn())
+    Draw(t, t.fn())
 end
 
 -- Runs a compiled text once for the first frame of a settings key, to find
@@ -333,6 +434,7 @@ function ns.RunText(f, t)
     current = f
     local ok, err = pcall(Run, t)
     if not ok then
+        if t.fs.hpBox then t.fs.hpBox:Hide() end
         t.fs:SetText("|cffff3333" .. L["error"] .. "|r")
         if t.err ~= err then
             t.err = err

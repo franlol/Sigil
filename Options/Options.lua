@@ -443,6 +443,7 @@ local HELP = {
         { "MaxHP(unit)", "Maximum" },
         { "Missing(unit)", "Missing" },
         { "HPPercent(unit)", "Percentage (0-100)" },
+        { "HPPercentBelowMax(unit)", "Adds | health% when health is not full; long text is shortened to fit. Usage: return text, HPPercentBelowMax(unit)" },
     } },
     { "Power", {
         { "Power(unit)", "Current" },
