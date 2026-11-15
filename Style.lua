@@ -99,6 +99,9 @@ function ns.StyleBar(bar, st)
             bar.spark = bar:CreateTexture(nil, "OVERLAY")
             bar.spark:SetTexture(SPARK)
             bar.spark:SetBlendMode("ADD")
+            -- a soft glow can sit between pixels: it glides where the fill edge ticks
+            bar.spark:SetTexelSnappingBias(0)
+            bar.spark:SetSnapToPixelGrid(false)
         end
         local h = vertical and bar:GetWidth() or bar:GetHeight()
         bar.spark:ClearAllPoints()
