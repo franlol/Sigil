@@ -205,7 +205,7 @@ local function Paint(g, c, now, restack)
             box.bar:SetValue(frac)
             box.bar2:SetValue(frac)
             local bc = c[kind]
-            box.text:SetText(bc.text and left and (bc.decimals == 0 and "%.0f" or "%.1f"):format(left) or "")
+            box.text:SetText(bc.text and left and ns.FormatTime(box.timeRules, left) or "")
             local aimOn = (kind == "ranged" and c.aim and IsHunter() and dur) and true or false
             if aimOn then
                 local st = c.style
@@ -256,6 +256,7 @@ local function LayoutPiece(f, g, c, key, label)
             ns.PaintBar(half, st, col.r, col.g, col.b)
             half.aim:SetVertexColor(ac.r, ac.g, ac.b, ac.a or 0.45)
         end
+        box.timeRules = ns.TimeRules(bc.timeFmt)
         ns.StyleText(box.text, bc.textStyle, math.max(8, math.floor(pos.height * 0.8)))
         local tp = bc.textPos
         box.text:ClearAllPoints()

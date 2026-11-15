@@ -155,6 +155,171 @@ function ns.StyleText(fs, t, autoSize)
 end
 
 -------------------------------------------------------------------------------
+-- Time format of every countdown (auras, cast bar, swing timer, PvP flag).
+-- A setting (ns.TimeFormat) becomes a list of rules: from `at` seconds on,
+-- the time is written with `fmt`. The aura timer hands them to the game,
+-- which counts down even secret times; the other timers run the same rules
+-- here, so they all read alike.
+--   style: short (3m) | full (3m 7s) | clock (3:07) | seconds (187)
+--   decimals: one decimal below this many seconds (0: never)
+--   warnBelow / warnColor: the color of the last seconds (0: off)
+--   hideAbove: no text until the time left drops below it (0: always shown)
+-------------------------------------------------------------------------------
+local EPS = 0.000001
+
+-- every non-decimal rule of a style, from the shortest times up
+local STYLES = {
+    short = {
+        { at = EPS, fmt = "%ds", round = "up" },
+        { at = 60, fmt = "%dm", parts = { { div = 60, round = "up" } } },
+        { at = 3600, fmt = "%dh", parts = { { div = 3600, round = "up" } } },
+        { at = 86400, fmt = "%dd", parts = { { div = 86400, round = "up" } } },
+    },
+    full = {
+        { at = EPS, fmt = "%ds", round = "up" },
+        { at = 60, fmt = "%dm %ds", parts = { { div = 60, round = "down" }, { mod = 60, round = "down" } } },
+        { at = 3600, fmt = "%dh %dm", parts = { { div = 3600, round = "down" }, { div = 60, mod = 60, round = "down" } } },
+        { at = 86400, fmt = "%dd %dh", parts = { { div = 86400, round = "down" }, { div = 3600, mod = 24, round = "down" } } },
+    },
+    clock = {
+        { at = EPS, fmt = "%d:%02d", round = "up", parts = { { div = 60 }, { mod = 60 } } },
+        { at = 3600, fmt = "%d:%02d:%02d", round = "up", parts = { { div = 3600 }, { div = 60, mod = 60 }, { mod = 60 } } },
+    },
+    seconds = {
+        { at = EPS, fmt = "%d", round = "up" },
+    },
+}
+
+local function ColorCode(c)
+    return ("|cff%02x%02x%02x"):format(math.floor(c.r * 255 + 0.5), math.floor(c.g * 255 + 0.5), math.floor(c.b * 255 + 0.5))
+end
+
+local function Key(f, plain)
+    local c = f.warnColor or {}
+    return table.concat({ f.style or "short", f.decimals or 0, plain and 0 or f.warnBelow or 0,
+        plain and 0 or f.hideAbove or 0, c.r or 1, c.g or 0, c.b or 0 }, ":")
+end
+
+local function Build(f, plain)
+    local dec = f.decimals or 0
+    local warn = not plain and f.warnBelow or 0
+    local hide = not plain and f.hideAbove or 0
+    -- the style's rules, the ones under `dec` taken over by the decimal rule
+    local base = { { at = 0, fmt = "" } }
+    if dec > 0 then base[2] = { at = EPS, fmt = "%.1f" } end
+    local list = STYLES[f.style] or STYLES.short
+    if dec >= 999 then list = {} end   -- always decimals
+    for i, r in ipairs(list) do
+        local at = math.max(r.at, dec)
+        local nextAt = list[i + 1] and math.max(list[i + 1].at, dec)
+        if not nextAt or nextAt > at then
+            base[#base + 1] = { at = at, fmt = r.fmt, round = r.round, parts = r.parts }
+        end
+    end
+    -- split at the warning and hiding times, then color or empty each piece
+    local cuts = {}
+    if warn > 0 then cuts[#cuts + 1] = warn end
+    if hide > 0 then cuts[#cuts + 1] = hide end
+    table.sort(cuts)
+    local rules = {}
+    for i, r in ipairs(base) do
+        rules[#rules + 1] = r
+        local nextAt = base[i + 1] and base[i + 1].at or math.huge
+        for _, at in ipairs(cuts) do
+            if at > rules[#rules].at and at < nextAt then
+                rules[#rules + 1] = { at = at, fmt = r.fmt, round = r.round, parts = r.parts }
+            end
+        end
+    end
+    local code = warn > 0 and ColorCode(f.warnColor or { r = 1, g = 0.2, b = 0.2 })
+    for i, r in ipairs(rules) do
+        local copy = { at = r.at, fmt = r.fmt, round = r.round, parts = r.parts }
+        if copy.fmt ~= "" then
+            if hide > 0 and copy.at >= hide then
+                copy.fmt, copy.round, copy.parts = "", nil, nil
+            elseif code and copy.at < warn then
+                copy.fmt = code .. copy.fmt .. "|r"
+            end
+        end
+        rules[i] = copy
+    end
+    return rules
+end
+
+local ruleCache, nativeCache = {}, {}
+
+-- The rules of a time format (plain: without the warning color and hiding).
+-- Built when a timer is laid out, not on every update.
+function ns.TimeRules(f, plain)
+    f = f or {}
+    local key = Key(f, plain)
+    local rules = ruleCache[key]
+    if not rules then
+        rules = Build(f, plain)
+        ruleCache[key] = rules
+    end
+    return rules
+end
+
+local function Round(v, how)
+    if how == "up" then return math.ceil(v) end
+    return math.floor(v)
+end
+
+-- The text for `left` seconds, as the game would write it with the same rules
+function ns.FormatTime(rules, left)
+    if not rules or not left or left <= 0 then return "" end
+    local r
+    for i = #rules, 1, -1 do
+        if left >= rules[i].at then r = rules[i] break end
+    end
+    if not r or r.fmt == "" then return "" end
+    local v = r.round and Round(left, r.round) or left
+    if not r.parts then return r.fmt:format(v) end
+    local a, b, c
+    for i, p in ipairs(r.parts) do
+        local x = v
+        if p.div then x = x / p.div end
+        if p.mod then x = x % p.mod end
+        x = Round(x, p.round)
+        if i == 1 then a = x elseif i == 2 then b = x else c = x end
+    end
+    return r.fmt:format(a, b, c)
+end
+
+-- The same rules as the game's formatter (nil if this client has none)
+function ns.NativeTimeFormatter(f)
+    if not (C_StringUtil and C_StringUtil.CreateNumericRuleFormatter and Enum and Enum.NumericRuleFormatRounding) then
+        return nil
+    end
+    f = f or {}
+    local key = Key(f)
+    if nativeCache[key] ~= nil then return nativeCache[key] or nil end
+    local E = Enum.NumericRuleFormatRounding
+    local points = {}
+    for i, r in ipairs(ns.TimeRules(f)) do
+        local n = { threshold = r.at, format = r.fmt }
+        if r.round then n.step, n.rounding = 1, E.Up end
+        if r.parts then
+            n.components = {}
+            for j, p in ipairs(r.parts) do
+                local part = { div = p.div, mod = p.mod }
+                if p.round then part.step, part.rounding = 1, p.round == "up" and E.Up or E.Down end
+                n.components[j] = part
+            end
+        end
+        points[i] = n
+    end
+    local ok, formatter = pcall(function()
+        local fm = C_StringUtil.CreateNumericRuleFormatter()
+        fm:SetBreakpoints(points)
+        return fm
+    end)
+    nativeCache[key] = ok and formatter or false
+    return ok and formatter or nil
+end
+
+-------------------------------------------------------------------------------
 -- Position: { point, relPoint, x, y } relative to an anchor frame
 -------------------------------------------------------------------------------
 -- pos.anchor: "frame" (default, relative to the frame) or "screen" (relative to

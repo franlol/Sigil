@@ -228,6 +228,45 @@ local function TextRows(card, getText, apply, opts)
     end
 end
 
+-- seconds as "45 s" / "2 min 05 s"
+local function Secs(v)
+    return v >= 60 and ("%d min %02d s"):format(v / 60, v % 60) or ("%d s"):format(v)
+end
+
+-- Time format rows of a countdown (ns.TimeFormat), the same in every timer.
+-- opts: style, decimals, warn, hide (the rows this timer offers), enableIf
+local function TimeRows(card, getFmt, apply, opts)
+    local on = opts.enableIf
+    local g, s
+    if opts.style then
+        g, s = TB(getFmt, "style", apply)
+        card:Add(UI.Dropdown(card, L["Time format"], {
+            { "short", "3m" }, { "full", "3m 7s" }, { "clock", "3:07" }, { "seconds", "187" },
+        }, g, s, { enableIf = on }))
+    end
+    if opts.decimals then
+        g, s = TB(getFmt, "decimals", apply)
+        card:Add(UI.Dropdown(card, L["Decimals"], {
+            { 0, L["Never"] }, { 3, L["Below %d s"]:format(3) }, { 5, L["Below %d s"]:format(5) },
+            { 10, L["Below %d s"]:format(10) }, { 999, L["Always"] },
+        }, g, s, { enableIf = on }))
+    end
+    if opts.warn then
+        g, s = TB(getFmt, "warnBelow", apply)
+        card:Add(UI.Slider(card, L["Warning color below"], 0, 30, 1, g, s, { enableIf = on,
+            format = function(v) return v == 0 and L["Off"] or Secs(v) end }))
+        card:Add(UI.Swatch(card, L["Warning color"], function()
+            local f = getFmt()
+            return f and f.warnColor or { r = 1, g = 0.2, b = 0.2 }
+        end, apply, { enableIf = Both(on, function() return (getFmt().warnBelow or 0) > 0 end) }))
+    end
+    if opts.hide then
+        g, s = TB(getFmt, "hideAbove", apply)
+        card:Add(UI.Slider(card, L["Show only below"], 0, 600, 5, g, s, { enableIf = on,
+            format = function(v) return v == 0 and L["Always"] or Secs(v) end }))
+    end
+end
+
 -- "Anchored to" row: frame or screen. Switching keeps the piece where it is.
 -- (Party frames share settings, so their pieces always follow each frame.)
 local function AnchorRow(card, unit, getPos, enableIf)
@@ -1096,8 +1135,7 @@ function Tabs.auras(page, unit)
     g, s = SB("maxDuration")
     filt:Add(UI.Slider(filt, L["Hide longer than"], 0, 600, 5, g, s, {
         enableIf = SelOn, tip = L["Hides auras that last longer than this, and permanent ones. 0: no limit."],
-        format = function(v) if v == 0 then return L["No limit"] end
-            return v >= 60 and ("%d min %02d s"):format(v / 60, v % 60) or ("%d s"):format(v) end,
+        format = function(v) return v == 0 and L["No limit"] or Secs(v) end,
     }))
 
     -- spell list
@@ -1208,6 +1246,8 @@ function Tabs.auras(page, unit)
     local timeCard = HasSel(page:Add(2, UI.Card(page.content, L["Time text"])))
     g, s = SB("timer")
     timeCard:Add(UI.Check(timeCard, L["Show time left"], g, s, { enableIf = SelOn }))
+    TimeRows(timeCard, function() return Sel() and Sel().timeFmt end, apply, { style = true, decimals = true,
+        warn = true, hide = true, enableIf = Both(SelOn, Is("timer", true)) })
     IconText(timeCard, "timerText", Both(SelOn, Is("timer", true)))
 
     local stackCard = HasSel(page:Add(2, UI.Card(page.content, L["Stack count"])))
@@ -1269,9 +1309,7 @@ function Tabs.icons(page, unit)
     timer.showIf = function() return state.sel == "pvp" and unit == "player" end
     g, s = TB(PvP, "timer", apply)
     timer:Add(UI.Check(timer, L["Show countdown"], g, s, { enableIf = function() return PvP().show end }))
-    g, s = TB(PvP, "timerFormat", apply)
-    timer:Add(UI.Segmented(timer, L["Countdown format"], { { "clock", "4:59" }, { "seconds", "299" } }, g, s,
-        { enableIf = TimerOn }))
+    TimeRows(timer, function() return PvP().timeFmt end, apply, { style = true, warn = true, enableIf = TimerOn })
     PositionRows(timer, function() return PvP().timerPos end, apply, { text = true, enableIf = TimerOn })
     TextRows(timer, function() return PvP().timerStyle end, apply, { auto = true, enableIf = TimerOn })
 end
@@ -1304,8 +1342,6 @@ function Tabs.castbar(page, unit)
     g, s = Bind(unit, "castbar", "width")
     card:Add(UI.Slider(card, L["Width"], 0, 500, 1, g, s, { enableIf = On,
         format = function(v) return v == 0 and L["Same as frame"] or Px(v) end }))
-    g, s = Bind(unit, "castbar", "timeFormat")
-    card:Add(UI.Segmented(card, L["Time"], { { "left", "1.2" }, { "both", "1.2 / 3.0" } }, g, s, { enableIf = On }))
     g, s = Bind(unit, "castbar", "fadeTime")
     card:Add(UI.Slider(card, L["Stay after it ends"], 0, 2, 0.1, g, s, { enableIf = On,
         format = function(v) return v == 0 and L["No"] or ("%.1f s"):format(v) end,
@@ -1319,6 +1355,9 @@ function Tabs.castbar(page, unit)
     card = page:Add(2, UI.Card(page.content, L["Spell name"]))
     TextRows(card, function() return CB().nameText end, apply, { auto = true, enableIf = On })
     card = page:Add(2, UI.Card(page.content, L["Time text"]))
+    g, s = Bind(unit, "castbar", "timeFormat")
+    card:Add(UI.Segmented(card, L["Time"], { { "left", "1.2" }, { "both", "1.2 / 3.0" } }, g, s, { enableIf = On }))
+    TimeRows(card, function() return CB().timeFmt end, apply, { decimals = true, warn = true, enableIf = On })
     TextRows(card, function() return CB().timeText end, apply, { auto = true, enableIf = On })
     card = page:Add(2, UI.Card(page.content, L["Position"]))
     PositionRows(card, CB, apply, { unit = unit, enableIf = On, pieceLabel = L["Point of the bar"] })
@@ -1444,8 +1483,7 @@ function Tabs.extras(page, unit)
         local function TextOn() return BarShown() and TB_().text end
         g, s = TB(TB_, "text", apply)
         card:Add(UI.Check(card, L["Show time left"], g, s, { enableIf = BarShown }))
-        g, s = TB(TB_, "decimals", apply)
-        card:Add(UI.Segmented(card, L["Decimals"], { { 0, "2" }, { 1, "1.6" } }, g, s, { enableIf = TextOn }))
+        TimeRows(card, function() return TB_().timeFmt end, apply, { decimals = true, enableIf = TextOn })
         PositionRows(card, function() return TB_().textPos end, apply, { text = true, enableIf = TextOn })
         TextRows(card, function() return TB_().textStyle end, apply, { auto = true, enableIf = TextOn })
 

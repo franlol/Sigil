@@ -84,6 +84,7 @@ function ns.NewAuraGroup(name, kind, extra)
         borderSize = 1, borderColor = { r = 0, g = 0, b = 0, a = 1 },
         spiral = true, borderByType = true, tooltip = true, pandemic = false,   -- look of each icon
         timer = true,                                          -- time left, and its text
+        timeFmt = ns.TimeFormat(),
         timerText = ns.TextStyle(0, { point = "CENTER", x = 0, y = 0 }),
         stackText = ns.TextStyle(0, { point = "BOTTOMRIGHT", x = 2, y = -1 }),
         fill = "rows", perRow = 10, max = 10,                  -- rows | columns; icons per line
@@ -170,9 +171,8 @@ local function Icons(on, where)
         happiness = Icon(false, "RIGHT", 10, 0, 16),
     }
     -- PvP: the countdown before the flag drops, on the icon (player frame).
-    -- timerFormat: clock (4:59) | seconds (299)
     local pvp = base.pvp
-    pvp.timer, pvp.timerFormat, pvp.timerStyle = true, "clock", ns.TextStyle(0)
+    pvp.timer, pvp.timeFmt, pvp.timerStyle = true, ns.TimeFormat({ style = "clock" }), ns.TextStyle(0)
     pvp.timerPos = { point = "CENTER", relPoint = "CENTER", x = 0, y = 0 }
     for key, v in pairs(where or {}) do
         -- `point` in the overrides below is the point of the frame
@@ -216,6 +216,15 @@ function ns.TextStyle(size, extra)
 end
 local Txt = ns.TextStyle
 
+-- Time format of a countdown (drawn in Style.lua). style: short | full |
+-- clock | seconds; decimals below N s (0: never, 999: always); warning
+-- color below N s (0: off); text only below N s (0: always)
+function ns.TimeFormat(extra)
+    local t = { style = "short", decimals = 0, warnBelow = 0, warnColor = { r = 1, g = 0.2, b = 0.2 }, hideAbove = 0 }
+    for k, v in pairs(extra or {}) do t[k] = v end
+    return t
+end
+
 -------------------------------------------------------------------------------
 -- Cast bar, threat, combo points, experience, totems
 -------------------------------------------------------------------------------
@@ -225,6 +234,7 @@ local function Castbar(enabled, below, height)
         style = Bar("auto", { spark = true }),
         nameText = Txt(0), timeText = Txt(0),   -- size 0: follows the bar height
         timeFormat = "left",                    -- left | both (left / total)
+        timeFmt = ns.TimeFormat({ style = "seconds", decimals = 999 }),
         fadeTime = 0.4,                         -- seconds the bar stays after it ends
         point = below and "TOPLEFT" or "BOTTOMLEFT", relPoint = below and "BOTTOMLEFT" or "TOPLEFT",
         x = 0, y = below and -4 or 12,
@@ -442,7 +452,7 @@ P_.player.gcd.fillUp = false
 local function SwingBar(color, extra)
     local b = {
         show = true, fill = "edge", color = color,
-        text = false, decimals = 1, textStyle = Txt(0),
+        text = false, timeFmt = ns.TimeFormat({ style = "seconds", decimals = 999 }), textStyle = Txt(0),
         textPos = { point = "CENTER", relPoint = "CENTER", x = 0, y = 0 },
     }
     for k, v in pairs(extra or {}) do b[k] = v end

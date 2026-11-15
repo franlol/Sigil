@@ -181,7 +181,14 @@ ns.translations.esES = {
     ["PvP"] = "JcJ",
     ["PvP countdown"] = "Cuenta atrás JcJ",
     ["Show countdown"] = "Mostrar cuenta atrás",
-    ["Countdown format"] = "Formato de la cuenta atrás",
+
+    -- Options: time format (every countdown)
+    ["Time format"] = "Formato de tiempo",
+    ["Below %d s"] = "Por debajo de %d s",
+    ["Warning color below"] = "Color de aviso por debajo de",
+    ["Warning color"] = "Color de aviso",
+    ["Off"] = "No",
+    ["Show only below"] = "Mostrar solo por debajo de",
 
     -- Options: Cast bar tab
     ["Show cast bar"] = "Mostrar barra de lanzamiento",

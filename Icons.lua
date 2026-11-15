@@ -231,8 +231,7 @@ local function PaintTimer(fs)
         fs.ticker:Hide()
         return
     end
-    local sec = math.ceil(left)
-    fs:SetText(fs.format == "seconds" and tostring(sec) or ("%d:%02d"):format(math.floor(sec / 60), sec % 60))
+    fs:SetText(ns.FormatTime(fs.rules, left))
 end
 
 local function LayoutPvPTimer(f, tex, cfg)
@@ -256,7 +255,7 @@ local function LayoutPvPTimer(f, tex, cfg)
     fs.ticker:Hide()
     fs.on = (f.unit == "player" and cfg and cfg.show and cfg.timer) and true or false
     if not cfg then return end
-    fs.format = cfg.timerFormat
+    fs.rules = ns.TimeRules(cfg.timeFmt)
     ns.StyleText(fs, cfg.timerStyle, math.max(8, math.floor((cfg.size or 26) * 0.4)))
     local tp = cfg.timerPos or {}
     fs:ClearAllPoints()

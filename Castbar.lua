@@ -50,10 +50,11 @@ local function OnUpdate(self, elapsed)
     end
     local v = self.channel and (self.finish - now) or (now - self.start)
     self.bar:SetValue(v)
+    local left = ns.FormatTime(self.timeRules, self.finish - now)
     if self.timeFormat == "both" then
-        self.time:SetFormattedText("%.1f / %.1f", self.finish - now, self.finish - self.start)
+        self.time:SetText(left .. " / " .. ns.FormatTime(self.totalRules, self.finish - self.start))
     else
-        self.time:SetFormattedText("%.1f", self.finish - now)
+        self.time:SetText(left)
     end
 end
 
@@ -120,6 +121,8 @@ function ns.LayoutCastbar(f)
     cb.text:SetPoint("LEFT", 4, 0)
     cb.text:SetPoint("RIGHT", cb.time, "LEFT", -4, 0)
     cb.timeFormat = c.timeFormat
+    cb.timeRules = ns.TimeRules(c.timeFmt)
+    cb.totalRules = ns.TimeRules(c.timeFmt, true)   -- the total: no warning color
 end
 
 local function Paint(f, key)
@@ -233,7 +236,8 @@ function ns.UpdateCastbar(f)
         cb.bar:SetMinMaxValues(0, 1)
         cb.bar:SetValue(0.6)
         cb.text:SetText(L["Test cast"])
-        cb.time:SetText(f.cfg.castbar.timeFormat == "both" and "1.2 / 3.0" or "1.2")
+        local left = ns.FormatTime(cb.timeRules, 1.2)
+        cb.time:SetText(f.cfg.castbar.timeFormat == "both" and left .. " / " .. ns.FormatTime(cb.totalRules, 3) or left)
         if cb.icon:IsShown() then cb.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark") end
         -- sample latency at the end of your bar
         cb.lag:Hide()

@@ -186,7 +186,12 @@ local function BuildButton(button, g, cancel)
         local fs = top:CreateFontString(nil, "OVERLAY")
         ns.StyleText(fs, t, math.max(8, math.floor(small * 0.42)))
         fs:SetPoint(t.point or "CENTER", t.x or 0, t.y or 0)
-        button:SetDurationText(fs, {})
+        -- the group's time format, counted down by the game (the plain
+        -- countdown if this client refuses it)
+        local formatter = ns.NativeTimeFormatter(g.timeFmt)
+        if not (formatter and pcall(button.SetDurationText, button, fs, { textFormatter = formatter })) then
+            button:SetDurationText(fs, {})
+        end
     end
 
     local st = g.stackText or {}
@@ -234,6 +239,9 @@ end
 -------------------------------------------------------------------------------
 -- Sample icons (test mode, unit that does not exist)
 -------------------------------------------------------------------------------
+-- time left on the sample icons: a few seconds up to an hour, to show the format
+local SAMPLE_TIMES = { 2.4, 14, 95, 754, 3725 }
+
 local function Samples(f, i, g)
     f.auraSamples = f.auraSamples or {}
     local s = f.auraSamples[i]
@@ -257,6 +265,7 @@ local function Samples(f, i, g)
     local sy = g.growY == "UP" and 1 or -1
     local small = math.min(w, h)
     local tt, st = g.timerText or {}, g.stackText or {}
+    local rules = ns.TimeRules(g.timeFmt)
     for k = 1, math.max(n, #s.icons) do
         local b = s.icons[k]
         if k <= n then
@@ -291,7 +300,7 @@ local function Samples(f, i, g)
             ns.StyleText(b.time, tt, math.max(8, math.floor(small * 0.42)))
             b.time:ClearAllPoints()
             b.time:SetPoint(tt.point or "CENTER", tt.x or 0, tt.y or 0)
-            b.time:SetText(k * 7 .. "")
+            b.time:SetText(ns.FormatTime(rules, SAMPLE_TIMES[k] or k * 7))
             b.time:SetShown(g.timer and true or false)
             ns.StyleText(b.count, st, math.max(8, math.floor(small * 0.45)))
             b.count:ClearAllPoints()

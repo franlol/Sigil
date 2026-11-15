@@ -190,6 +190,19 @@ local function Migrate(p)
             end
             sw.text, sw.decimals, sw.textStyle, sw.textPos = nil, nil, nil, nil
         end
+        -- time texts: their format became a time format (see ns.TimeFormat)
+        for _, k in ipairs({ "main", "off", "ranged" }) do
+            local bar = type(sw) == "table" and sw[k]
+            if type(bar) == "table" and bar.decimals ~= nil then
+                if bar.timeFmt == nil then bar.timeFmt = { decimals = bar.decimals == 0 and 0 or 999 } end
+                bar.decimals = nil
+            end
+        end
+        local pvp = type(u) == "table" and type(u.icons) == "table" and u.icons.pvp
+        if type(pvp) == "table" and pvp.timerFormat ~= nil then
+            if pvp.timeFmt == nil then pvp.timeFmt = { style = pvp.timerFormat == "seconds" and "seconds" or "clock" } end
+            pvp.timerFormat = nil
+        end
     end
 end
 
