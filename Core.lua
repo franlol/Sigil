@@ -69,9 +69,15 @@ end
 -------------------------------------------------------------------------------
 local R = ns.R
 
--- The player is in combat (also right as PLAYER_REGEN_DISABLED fires)
+-- The player is in combat: between PLAYER_REGEN_DISABLED and _ENABLED, as the
+-- game's own player frame shows it (also right inside those handlers: the
+-- loader below sees both events before any frame). UnitAffectingCombat is
+-- not used: it turns on when the pet attacks and can stay on after the game
+-- has taken the player out of combat.
+local inCombat = InCombatLockdown() and true or false
+
 function ns.InCombat()
-    return R(UnitAffectingCombat("player")) and true or InCombatLockdown()
+    return inCombat or InCombatLockdown()
 end
 
 local function FeigningDeath(u)
@@ -429,18 +435,23 @@ local loader = CreateFrame("Frame")
 loader:RegisterEvent("ADDON_LOADED")
 loader:RegisterEvent("PLAYER_LOGIN")
 loader:RegisterEvent("PLAYER_REGEN_ENABLED")
+loader:RegisterEvent("PLAYER_REGEN_DISABLED")
 loader:SetScript("OnEvent", function(self, event, name)
-    if event == "ADDON_LOADED" then
+    if event == "PLAYER_REGEN_DISABLED" then
+        inCombat = true
+    elseif event == "ADDON_LOADED" then
         if name ~= ADDON then return end
         self:UnregisterEvent("ADDON_LOADED")
         SigilDB = SigilDB or {}
         ns.db = SigilDB
         ns.SetLanguage(ns.db.language or "enUS")
     elseif event == "PLAYER_LOGIN" then
+        inCombat = InCombatLockdown() and true or false
         LoadProfile()
         ns.CreateFrames()
         ns.HideBlizzard()
     elseif event == "PLAYER_REGEN_ENABLED" then
+        inCombat = false
         FlushPending()
     end
 end)
