@@ -466,6 +466,7 @@ ns.translations.esES = {
     ["Recommended: 0.50 s, the Auto Shot wind-up before haste. Haste shortens it and your latency is added. The game does not report it, so it is an estimate."] = "Recomendado: 0,50 s, la preparación del Disparo automático sin celeridad. La celeridad lo acorta y se suma tu latencia. El juego no lo indica, así que es una estimación.",
     ["Aiming time (0.50 s recommended)"] = "Tiempo de apuntado (0,50 s recomendado)",
     ["Decimals"] = "Decimales",
+    ["Bar"] = "Barra",
     ["Melee swing bars"] = "Barras de golpe cuerpo a cuerpo",
     ["Ranged swing bar"] = "Barra de disparo a distancia",
     ["Main hand fill"] = "Relleno de mano principal",

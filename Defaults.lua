@@ -434,18 +434,27 @@ P_.player.altMana = SmallBar(true, "BOTTOMLEFT", "TOPLEFT", 2, 6)
 P_.player.gcd = SmallBar(false, "TOPLEFT", "BOTTOMLEFT", -24, 4, Bar("custom", { custom = { r = 1, g = 1, b = 1 } }))
 P_.player.gcd.fillUp = false
 -- swing timer: melee bars (main and off hand, one piece) and the ranged bar (its own piece)
+local function SwingBar(color, extra)
+    local b = {
+        show = true, fill = "edge", color = color,
+        text = false, decimals = 1, textStyle = Txt(0),
+        textPos = { point = "CENTER", relPoint = "CENTER", x = 0, y = 0 },
+    }
+    for k, v in pairs(extra or {}) do b[k] = v end
+    return b
+end
 P_.player.swing = {
     enabled = false,
     -- the melee bars (main and off hand), stacked in one piece
     point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -34, width = 0, height = 6, gap = 2,
     -- each bar: shown, fill ("edge": from one end; "middle": two halves fill
-    -- toward the middle) and color. The ranged bar is a piece of its own.
-    main = { show = true, fill = "edge", color = { r = 0.85, g = 0.85, b = 0.85 } },
-    off = { show = true, fill = "edge", color = { r = 0.6, g = 0.6, b = 0.75 } },
-    ranged = { show = true, fill = "edge", color = { r = 0.45, g = 0.8, b = 0.45 },
-        point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -50, width = 0, height = 6 },
-    style = Bar("auto"), text = false, textStyle = Txt(0),
-    decimals = 1, textPos = { point = "CENTER", relPoint = "CENTER", x = 0, y = 0 },   -- time left, on each bar
+    -- toward the middle), color and its time-left text. The ranged bar is a
+    -- piece of its own.
+    main = SwingBar({ r = 0.85, g = 0.85, b = 0.85 }),
+    off = SwingBar({ r = 0.6, g = 0.6, b = 0.75 }),
+    ranged = SwingBar({ r = 0.45, g = 0.8, b = 0.45 },
+        { point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -50, width = 0, height = 6 }),
+    style = Bar("auto"),
     -- hunters: Auto Shot aiming zone (aimTime: the wind-up in seconds, before haste)
     aim = true, aimTime = 0.5, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },
 }

@@ -180,6 +180,13 @@ local function Migrate(p)
             sw.ranged = { show = sw.ranged, fill = fill, color = colors.ranged }
             sw.melee, sw.colors, sw.fill = nil, nil, nil
         end
+        -- swing timer: the time-left text became per bar (its look starts fresh)
+        if type(sw) == "table" and sw.text ~= nil then
+            for _, k in ipairs({ "main", "off", "ranged" }) do
+                if type(sw[k]) == "table" then sw[k].text, sw[k].decimals = sw.text, sw.decimals end
+            end
+            sw.text, sw.decimals, sw.textStyle, sw.textPos = nil, nil, nil, nil
+        end
     end
 end
 

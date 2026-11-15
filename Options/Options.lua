@@ -1422,13 +1422,19 @@ function Tabs.extras(page, unit)
                 end
             end })
         card = page:Add(2, UI.Card(page.content, L["Swing timer text"]))
-        g, s = Bind(unit, "swing", "text")
-        card:Add(UI.Check(card, L["Show time left"], g, s, { enableIf = SWOn }))
-        local function TextOn() return SWOn() and SW().text end
-        g, s = Bind(unit, "swing", "decimals")
+        -- one text per bar: pick the bar, then its settings
+        local textOf = { sel = "main" }
+        local function TB_() return SW()[textOf.sel] end
+        card:Add(UI.Segmented(card, L["Bar"], { { "main", L["Main hand"] }, { "off", L["Off hand"] }, { "ranged", L["Ranged"] } },
+            function() return textOf.sel end, function(v) textOf.sel = v end, { enableIf = SWOn }))
+        local function BarShown() return SWOn() and TB_().show end
+        local function TextOn() return BarShown() and TB_().text end
+        g, s = TB(TB_, "text", apply)
+        card:Add(UI.Check(card, L["Show time left"], g, s, { enableIf = BarShown }))
+        g, s = TB(TB_, "decimals", apply)
         card:Add(UI.Segmented(card, L["Decimals"], { { 0, "2" }, { 1, "1.6" } }, g, s, { enableIf = TextOn }))
-        PositionRows(card, function() return SW().textPos end, apply, { text = true, enableIf = TextOn })
-        TextRows(card, function() return SW().textStyle end, apply, { auto = true, enableIf = TextOn })
+        PositionRows(card, function() return TB_().textPos end, apply, { text = true, enableIf = TextOn })
+        TextRows(card, function() return TB_().textStyle end, apply, { auto = true, enableIf = TextOn })
 
         local function XP() return U(unit).xp end
         local function On() return XP().enabled end
