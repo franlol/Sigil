@@ -7,6 +7,9 @@
 -- Timing comes from the game: PLAYER_SWING fires on every swing or shot with
 -- the time until the next one at the current speed (haste included), as
 -- plain numbers in combat. Each bar fills from one swing to the next.
+-- Like the game's own swing timer: the off-hand bar is there with an
+-- off-hand weapon, a weapon swap starts the swing over at the new speed,
+-- and a ready bar dims while the target is out of reach of that attack.
 --
 -- Hunters: the end of the ranged bar is shaded as the aiming zone, where
 -- moving or starting a cast delays the next Auto Shot. Its length: the
@@ -32,10 +35,15 @@ local state = {
     main = {}, off = {}, ranged = {},
     melee = false,      -- when auto attack was turned on (false: off)
     auto = false,       -- when Auto Shot / Shoot started repeating (false: off)
-    offSeen = false,    -- an off-hand swing happened (dual wield)
+    hasOff = false,     -- an off-hand weapon is equipped (dual wield)
     meleeAt = nil,      -- last melee swing
     baseRanged = nil,   -- ranged weapon speed, read out of combat
+    rangeOn = false,    -- the game's range checks are turned on for the bars
+    far = {},           -- per bar: the target is out of reach of that attack
 }
+
+-- Same dim as the game's own swing timer when the target is out of reach
+local FAR_ALPHA = 0.4
 
 local function SwingKind(kind)
     local E = Enum and Enum.PlayerSwingType
@@ -43,6 +51,58 @@ local function SwingKind(kind)
     if kind == E.MainHand then return "main" end
     if kind == E.OffHand then return "off" end
     if kind == E.Ranged then return "ranged" end
+end
+
+local function SwingType(kind)
+    local E = Enum and Enum.PlayerSwingType
+    if not E then return nil end
+    if kind == "main" then return E.MainHand end
+    if kind == "off" then return E.OffHand end
+    if kind == "ranged" then return E.Ranged end
+end
+
+-- Attack speed of the weapon in a bar's slot (nil: none, or not readable)
+local function EquippedSpeed(kind)
+    if not UnitAttackSpeed then return nil end
+    local main, off, ranged = UnitAttackSpeed("player")
+    local v = ns.R(kind == "off" and off or kind == "ranged" and ranged or main)
+    if type(v) == "number" and v > 0 then return v end
+end
+
+-- Off-hand weapon, as the game's swing timer checks it. Kept as it was when
+-- the speed can't be read.
+local function ReadOffHand()
+    if not UnitAttackSpeed then return end
+    local _, off = UnitAttackSpeed("player")
+    if ns.S(off) then return end
+    state.hasOff = type(off) == "number" and off > 0
+end
+
+-- The game's range checks for the bars: on while the swing timer is on
+local function SetRangeChecks(on)
+    on = on and true or false
+    if state.rangeOn == on then return end
+    state.rangeOn = on
+    local C = C_SwingTimer
+    if not (C and C.EnableRangeCheck) then return end
+    for _, kind in ipairs(KINDS) do
+        local t = SwingType(kind)
+        if t then pcall(C.EnableRangeCheck, t, on) end
+    end
+    if not on then wipe(state.far) end
+end
+
+-- Asks the game again (target changed, checks turned on). nil: no check could
+-- be made, which is not out of range.
+local function ReadRanges()
+    wipe(state.far)
+    local C = C_SwingTimer
+    if not (state.rangeOn and C and C.IsTargetWithinSwingRange) then return end
+    for _, kind in ipairs(KINDS) do
+        local t = SwingType(kind)
+        local ok, inRange = pcall(C.IsTargetWithinSwingRange, t)
+        if t and ok and not ns.S(inRange) and inRange == false then state.far[kind] = true end
+    end
 end
 
 -- Ranged weapon speed when the game shows it (out of combat)
@@ -146,7 +206,7 @@ local function Wanted(c, kind, now)
     local running = s.start and now < s.start + s.dur
     -- turned on and swung or shot since: a right-click out of range shows nothing yet
     if kind == "ranged" then return running or (state.auto and s.start and s.start >= state.auto) end
-    if kind == "off" and not state.offSeen then return false end
+    if kind == "off" and not state.hasOff then return false end
     return running or (state.melee and s.start and s.start >= state.melee)
 end
 
@@ -190,11 +250,14 @@ local function Paint(g, c, now, restack)
         if want then
             local s = state[kind]
             local frac, left, dur
+            local running = not g.test and s.start and now < s.start + s.dur
+            -- out of reach dims a ready bar; a swing in progress finishes first
+            box:SetAlpha((not g.test and not running and state.far[kind]) and FAR_ALPHA or 1)
             if g.test then
                 dur = kind == "ranged" and 2.2 or 2.6
                 frac = kind == "ranged" and 0.4 or (kind == "main" and 0.6 or 0.3)
                 left = dur * (1 - frac)
-            elseif s.start and now < s.start + s.dur then
+            elseif running then
                 dur = s.dur
                 left = s.start + s.dur - now
                 frac = 1 - left / dur
@@ -268,13 +331,20 @@ end
 
 function ns.LayoutSwing(f)
     local c = f.cfg.swing
-    if f.unit ~= "player" or not c or not c.enabled then
+    if f.unit ~= "player" then return end
+    if not c or not c.enabled then
         if f.swing then f.swing:Hide() end
         if f.swingRanged then f.swingRanged:Hide() end
         f.swingOn = false
+        SetRangeChecks(false)
         return
     end
     f.swingOn = true
+    if not state.rangeOn then
+        SetRangeChecks(true)
+        ReadRanges()
+    end
+    ReadOffHand()
     f.swing = f.swing or Build(f, MELEE)
     f.swingRanged = f.swingRanged or Build(f, RANGED)
     LayoutPiece(f, f.swing, c, "swing", L["Melee swing bars"])
@@ -303,10 +373,14 @@ end
 
 local watcher = CreateFrame("Frame")
 for _, ev in ipairs({ "PLAYER_SWING", "PLAYER_ENTER_COMBAT", "PLAYER_LEAVE_COMBAT", "START_AUTOREPEAT_SPELL",
-    "STOP_AUTOREPEAT_SPELL", "PLAYER_EQUIPMENT_CHANGED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD" }) do
+    "STOP_AUTOREPEAT_SPELL", "PLAYER_EQUIPMENT_CHANGED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD",
+    "WEAPON_SLOT_CHANGED", "PLAYER_TARGET_CHANGED", "PLAYER_SWING_RANGE_UPDATE" }) do
     pcall(watcher.RegisterEvent, watcher, ev)
 end
-watcher:SetScript("OnEvent", function(_, event, a1, a2)
+-- the game's own swing timer uses this too: WEAPON_SLOT_CHANGED is not
+-- reliable on entering the world
+pcall(watcher.RegisterUnitEvent, watcher, "UNIT_INVENTORY_CHANGED", "player")
+watcher:SetScript("OnEvent", function(_, event, a1, a2, a3)
     local now = GetTime()
     if event == "PLAYER_SWING" then
         if S(a1) or S(a2) then return end
@@ -314,8 +388,28 @@ watcher:SetScript("OnEvent", function(_, event, a1, a2)
         if not kind or type(a1) ~= "number" or a1 <= 0 or a1 == math.huge then return end
         if kind == "ranged" and state.meleeAt and now - state.meleeAt <= RESET_GRACE then return end
         if kind ~= "ranged" then state.meleeAt = now end
-        if kind == "off" then state.offSeen = true end
         state[kind].start, state[kind].dur = now, a1
+    elseif event == "PLAYER_SWING_RANGE_UPDATE" then
+        -- a1 swing type, a2 in range, a3 a check was made
+        if S(a1) or S(a2) or S(a3) then return end
+        local kind = SwingKind(a1)
+        if not kind then return end
+        state.far[kind] = (state.rangeOn and a3 and not a2) and true or nil
+    elseif event == "PLAYER_TARGET_CHANGED" then
+        ReadRanges()
+    elseif event == "WEAPON_SLOT_CHANGED" then
+        -- a weapon swap starts the swing over at the new weapon's speed, as
+        -- the game's own swing timer does
+        ReadOffHand()
+        for _, kind in ipairs(KINDS) do
+            local s = state[kind]
+            if s.start and now < s.start + s.dur then
+                local speed = EquippedSpeed(kind)
+                if speed then s.start, s.dur = now, speed else s.start = nil end
+            end
+        end
+    elseif event == "UNIT_INVENTORY_CHANGED" then
+        ReadOffHand()
     elseif event == "PLAYER_ENTER_COMBAT" then
         state.melee = now
     elseif event == "PLAYER_LEAVE_COMBAT" then
@@ -325,14 +419,16 @@ watcher:SetScript("OnEvent", function(_, event, a1, a2)
     elseif event == "STOP_AUTOREPEAT_SPELL" then
         state.auto = false
     elseif event == "PLAYER_EQUIPMENT_CHANGED" then
-        state.offSeen = false
+        ReadOffHand()
         ReadBaseRanged()
     elseif event == "PLAYER_REGEN_ENABLED" then
         ReadBaseRanged()
     elseif event == "PLAYER_ENTERING_WORLD" then
-        state.melee, state.auto, state.offSeen = false, false, false
+        state.melee, state.auto = false, false
         for _, kind in ipairs(KINDS) do state[kind].start = nil end
+        ReadOffHand()
         ReadBaseRanged()
+        ReadRanges()
     end
     Refresh()
 end)
