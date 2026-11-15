@@ -1385,22 +1385,40 @@ function Tabs.extras(page, unit)
         card = page:Add(1, UI.Card(page.content, L["Swing timer"], L["Time until your next melee swing or ranged shot."]))
         g, s = Bind(unit, "swing", "enabled")
         card:Add(UI.Check(card, L["Show swing timer"], g, s))
-        g, s = Bind(unit, "swing", "melee")
-        card:Add(UI.Check(card, L["Melee (main and off hand)"], g, s, { enableIf = SWOn }))
-        g, s = Bind(unit, "swing", "ranged")
-        card:Add(UI.Check(card, L["Ranged (Auto Shot, wands, thrown)"], g, s, { enableIf = SWOn }))
+        local SWING_BARS = { { "main", L["Main hand"] }, { "off", L["Off hand"] },
+            { "ranged", L["Ranged (Auto Shot, wands, thrown)"] } }
+        local FILLS = { { "edge", L["From one end"] }, { "middle", L["Toward the middle"] } }
+        local function BarOn(kind) return function() return SWOn() and SW()[kind].show end end
+        local function MeleeOn() return SWOn() and (SW().main.show or SW().off.show) end
+        for _, k in ipairs(SWING_BARS) do
+            g, s = TB(function() return SW()[k[1]] end, "show", apply)
+            card:Add(UI.Check(card, k[2], g, s, { enableIf = SWOn }))
+        end
+
+        card = page:Add(1, UI.Card(page.content, L["Melee swing bars"]))
+        g, s = TB(function() return SW().main end, "fill", apply)
+        card:Add(UI.Segmented(card, L["Main hand fill"], FILLS, g, s, { enableIf = BarOn("main") }))
+        g, s = TB(function() return SW().off end, "fill", apply)
+        card:Add(UI.Segmented(card, L["Off hand fill"], FILLS, g, s, { enableIf = BarOn("off") }))
         g, s = Bind(unit, "swing", "height")
-        card:Add(UI.Slider(card, L["Height"], 2, 24, 1, g, s, { format = Px, enableIf = SWOn }))
+        card:Add(UI.Slider(card, L["Height"], 2, 24, 1, g, s, { format = Px, enableIf = MeleeOn }))
         g, s = Bind(unit, "swing", "gap")
-        card:Add(UI.Slider(card, L["Space between bars"], 0, 10, 1, g, s, { format = Px, enableIf = SWOn }))
-        PositionRows(card, SW, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = SWOn })
-        g, s = Bind(unit, "swing", "fill")
-        card:Add(UI.Segmented(card, L["Fill"], { { "edge", L["From one end"] }, { "middle", L["Toward the middle"] } },
-            g, s, { enableIf = SWOn }))
+        card:Add(UI.Slider(card, L["Space between bars"], 0, 10, 1, g, s, { format = Px, enableIf = MeleeOn }))
+        PositionRows(card, SW, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = MeleeOn })
+
+        local function RG() return SW().ranged end
+        card = page:Add(1, UI.Card(page.content, L["Ranged swing bar"]))
+        g, s = TB(RG, "fill", apply)
+        card:Add(UI.Segmented(card, L["Fill"], FILLS, g, s, { enableIf = BarOn("ranged") }))
+        g, s = TB(RG, "height", apply)
+        card:Add(UI.Slider(card, L["Height"], 2, 24, 1, g, s, { format = Px, enableIf = BarOn("ranged") }))
+        PositionRows(card, RG, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true,
+            enableIf = BarOn("ranged") })
+
         BarCard(page, 2, L["Swing timer look"], function() return SW().style end, apply, { box = true,
             enableIf = SWOn, colors = function(c)
                 for _, k in ipairs({ { "main", L["Main hand"] }, { "off", L["Off hand"] }, { "ranged", L["Ranged"] } }) do
-                    c:Add(UI.Swatch(c, k[2], function() return SW().colors[k[1]] end, apply, { enableIf = SWOn }))
+                    c:Add(UI.Swatch(c, k[2], function() return SW()[k[1]].color end, apply, { enableIf = BarOn(k[1]) }))
                 end
             end })
         card = page:Add(2, UI.Card(page.content, L["Swing timer text"]))
@@ -1490,16 +1508,19 @@ function Tabs.class(page, unit)
 
     if unit == "player" and class == "HUNTER" then
         local function SW() return U(unit).swing end
-        local function AimOn() return SW().enabled and SW().ranged end
+        local function AimOn() return SW().enabled and SW().ranged.show end
         card = page:Add(1, UI.Card(page.content, L["Auto Shot aiming zone"],
             L["The end of the ranged swing bar where moving or starting a cast delays the next Auto Shot."]))
         g, s = Bind(unit, "swing", "aim")
         card:Add(UI.Check(card, L["Show aiming zone"], g, s, { enableIf = AimOn }))
         g, s = Bind(unit, "swing", "aimTime")
         card:Add(UI.Slider(card, L["Aiming time"], 0.3, 1, 0.05, g, s, {
-            format = function(v) return ("%.2f s"):format(v) end,
+            format = function(v)
+                local t = ("%.2f s"):format(v)
+                return math.abs(v - 0.5) < 0.001 and (t .. " " .. L["(recommended)"]) or t
+            end,
             enableIf = function() return AimOn() and SW().aim end,
-            tip = L["Before haste. Haste shortens it and your latency is added. The game does not report it, so it is an estimate."] }))
+            tip = L["Recommended: 0.50 s, the Auto Shot wind-up before haste. Haste shortens it and your latency is added. The game does not report it, so it is an estimate."] }))
         card:Add(UI.Swatch(card, L["Color"], function() return SW().aimColor end, apply,
             { alpha = true, enableIf = function() return AimOn() and SW().aim end }))
     end

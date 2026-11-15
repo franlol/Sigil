@@ -1,6 +1,8 @@
 -------------------------------------------------------------------------------
 -- Sigil - Swing timer: main hand, off hand and ranged (Auto Shot, wands,
--- thrown) bars on the player frame, for every class.
+-- thrown) bars on the player frame, for every class. Two pieces: the melee
+-- bars (main and off hand, stacked) and the ranged bar. Each bar can be
+-- turned off and fills from one end or toward the middle.
 --
 -- Timing comes from the game: PLAYER_SWING fires on every swing or shot with
 -- the time until the next one at the current speed (haste included), as
@@ -19,6 +21,8 @@ local L = ns.L
 local S = ns.S
 
 local KINDS = { "main", "off", "ranged" }
+local MELEE = { "main", "off" }
+local RANGED = { "ranged" }
 -- Forever client bug: a melee swing also resets the ranged reload, reported
 -- as a ranged PLAYER_SWING right after it (not a shot). Nock ignores those
 -- the same way; drop this when the client is fixed.
@@ -118,93 +122,6 @@ local function PlaceAim(bar, frac, vertical, reverse)
     end
 end
 
-local function Wanted(c, kind, now)
-    local s = state[kind]
-    local running = s.start and now < s.start + s.dur
-    if kind == "ranged" then return c.ranged and (state.auto or running) end
-    if not c.melee then return false end
-    if kind == "off" and not state.offSeen then return false end
-    return state.melee or running
-end
-
--- Stacks the shown bars top to bottom (main, off, ranged); the holder takes
--- their total height
-local function Restack(g, c)
-    local y, gap = 0, c.gap or 2
-    for _, kind in ipairs(KINDS) do
-        local box = g.slots[kind]
-        if box:IsShown() then
-            box:ClearAllPoints()
-            box:SetPoint("TOPLEFT", g, "TOPLEFT", 0, -y)
-            y = y + c.height + gap
-        end
-    end
-    g:SetHeight(math.max(c.height, y - gap))
-end
-
--- Shows, fills and stacks the bars. The holder hides when no bar shows, so
--- nothing runs per frame while idle (the events show it again).
--- restack: stack again even if no bar changed (after a layout)
-local function Paint(g, c, now, restack)
-    local changed, any = restack, false
-    local middle = c.fill == "middle"
-    for _, kind in ipairs(KINDS) do
-        local box = g.slots[kind]
-        local want
-        if g.test then
-            want = (kind == "main" and c.melee) or (kind == "ranged" and c.ranged) or false
-        else
-            want = Wanted(c, kind, now) and true or false
-        end
-        any = any or want
-        if want ~= box:IsShown() then
-            box:SetShown(want)
-            changed = true
-        end
-        if want then
-            local s = state[kind]
-            local frac, left, dur
-            if g.test then
-                dur = kind == "ranged" and 2.2 or 2.6
-                frac = kind == "ranged" and 0.4 or 0.6
-                left = dur * (1 - frac)
-            elseif s.start and now < s.start + s.dur then
-                dur = s.dur
-                left = s.start + s.dur - now
-                frac = 1 - left / dur
-            else
-                dur, left, frac = s.dur, nil, 1   -- ready: the next swing is due
-            end
-            box.bar:SetValue(frac)
-            box.bar2:SetValue(frac)
-            box.text:SetText(c.text and left and ("%.1f"):format(left) or "")
-            local aimOn = (kind == "ranged" and c.aim and IsHunter() and dur) and true or false
-            if aimOn then
-                local st = c.style
-                local vertical = st.orientation == "VERTICAL"
-                local aimFrac = AimSeconds(dur, c.aimTime or 0.5) / dur
-                PlaceAim(box.bar, aimFrac, vertical, st.reverse)
-                if middle then PlaceAim(box.bar2, aimFrac, vertical, not st.reverse) end
-            end
-            box.bar.aim:SetShown(aimOn)
-            box.bar2.aim:SetShown(aimOn and middle)
-        end
-    end
-    if changed then Restack(g, c) end
-    g:SetShown(any)
-end
-
-local function Build(f)
-    local g = CreateFrame("Frame", nil, f)
-    g.slots = {}
-    for _, kind in ipairs(KINDS) do g.slots[kind] = NewSlot(g) end
-    g:SetScript("OnUpdate", function(self)
-        local c = f.cfg.swing
-        if c then Paint(self, c, GetTime()) end
-    end)
-    return g
-end
-
 -- Places the two halves of a slot: in "middle" fill each takes half the box
 local function PlaceHalves(box, edge, middle, vertical)
     box.bar2:SetShown(middle)
@@ -224,47 +141,148 @@ local function PlaceHalves(box, edge, middle, vertical)
     end
 end
 
-function ns.LayoutSwing(f)
-    local c = f.cfg.swing
-    if f.unit ~= "player" or not c or not c.enabled then
-        if f.swing then f.swing:Hide() end
-        f.swingOn = false
-        return
+local function Wanted(c, kind, now)
+    if not c[kind].show then return false end
+    local s = state[kind]
+    local running = s.start and now < s.start + s.dur
+    if kind == "ranged" then return state.auto or running end
+    if kind == "off" and not state.offSeen then return false end
+    return state.melee or running
+end
+
+-- The position and size settings of a piece
+local function PosOf(c, g) return g.kinds == RANGED and c.ranged or c end
+
+-- Stacks the shown bars of a piece top to bottom; the holder takes their
+-- total height
+local function Restack(g, c)
+    local pos = PosOf(c, g)
+    local y, gap = 0, c.gap or 2
+    for _, kind in ipairs(g.kinds) do
+        local box = g.slots[kind]
+        if box:IsShown() then
+            box:ClearAllPoints()
+            box:SetPoint("TOPLEFT", g, "TOPLEFT", 0, -y)
+            y = y + pos.height + gap
+        end
     end
-    f.swingOn = true
-    local g = f.swing or Build(f)
-    f.swing = g
-    local w = c.width and c.width > 0 and c.width or f.cfg.width
-    g:SetSize(w, c.height)
-    ns.PlacePiece(f, "swing", L["Swing timer"], g, c)
+    g:SetHeight(math.max(pos.height, y - gap))
+end
+
+-- Shows, fills and stacks the bars of a piece. The holder hides when none
+-- of its bars shows, so nothing runs per frame while idle (the events show
+-- it again). restack: stack again even if no bar changed (after a layout)
+local function Paint(g, c, now, restack)
+    local changed, any = restack, false
+    for _, kind in ipairs(g.kinds) do
+        local box = g.slots[kind]
+        local want
+        if g.test then
+            want = c[kind].show and true or false
+        else
+            want = Wanted(c, kind, now) and true or false
+        end
+        any = any or want
+        if want ~= box:IsShown() then
+            box:SetShown(want)
+            changed = true
+        end
+        if want then
+            local s = state[kind]
+            local frac, left, dur
+            if g.test then
+                dur = kind == "ranged" and 2.2 or 2.6
+                frac = kind == "ranged" and 0.4 or (kind == "main" and 0.6 or 0.3)
+                left = dur * (1 - frac)
+            elseif s.start and now < s.start + s.dur then
+                dur = s.dur
+                left = s.start + s.dur - now
+                frac = 1 - left / dur
+            else
+                dur, left, frac = s.dur, nil, 1   -- ready: the next swing is due
+            end
+            local middle = c[kind].fill == "middle"
+            box.bar:SetValue(frac)
+            box.bar2:SetValue(frac)
+            box.text:SetText(c.text and left and ("%.1f"):format(left) or "")
+            local aimOn = (kind == "ranged" and c.aim and IsHunter() and dur) and true or false
+            if aimOn then
+                local st = c.style
+                local vertical = st.orientation == "VERTICAL"
+                local aimFrac = AimSeconds(dur, c.aimTime or 0.5) / dur
+                PlaceAim(box.bar, aimFrac, vertical, st.reverse)
+                if middle then PlaceAim(box.bar2, aimFrac, vertical, not st.reverse) end
+            end
+            box.bar.aim:SetShown(aimOn)
+            box.bar2.aim:SetShown(aimOn and middle)
+        end
+    end
+    if changed then Restack(g, c) end
+    g:SetShown(any)
+end
+
+local function Build(f, kinds)
+    local g = CreateFrame("Frame", nil, f)
+    g.kinds = kinds
+    g.slots = {}
+    for _, kind in ipairs(kinds) do g.slots[kind] = NewSlot(g) end
+    g:SetScript("OnUpdate", function(self)
+        local c = f.cfg.swing
+        if c then Paint(self, c, GetTime()) end
+    end)
+    return g
+end
+
+local function LayoutPiece(f, g, c, key, label)
+    local pos = PosOf(c, g)
+    local w = pos.width and pos.width > 0 and pos.width or f.cfg.width
+    g:SetSize(w, pos.height)
+    ns.PlacePiece(f, key, label, g, pos)
     local st = c.style
-    local middle = c.fill == "middle"
+    local vertical = st.orientation == "VERTICAL"
     -- the second half fills the other way, toward the first
     local st2 = setmetatable({ reverse = not st.reverse }, { __index = st })
     local ac = c.aimColor or { r = 1, g = 0.25, b = 0.25, a = 0.45 }
     for kind, box in pairs(g.slots) do
-        box:SetSize(w, c.height)
+        local bc = c[kind]
+        box:SetSize(w, pos.height)
         local edge = ns.StyleBox(box, st, box.bar)
-        PlaceHalves(box, edge, middle, st.orientation == "VERTICAL")
-        local col = c.colors and c.colors[kind] or { r = 1, g = 1, b = 1 }
+        PlaceHalves(box, edge, bc.fill == "middle", vertical)
+        local col = bc.color or { r = 1, g = 1, b = 1 }
         ns.StyleBar(box.bar, st)
         ns.StyleBar(box.bar2, st2)
         for _, half in ipairs({ box.bar, box.bar2 }) do
             ns.PaintBar(half, st, col.r, col.g, col.b)
             half.aim:SetVertexColor(ac.r, ac.g, ac.b, ac.a or 0.45)
         end
-        ns.StyleText(box.text, c.textStyle, math.max(8, math.floor(c.height * 0.8)))
+        ns.StyleText(box.text, c.textStyle, math.max(8, math.floor(pos.height * 0.8)))
     end
     g.test = ns.testMode and true or false
     Paint(g, c, GetTime(), true)
 end
 
+function ns.LayoutSwing(f)
+    local c = f.cfg.swing
+    if f.unit ~= "player" or not c or not c.enabled then
+        if f.swing then f.swing:Hide() end
+        if f.swingRanged then f.swingRanged:Hide() end
+        f.swingOn = false
+        return
+    end
+    f.swingOn = true
+    f.swing = f.swing or Build(f, MELEE)
+    f.swingRanged = f.swingRanged or Build(f, RANGED)
+    LayoutPiece(f, f.swing, c, "swing", L["Melee swing bars"])
+    LayoutPiece(f, f.swingRanged, c, "swingRanged", L["Ranged swing bar"])
+end
+
 -- Test mode shows a sample of each bar
 function ns.UpdateSwing(f)
-    local g = f.swing
-    if not g or not f.swingOn then return end
-    g.test = ns.testMode and true or false
-    Paint(g, f.cfg.swing, GetTime(), true)
+    if not f.swingOn then return end
+    for _, g in ipairs({ f.swing, f.swingRanged }) do
+        g.test = ns.testMode and true or false
+        Paint(g, f.cfg.swing, GetTime(), true)
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -272,7 +290,10 @@ end
 -------------------------------------------------------------------------------
 local function Refresh()
     local f = ns.frames and ns.frames.player
-    if f and f.swingOn and f.swing then Paint(f.swing, f.cfg.swing, GetTime()) end
+    if not (f and f.swingOn) then return end
+    local now = GetTime()
+    Paint(f.swing, f.cfg.swing, now)
+    Paint(f.swingRanged, f.cfg.swing, now)
 end
 
 local watcher = CreateFrame("Frame")

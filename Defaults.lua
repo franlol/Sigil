@@ -433,17 +433,18 @@ P_.player.combatText = CombatText(true, "LEFT", 8)
 P_.player.altMana = SmallBar(true, "BOTTOMLEFT", "TOPLEFT", 2, 6)
 P_.player.gcd = SmallBar(false, "TOPLEFT", "BOTTOMLEFT", -24, 4, Bar("custom", { custom = { r = 1, g = 1, b = 1 } }))
 P_.player.gcd.fillUp = false
--- swing timer: melee (main and off hand) and ranged bars, stacked
+-- swing timer: melee bars (main and off hand, one piece) and the ranged bar (its own piece)
 P_.player.swing = {
-    enabled = false, melee = true, ranged = true,
+    enabled = false,
+    -- the melee bars (main and off hand), stacked in one piece
     point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -34, width = 0, height = 6, gap = 2,
-    fill = "edge",   -- "edge": from one end; "middle": two halves fill toward the middle
+    -- each bar: shown, fill ("edge": from one end; "middle": two halves fill
+    -- toward the middle) and color. The ranged bar is a piece of its own.
+    main = { show = true, fill = "edge", color = { r = 0.85, g = 0.85, b = 0.85 } },
+    off = { show = true, fill = "edge", color = { r = 0.6, g = 0.6, b = 0.75 } },
+    ranged = { show = true, fill = "edge", color = { r = 0.45, g = 0.8, b = 0.45 },
+        point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -50, width = 0, height = 6 },
     style = Bar("auto"), text = false, textStyle = Txt(0),
-    colors = {
-        main = { r = 0.85, g = 0.85, b = 0.85 },
-        off = { r = 0.6, g = 0.6, b = 0.75 },
-        ranged = { r = 0.45, g = 0.8, b = 0.45 },
-    },
     -- hunters: Auto Shot aiming zone (aimTime: the wind-up in seconds, before haste)
     aim = true, aimTime = 0.5, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },
 }

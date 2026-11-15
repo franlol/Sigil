@@ -169,6 +169,17 @@ local function Migrate(p)
         -- combat text is a text: one anchor, the same point on both sides
         local ct = type(u) == "table" and u.combatText
         if type(ct) == "table" and ct.relPoint and ct.point ~= ct.relPoint then ct.point = ct.relPoint end
+        -- swing timer: melee/ranged switches, fill and colors became per bar
+        local sw = type(u) == "table" and u.swing
+        if type(sw) == "table" and type(sw.ranged) ~= "table" then
+            local colors = type(sw.colors) == "table" and sw.colors or {}
+            local fill = type(sw.fill) == "string" and sw.fill or nil
+            local melee = sw.melee
+            sw.main = { show = melee, fill = fill, color = colors.main }
+            sw.off = { show = melee, fill = fill, color = colors.off }
+            sw.ranged = { show = sw.ranged, fill = fill, color = colors.ranged }
+            sw.melee, sw.colors, sw.fill = nil, nil, nil
+        end
     end
 end
 

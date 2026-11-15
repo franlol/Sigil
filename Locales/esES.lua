@@ -450,7 +450,6 @@ ns.translations.esES = {
     ["Swing timer"] = "Temporizador de golpe",
     ["Time until your next melee swing or ranged shot."] = "Tiempo hasta tu próximo golpe cuerpo a cuerpo o disparo.",
     ["Show swing timer"] = "Mostrar temporizador de golpe",
-    ["Melee (main and off hand)"] = "Cuerpo a cuerpo (mano principal y secundaria)",
     ["Ranged (Auto Shot, wands, thrown)"] = "A distancia (Disparo automático, varitas, arrojadizas)",
     ["Space between bars"] = "Espacio entre barras",
     ["Swing timer look"] = "Aspecto del temporizador de golpe",
@@ -464,7 +463,12 @@ ns.translations.esES = {
     ["Auto Shot aiming zone"] = "Zona de apuntado del Disparo automático",
     ["The end of the ranged swing bar where moving or starting a cast delays the next Auto Shot."] = "El final de la barra a distancia donde moverte o empezar un lanzamiento retrasa el próximo Disparo automático.",
     ["Show aiming zone"] = "Mostrar zona de apuntado",
-    ["Before haste. Haste shortens it and your latency is added. The game does not report it, so it is an estimate."] = "Sin celeridad. La celeridad lo acorta y se suma tu latencia. El juego no lo indica, así que es una estimación.",
+    ["Recommended: 0.50 s, the Auto Shot wind-up before haste. Haste shortens it and your latency is added. The game does not report it, so it is an estimate."] = "Recomendado: 0,50 s, la preparación del Disparo automático sin celeridad. La celeridad lo acorta y se suma tu latencia. El juego no lo indica, así que es una estimación.",
+    ["(recommended)"] = "(recomendado)",
+    ["Melee swing bars"] = "Barras de golpe cuerpo a cuerpo",
+    ["Ranged swing bar"] = "Barra de disparo a distancia",
+    ["Main hand fill"] = "Relleno de mano principal",
+    ["Off hand fill"] = "Relleno de mano secundaria",
 
     -- Auras look
     ["Duration sweep"] = "Giro de duración",
