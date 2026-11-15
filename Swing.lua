@@ -98,7 +98,6 @@ local function NewSlot(parent)
     over:SetAllPoints()
     over:SetFrameLevel(box.bar:GetFrameLevel() + 2)
     box.text = over:CreateFontString(nil, "OVERLAY")
-    box.text:SetPoint("CENTER")
     box:Hide()
     return box
 end
@@ -204,7 +203,7 @@ local function Paint(g, c, now, restack)
             local middle = c[kind].fill == "middle"
             box.bar:SetValue(frac)
             box.bar2:SetValue(frac)
-            box.text:SetText(c.text and left and ("%.1f"):format(left) or "")
+            box.text:SetText(c.text and left and (c.decimals == 0 and "%.0f" or "%.1f"):format(left) or "")
             local aimOn = (kind == "ranged" and c.aim and IsHunter() and dur) and true or false
             if aimOn then
                 local st = c.style
@@ -256,6 +255,9 @@ local function LayoutPiece(f, g, c, key, label)
             half.aim:SetVertexColor(ac.r, ac.g, ac.b, ac.a or 0.45)
         end
         ns.StyleText(box.text, c.textStyle, math.max(8, math.floor(pos.height * 0.8)))
+        local tp = c.textPos
+        box.text:ClearAllPoints()
+        box.text:SetPoint(tp.point, box, tp.relPoint, tp.x, tp.y)
     end
     g.test = ns.testMode and true or false
     Paint(g, c, GetTime(), true)

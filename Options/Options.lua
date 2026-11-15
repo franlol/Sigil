@@ -1424,8 +1424,11 @@ function Tabs.extras(page, unit)
         card = page:Add(2, UI.Card(page.content, L["Swing timer text"]))
         g, s = Bind(unit, "swing", "text")
         card:Add(UI.Check(card, L["Show time left"], g, s, { enableIf = SWOn }))
-        TextRows(card, function() return SW().textStyle end, apply, {
-            auto = true, enableIf = function() return SWOn() and SW().text end })
+        local function TextOn() return SWOn() and SW().text end
+        g, s = Bind(unit, "swing", "decimals")
+        card:Add(UI.Segmented(card, L["Decimals"], { { 0, "2" }, { 1, "1.6" } }, g, s, { enableIf = TextOn }))
+        PositionRows(card, function() return SW().textPos end, apply, { text = true, enableIf = TextOn })
+        TextRows(card, function() return SW().textStyle end, apply, { auto = true, enableIf = TextOn })
 
         local function XP() return U(unit).xp end
         local function On() return XP().enabled end
@@ -1514,11 +1517,8 @@ function Tabs.class(page, unit)
         g, s = Bind(unit, "swing", "aim")
         card:Add(UI.Check(card, L["Show aiming zone"], g, s, { enableIf = AimOn }))
         g, s = Bind(unit, "swing", "aimTime")
-        card:Add(UI.Slider(card, L["Aiming time"], 0.3, 1, 0.05, g, s, {
-            format = function(v)
-                local t = ("%.2f s"):format(v)
-                return math.abs(v - 0.5) < 0.001 and (t .. " " .. L["(recommended)"]) or t
-            end,
+        card:Add(UI.Slider(card, L["Aiming time (0.50 s recommended)"], 0.3, 1, 0.05, g, s, {
+            format = function(v) return ("%.2f s"):format(v) end,
             enableIf = function() return AimOn() and SW().aim end,
             tip = L["Recommended: 0.50 s, the Auto Shot wind-up before haste. Haste shortens it and your latency is added. The game does not report it, so it is an estimate."] }))
         card:Add(UI.Swatch(card, L["Color"], function() return SW().aimColor end, apply,

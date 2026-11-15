@@ -445,6 +445,7 @@ P_.player.swing = {
     ranged = { show = true, fill = "edge", color = { r = 0.45, g = 0.8, b = 0.45 },
         point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -50, width = 0, height = 6 },
     style = Bar("auto"), text = false, textStyle = Txt(0),
+    decimals = 1, textPos = { point = "CENTER", relPoint = "CENTER", x = 0, y = 0 },   -- time left, on each bar
     -- hunters: Auto Shot aiming zone (aimTime: the wind-up in seconds, before haste)
     aim = true, aimTime = 0.5, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },
 }
