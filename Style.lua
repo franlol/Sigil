@@ -85,6 +85,10 @@ end
 function ns.StyleBar(bar, st)
     local tex = (st.texture and st.texture ~= "") and st.texture or ns.Texture()
     bar:SetStatusBarTexture(tex)
+    -- slow bars glide instead of jumping a pixel at a time (as the game's own bars)
+    local fill = bar:GetStatusBarTexture()
+    fill:SetTexelSnappingBias(0)
+    fill:SetSnapToPixelGrid(false)
     if bar.bg then bar.bg:SetTexture(tex) end
     local vertical = st.orientation == "VERTICAL"
     bar:SetOrientation(vertical and "VERTICAL" or "HORIZONTAL")
@@ -96,7 +100,6 @@ function ns.StyleBar(bar, st)
             bar.spark:SetTexture(SPARK)
             bar.spark:SetBlendMode("ADD")
         end
-        local fill = bar:GetStatusBarTexture()
         local h = vertical and bar:GetWidth() or bar:GetHeight()
         bar.spark:ClearAllPoints()
         if vertical then
