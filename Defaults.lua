@@ -433,6 +433,13 @@ P_.player.combatText = CombatText(true, "LEFT", 8)
 P_.player.altMana = SmallBar(true, "BOTTOMLEFT", "TOPLEFT", 2, 6)
 P_.player.gcd = SmallBar(false, "TOPLEFT", "BOTTOMLEFT", -24, 4, Bar("custom", { custom = { r = 1, g = 1, b = 1 } }))
 P_.player.gcd.fillUp = false
+-- swing timer: melee (main and off hand) and ranged bars, stacked
+P_.player.swing = {
+    enabled = false, melee = true, ranged = true,
+    point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -34, width = 0, height = 6, gap = 2,
+    style = Bar("auto"), text = false, textStyle = Txt(0),
+    aim = true, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },   -- hunters: Auto Shot aiming zone
+}
 P_.player.castbar.latency = true
 P_.target.combatText = CombatText(true, "RIGHT", -8)
 P_.target.threatBar = SmallBar(false, "BOTTOMLEFT", "TOPLEFT", 22, 8, nil, true)

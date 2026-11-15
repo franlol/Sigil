@@ -1375,6 +1375,28 @@ function Tabs.extras(page, unit)
         PositionRows(card, GC, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = GCOn })
         BarCard(page, 2, L["Global cooldown look"], function() return GC().style end, apply, { box = true, enableIf = GCOn })
 
+        local function SW() return U(unit).swing end
+        local function SWOn() return SW().enabled end
+        card = page:Add(1, UI.Card(page.content, L["Swing timer"], L["Time until your next melee swing or ranged shot."]))
+        g, s = Bind(unit, "swing", "enabled")
+        card:Add(UI.Check(card, L["Show swing timer"], g, s))
+        g, s = Bind(unit, "swing", "melee")
+        card:Add(UI.Check(card, L["Melee (main and off hand)"], g, s, { enableIf = SWOn }))
+        g, s = Bind(unit, "swing", "ranged")
+        card:Add(UI.Check(card, L["Ranged (Auto Shot, wands, thrown)"], g, s, { enableIf = SWOn }))
+        g, s = Bind(unit, "swing", "height")
+        card:Add(UI.Slider(card, L["Height"], 2, 24, 1, g, s, { format = Px, enableIf = SWOn }))
+        g, s = Bind(unit, "swing", "gap")
+        card:Add(UI.Slider(card, L["Space between bars"], 0, 10, 1, g, s, { format = Px, enableIf = SWOn }))
+        PositionRows(card, SW, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = SWOn })
+        BarCard(page, 2, L["Swing timer look"], function() return SW().style end, apply, { box = true,
+            autoLabel = L["By weapon"], enableIf = SWOn })
+        card = page:Add(2, UI.Card(page.content, L["Swing timer text"]))
+        g, s = Bind(unit, "swing", "text")
+        card:Add(UI.Check(card, L["Show time left"], g, s, { enableIf = SWOn }))
+        TextRows(card, function() return SW().textStyle end, apply, {
+            auto = true, enableIf = function() return SWOn() and SW().text end })
+
         local function XP() return U(unit).xp end
         local function On() return XP().enabled end
         card = page:Add(1, UI.Card(page.content, L["Experience / reputation"]))
@@ -1411,7 +1433,7 @@ end
 -- Class: what only some classes use. The tab only shows on the frames
 -- where your class has something (the settings stay saved for the others).
 local CLASS_TAB = {
-    player = { DRUID = true, SHAMAN = true },   -- druid mana, totems
+    player = { DRUID = true, SHAMAN = true, HUNTER = true },   -- druid mana, totems, Auto Shot aiming zone
     target = { ROGUE = true, DRUID = true },    -- combo points
 }
 local function HasClassTab(unit)
@@ -1452,6 +1474,18 @@ function Tabs.class(page, unit)
         card:Add(UI.Check(card, L["Show numbers"], g, s, { enableIf = AMOn }))
         TextRows(card, function() return AM().textStyle end, apply, {
             auto = true, enableIf = function() return AMOn() and AM().text end })
+    end
+
+    if unit == "player" and class == "HUNTER" then
+        local function SW() return U(unit).swing end
+        local function AimOn() return SW().enabled and SW().ranged end
+        card = page:Add(1, UI.Card(page.content, L["Auto Shot aiming zone"],
+            L["The end of the ranged swing bar where moving or starting a cast delays the next Auto Shot."]))
+        g, s = Bind(unit, "swing", "aim")
+        card:Add(UI.Check(card, L["Show aiming zone"], g, s, { enableIf = AimOn,
+            tip = L["About 0.5 s, shorter with haste, plus your latency. The game does not report it, so it is an estimate."] }))
+        card:Add(UI.Swatch(card, L["Color"], function() return SW().aimColor end, apply,
+            { alpha = true, enableIf = function() return AimOn() and SW().aim end }))
     end
 
     if unit == "player" and class == "SHAMAN" then

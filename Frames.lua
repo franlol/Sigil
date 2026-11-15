@@ -285,6 +285,7 @@ function ns.UpdateAll(f)
     ns.UpdateAltMana(f)
     ns.UpdateTotems(f)
     ns.UpdateGCD(f)
+    ns.UpdateSwing(f)
     if ns.TestCombatText then ns.TestCombatText(f) end
 end
 
@@ -715,6 +716,7 @@ function ns.Layout(f)
     ns.LayoutAltMana(f)
     ns.LayoutCombatText(f)
     ns.LayoutGCD(f)
+    ns.LayoutSwing(f)
     RegisterEvents(f)
 end
 

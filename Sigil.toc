@@ -35,6 +35,7 @@ Totems.lua
 AltMana.lua
 CombatText.lua
 GCD.lua
+Swing.lua
 Sounds.lua
 HideBlizzard.lua
 MinimapButton.lua
