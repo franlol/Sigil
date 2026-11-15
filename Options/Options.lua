@@ -1261,6 +1261,19 @@ function Tabs.icons(page, unit)
 
     local place = page:Add(2, UI.Card(page.content, L["Position"]))
     PositionRows(place, Sel, apply, { unit = unit, enableIf = On, pieceLabel = L["Point of the icon"] })
+
+    -- PvP: the countdown before the flag drops (only the player has one)
+    local function PvP() return Cfg("pvp") end
+    local function TimerOn() return PvP().show and PvP().timer end
+    local timer = page:Add(2, UI.Card(page.content, L["PvP countdown"]))
+    timer.showIf = function() return state.sel == "pvp" and unit == "player" end
+    g, s = TB(PvP, "timer", apply)
+    timer:Add(UI.Check(timer, L["Show countdown"], g, s, { enableIf = function() return PvP().show end }))
+    g, s = TB(PvP, "timerFormat", apply)
+    timer:Add(UI.Segmented(timer, L["Countdown format"], { { "clock", "4:59" }, { "seconds", "299" } }, g, s,
+        { enableIf = TimerOn }))
+    PositionRows(timer, function() return PvP().timerPos end, apply, { text = true, enableIf = TimerOn })
+    TextRows(timer, function() return PvP().timerStyle end, apply, { auto = true, enableIf = TimerOn })
 end
 
 

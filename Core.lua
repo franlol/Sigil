@@ -63,7 +63,6 @@ end
 -- Some game functions answer a nearby but different question than the one an
 -- indicator shows. Icons, texts, colors and faders use these helpers, never the
 -- raw functions, so every part of the addon agrees:
---   UnitIsPVP          also true when the realm or zone flags you on its own
 --   InCombatLockdown   protected-code lockdown, still false inside the
 --                      PLAYER_REGEN_DISABLED handlers (only for RunOOC & co.)
 --   UnitIsDead(OrGhost) also true for a hunter feigning death
@@ -91,18 +90,22 @@ function ns.IsDeadOrGhost(u)
     return ns.IsDead(u) or ns.IsGhost(u)
 end
 
--- PvP flag: for the player, the toggle they chose (or its timer still running);
--- the game gives no such thing for other units
+-- PvP flag: flagged right now, whatever flagged them (their own toggle, the
+-- zone, the realm, attacking a flagged player)
 function ns.IsPvPFreeForAll(u)
     return UnitIsPVPFreeForAll and R(UnitIsPVPFreeForAll(u)) and true or false
 end
 
 function ns.IsPvP(u)
-    if ns.IsPvPFreeForAll(u) then return true end
-    if u == "player" and GetPVPDesired then
-        return GetPVPDesired() or (IsPVPTimerRunning and IsPVPTimerRunning()) and true or false
-    end
-    return R(UnitIsPVP(u)) and true or false
+    return ns.IsPvPFreeForAll(u) or (R(UnitIsPVP(u)) and true or false)
+end
+
+-- Seconds left before the player's PvP flag drops (nil: it is not counting down)
+function ns.PvPTimeLeft()
+    if not (IsPVPTimerRunning and GetPVPTimer) or not R(IsPVPTimerRunning()) then return nil end
+    local ms = R(GetPVPTimer())
+    if type(ms) ~= "number" or ms <= 0 then return nil end
+    return ms / 1000
 end
 
 -------------------------------------------------------------------------------

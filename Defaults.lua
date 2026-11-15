@@ -169,6 +169,11 @@ local function Icons(on, where)
         questBoss = Icon(false, "BOTTOMRIGHT", -2, 2, 16),
         happiness = Icon(false, "RIGHT", 10, 0, 16),
     }
+    -- PvP: the countdown before the flag drops, on the icon (player frame).
+    -- timerFormat: clock (4:59) | seconds (299)
+    local pvp = base.pvp
+    pvp.timer, pvp.timerFormat, pvp.timerStyle = true, "clock", ns.TextStyle(0)
+    pvp.timerPos = { point = "CENTER", relPoint = "CENTER", x = 0, y = 0 }
     for key, v in pairs(where or {}) do
         -- `point` in the overrides below is the point of the frame
         for k, val in pairs(v) do base[key][k == "point" and "relPoint" or k] = val end

@@ -218,6 +218,70 @@ ns.ICON_ONLY = {
     questBoss = { { target = true, targettarget = true, targettargettarget = true, focus = true }, "NPCs" },
 }
 
+-------------------------------------------------------------------------------
+-- PvP countdown: on the PvP icon of the player frame, while the flag wears off
+-- (as Blizzard's player frame: the time read on each update, counted down here)
+-------------------------------------------------------------------------------
+local TEST_TIME_LEFT = 272
+
+local function PaintTimer(fs)
+    local left = fs.endsAt and fs.endsAt - GetTime()
+    if not left or left <= 0 then
+        fs:SetText("")
+        fs.ticker:Hide()
+        return
+    end
+    local sec = math.ceil(left)
+    fs:SetText(fs.format == "seconds" and tostring(sec) or ("%d:%02d"):format(math.floor(sec / 60), sec % 60))
+end
+
+local function LayoutPvPTimer(f, tex, cfg)
+    local fs = tex.timer
+    if not fs then
+        fs = f.overlay:CreateFontString(nil, "OVERLAY")
+        fs:SetDrawLayer("OVERLAY", 3)
+        local ticker = CreateFrame("Frame", nil, f.overlay)
+        ticker:Hide()
+        local wait = 0
+        ticker:SetScript("OnUpdate", function(_, elapsed)
+            wait = wait - elapsed
+            if wait > 0 then return end
+            wait = 0.1
+            PaintTimer(fs)
+        end)
+        fs.ticker = ticker
+        tex.timer = fs
+    end
+    fs:Hide()
+    fs.ticker:Hide()
+    fs.on = (f.unit == "player" and cfg and cfg.show and cfg.timer) and true or false
+    if not cfg then return end
+    fs.format = cfg.timerFormat
+    ns.StyleText(fs, cfg.timerStyle, math.max(8, math.floor((cfg.size or 26) * 0.4)))
+    local tp = cfg.timerPos or {}
+    fs:ClearAllPoints()
+    fs:SetPoint(tp.point or "CENTER", tex, tp.relPoint or tp.point or "CENTER", tp.x or 0, tp.y or 0)
+end
+
+local function UpdatePvPTimer(tex)
+    local fs = tex and tex.timer
+    if not fs then return end
+    local left
+    if fs.on and tex:IsShown() then
+        left = ns.testMode and TEST_TIME_LEFT or ns.PvPTimeLeft()
+    end
+    if left then
+        fs.endsAt = GetTime() + left
+        fs:Show()
+        PaintTimer(fs)
+        fs.ticker:SetShown(not ns.testMode)
+    else
+        fs.endsAt = nil
+        fs:Hide()
+        fs.ticker:Hide()
+    end
+end
+
 function ns.LayoutIcons(f)
     f.icons = f.icons or {}
     for _, key in ipairs(ns.ICON_KEYS) do
@@ -236,6 +300,7 @@ function ns.LayoutIcons(f)
             tex:SetSize(cfg.size, cfg.size)
             tex:SetAlpha(cfg.alpha or 1)
         end
+        if key == "pvp" then LayoutPvPTimer(f, tex, cfg) end
     end
 end
 
@@ -257,6 +322,7 @@ function ns.UpdateIcons(f)
         end
         if tex.hit then tex.hit:SetShown(tex:IsShown()) end
     end
+    UpdatePvPTimer(f.icons.pvp)
 end
 
 -- Events (registered by every frame through ns.On)

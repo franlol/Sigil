@@ -179,6 +179,9 @@ ns.translations.esES = {
     ["Group leader"] = "Líder de grupo",
     ["Raid target"] = "Marca de banda",
     ["PvP"] = "JcJ",
+    ["PvP countdown"] = "Cuenta atrás JcJ",
+    ["Show countdown"] = "Mostrar cuenta atrás",
+    ["Countdown format"] = "Formato de la cuenta atrás",
 
     -- Options: Cast bar tab
     ["Show cast bar"] = "Mostrar barra de lanzamiento",
