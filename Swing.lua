@@ -11,8 +11,8 @@
 -- Hunters: the end of the ranged bar is shaded as the aiming zone, where
 -- moving or starting a cast delays the next Auto Shot. Its length: the
 -- wind-up (option, 0.5 s by default) shortened by ranged haste like the
--- reload, plus your latency. On Forever the wind-up measures ~0.55-0.67 s
--- and scales with the reload (Nock's in-game measurements); the zone is
+-- reload, plus your latency. On Forever the wind-up is about 0.55-0.67 s
+-- and scales with the reload; the zone is
 -- still an approximation, not a value the game reports.
 -------------------------------------------------------------------------------
 
@@ -24,8 +24,8 @@ local KINDS = { "main", "off", "ranged" }
 local MELEE = { "main", "off" }
 local RANGED = { "ranged" }
 -- Forever client bug: a melee swing also resets the ranged reload, reported
--- as a ranged PLAYER_SWING right after it (not a shot). Nock ignores those
--- the same way; drop this when the client is fixed.
+-- as a ranged PLAYER_SWING right after it (not a shot), which is ignored;
+-- drop this when the client is fixed.
 local RESET_GRACE = 0.1
 
 local state = {
