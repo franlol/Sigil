@@ -134,7 +134,8 @@ local function FontOptions(withDefault)
 end
 
 -- Bar look card. opts: gradient (offers the health gradient), autoLabel,
--- autoTip, enableIf, showIf, subtitle, column
+-- autoTip, enableIf, showIf, subtitle, column, colors (function(card) that
+-- adds its own color rows in place of the color choice)
 local function BarCard(page, column, title, getStyle, apply, opts)
     opts = opts or {}
     local card = page:Add(column, UI.Card(page.content, title, opts.subtitle))
@@ -145,13 +146,17 @@ local function BarCard(page, column, title, getStyle, apply, opts)
 
     local g, s = TB(getStyle, "texture", apply)
     card:Add(UI.Dropdown(card, L["Texture"], function() return TextureOptions(true) end, g, s, { enableIf = on }))
-    local colors = { { "auto", opts.autoLabel or L["Automatic"] } }
-    if opts.gradient then colors[#colors + 1] = { "gradient", L["Gradient"] } end
-    colors[#colors + 1] = { "custom", L["Custom"] }
-    g, s = TB(getStyle, "color", apply)
-    card:Add(UI.Segmented(card, L["Color"], colors, g, s, { enableIf = on, tip = opts.autoTip }))
-    card:Add(UI.Swatch(card, L["Custom color"], function() return getStyle().custom end, apply,
-        { enableIf = Both(on, Is("color", "custom")) }))
+    if opts.colors then
+        opts.colors(card)
+    else
+        local colors = { { "auto", opts.autoLabel or L["Automatic"] } }
+        if opts.gradient then colors[#colors + 1] = { "gradient", L["Gradient"] } end
+        colors[#colors + 1] = { "custom", L["Custom"] }
+        g, s = TB(getStyle, "color", apply)
+        card:Add(UI.Segmented(card, L["Color"], colors, g, s, { enableIf = on, tip = opts.autoTip }))
+        card:Add(UI.Swatch(card, L["Custom color"], function() return getStyle().custom end, apply,
+            { enableIf = Both(on, Is("color", "custom")) }))
+    end
     g, s = TB(getStyle, "alpha", apply)
     card:Add(UI.Slider(card, L["Bar opacity"], 0, 1, 0.05, g, s, { format = UI.pct, enableIf = on }))
     g, s = TB(getStyle, "bg", apply)
@@ -1389,8 +1394,15 @@ function Tabs.extras(page, unit)
         g, s = Bind(unit, "swing", "gap")
         card:Add(UI.Slider(card, L["Space between bars"], 0, 10, 1, g, s, { format = Px, enableIf = SWOn }))
         PositionRows(card, SW, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = SWOn })
+        g, s = Bind(unit, "swing", "fill")
+        card:Add(UI.Segmented(card, L["Fill"], { { "edge", L["From one end"] }, { "middle", L["Toward the middle"] } },
+            g, s, { enableIf = SWOn }))
         BarCard(page, 2, L["Swing timer look"], function() return SW().style end, apply, { box = true,
-            autoLabel = L["By weapon"], enableIf = SWOn })
+            enableIf = SWOn, colors = function(c)
+                for _, k in ipairs({ { "main", L["Main hand"] }, { "off", L["Off hand"] }, { "ranged", L["Ranged"] } }) do
+                    c:Add(UI.Swatch(c, k[2], function() return SW().colors[k[1]] end, apply, { enableIf = SWOn }))
+                end
+            end })
         card = page:Add(2, UI.Card(page.content, L["Swing timer text"]))
         g, s = Bind(unit, "swing", "text")
         card:Add(UI.Check(card, L["Show time left"], g, s, { enableIf = SWOn }))
@@ -1482,8 +1494,12 @@ function Tabs.class(page, unit)
         card = page:Add(1, UI.Card(page.content, L["Auto Shot aiming zone"],
             L["The end of the ranged swing bar where moving or starting a cast delays the next Auto Shot."]))
         g, s = Bind(unit, "swing", "aim")
-        card:Add(UI.Check(card, L["Show aiming zone"], g, s, { enableIf = AimOn,
-            tip = L["About 0.5 s, shorter with haste, plus your latency. The game does not report it, so it is an estimate."] }))
+        card:Add(UI.Check(card, L["Show aiming zone"], g, s, { enableIf = AimOn }))
+        g, s = Bind(unit, "swing", "aimTime")
+        card:Add(UI.Slider(card, L["Aiming time"], 0.3, 1, 0.05, g, s, {
+            format = function(v) return ("%.2f s"):format(v) end,
+            enableIf = function() return AimOn() and SW().aim end,
+            tip = L["Before haste. Haste shortens it and your latency is added. The game does not report it, so it is an estimate."] }))
         card:Add(UI.Swatch(card, L["Color"], function() return SW().aimColor end, apply,
             { alpha = true, enableIf = function() return AimOn() and SW().aim end }))
     end

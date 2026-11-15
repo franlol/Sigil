@@ -7,11 +7,11 @@
 -- plain numbers in combat. Each bar fills from one swing to the next.
 --
 -- Hunters: the end of the ranged bar is shaded as the aiming zone, where
--- moving or starting a cast delays the next Auto Shot. Its length: 0.5 s
--- (the Auto Shot wind-up) shortened by ranged haste like the reload, plus
--- your latency. On Forever the wind-up measures ~0.55-0.67 s and scales
--- with the reload (Nock's in-game measurements), which this matches; the
--- zone is still an approximation, not a value the game reports.
+-- moving or starting a cast delays the next Auto Shot. Its length: the
+-- wind-up (option, 0.5 s by default) shortened by ranged haste like the
+-- reload, plus your latency. On Forever the wind-up measures ~0.55-0.67 s
+-- and scales with the reload (Nock's in-game measurements); the zone is
+-- still an approximation, not a value the game reports.
 -------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -19,7 +19,6 @@ local L = ns.L
 local S = ns.S
 
 local KINDS = { "main", "off", "ranged" }
-local AIM_BASE = 0.5
 -- Forever client bug: a melee swing also resets the ranged reload, reported
 -- as a ranged PLAYER_SWING right after it (not a shot). Nock ignores those
 -- the same way; drop this when the client is fixed.
@@ -58,10 +57,11 @@ local function Latency()
     return type(ms) == "number" and ms / 1000 or 0
 end
 
--- Seconds of the aiming zone for a ranged reload of `dur`
-local function AimSeconds(dur)
+-- Seconds of the aiming zone for a ranged reload of `dur`. base: the
+-- wind-up without haste
+local function AimSeconds(dur, base)
     local haste = state.baseRanged and dur / state.baseRanged or 1
-    return math.min(dur, AIM_BASE * haste + Latency())
+    return math.min(dur, base * haste + Latency())
 end
 
 local function IsHunter()
@@ -72,43 +72,48 @@ end
 -------------------------------------------------------------------------------
 -- Bars
 -------------------------------------------------------------------------------
-local AUTO_COLORS = {
-    main = { 0.85, 0.85, 0.85 },
-    off = { 0.6, 0.6, 0.75 },
-    ranged = { 0.45, 0.8, 0.45 },
-}
+-- Each slot has two halves. With fill "middle" the first half (left or
+-- bottom) and the second (right or top) fill toward each other; otherwise
+-- only the first one shows, across the whole box.
+local function NewHalf(box)
+    local bar = CreateFrame("StatusBar", nil, box)
+    bar.bg = bar:CreateTexture(nil, "BACKGROUND")
+    bar.bg:SetAllPoints()
+    bar:SetMinMaxValues(0, 1)
+    bar.aim = bar:CreateTexture(nil, "ARTWORK", nil, 2)
+    bar.aim:SetTexture(ns.FLAT)
+    bar.aim:Hide()
+    return bar
+end
 
 local function NewSlot(parent)
     local box = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-    box.bar = CreateFrame("StatusBar", nil, box)
-    box.bar.bg = box.bar:CreateTexture(nil, "BACKGROUND")
-    box.bar.bg:SetAllPoints()
-    box.bar:SetMinMaxValues(0, 1)
-    box.aim = box.bar:CreateTexture(nil, "ARTWORK", nil, 2)
-    box.aim:SetTexture(ns.FLAT)
-    box.aim:Hide()
-    box.text = box.bar:CreateFontString(nil, "OVERLAY")
+    box.bar = NewHalf(box)
+    box.bar2 = NewHalf(box)
+    local over = CreateFrame("Frame", nil, box)   -- holds the text above both halves
+    over:SetAllPoints()
+    over:SetFrameLevel(box.bar:GetFrameLevel() + 2)
+    box.text = over:CreateFontString(nil, "OVERLAY")
     box.text:SetPoint("CENTER")
     box:Hide()
     return box
 end
 
--- The aiming zone sits at the end the bar fills toward
-local function PlaceAim(box, frac, st)
-    local aim = box.aim
-    local vertical = st.orientation == "VERTICAL"
-    local len = vertical and box.bar:GetHeight() or box.bar:GetWidth()
+-- The aiming zone sits at the end the half fills toward
+local function PlaceAim(bar, frac, vertical, reverse)
+    local aim = bar.aim
+    local len = vertical and bar:GetHeight() or bar:GetWidth()
     local size = math.max(1, len * frac)
     aim:ClearAllPoints()
     if vertical then
-        local edge = st.reverse and "BOTTOM" or "TOP"
-        aim:SetPoint(edge .. "LEFT", box.bar, edge .. "LEFT")
-        aim:SetPoint(edge .. "RIGHT", box.bar, edge .. "RIGHT")
+        local edge = reverse and "BOTTOM" or "TOP"
+        aim:SetPoint(edge .. "LEFT", bar, edge .. "LEFT")
+        aim:SetPoint(edge .. "RIGHT", bar, edge .. "RIGHT")
         aim:SetHeight(size)
     else
-        local edge = st.reverse and "LEFT" or "RIGHT"
-        aim:SetPoint("TOP" .. edge, box.bar, "TOP" .. edge)
-        aim:SetPoint("BOTTOM" .. edge, box.bar, "BOTTOM" .. edge)
+        local edge = reverse and "LEFT" or "RIGHT"
+        aim:SetPoint("TOP" .. edge, bar, "TOP" .. edge)
+        aim:SetPoint("BOTTOM" .. edge, bar, "BOTTOM" .. edge)
         aim:SetWidth(size)
     end
 end
@@ -122,23 +127,27 @@ local function Wanted(c, kind, now)
     return state.melee or running
 end
 
--- Stacks the shown bars top to bottom (main, off, ranged)
+-- Stacks the shown bars top to bottom (main, off, ranged); the holder takes
+-- their total height
 local function Restack(g, c)
-    local y = 0
+    local y, gap = 0, c.gap or 2
     for _, kind in ipairs(KINDS) do
         local box = g.slots[kind]
         if box:IsShown() then
             box:ClearAllPoints()
             box:SetPoint("TOPLEFT", g, "TOPLEFT", 0, -y)
-            y = y + c.height + (c.gap or 2)
+            y = y + c.height + gap
         end
     end
+    g:SetHeight(math.max(c.height, y - gap))
 end
 
 -- Shows, fills and stacks the bars. The holder hides when no bar shows, so
 -- nothing runs per frame while idle (the events show it again).
-local function Paint(g, c, now)
-    local changed, any = false, false
+-- restack: stack again even if no bar changed (after a layout)
+local function Paint(g, c, now, restack)
+    local changed, any = restack, false
+    local middle = c.fill == "middle"
     for _, kind in ipairs(KINDS) do
         local box = g.slots[kind]
         local want
@@ -167,10 +176,18 @@ local function Paint(g, c, now)
                 dur, left, frac = s.dur, nil, 1   -- ready: the next swing is due
             end
             box.bar:SetValue(frac)
+            box.bar2:SetValue(frac)
             box.text:SetText(c.text and left and ("%.1f"):format(left) or "")
-            local aimOn = kind == "ranged" and c.aim and IsHunter() and dur
-            if aimOn then PlaceAim(box, AimSeconds(dur) / dur, c.style) end
-            box.aim:SetShown(aimOn and true or false)
+            local aimOn = (kind == "ranged" and c.aim and IsHunter() and dur) and true or false
+            if aimOn then
+                local st = c.style
+                local vertical = st.orientation == "VERTICAL"
+                local aimFrac = AimSeconds(dur, c.aimTime or 0.5) / dur
+                PlaceAim(box.bar, aimFrac, vertical, st.reverse)
+                if middle then PlaceAim(box.bar2, aimFrac, vertical, not st.reverse) end
+            end
+            box.bar.aim:SetShown(aimOn)
+            box.bar2.aim:SetShown(aimOn and middle)
         end
     end
     if changed then Restack(g, c) end
@@ -188,6 +205,25 @@ local function Build(f)
     return g
 end
 
+-- Places the two halves of a slot: in "middle" fill each takes half the box
+local function PlaceHalves(box, edge, middle, vertical)
+    box.bar2:SetShown(middle)
+    if not middle then return end   -- StyleBox already put the first half across the box
+    box.bar:ClearAllPoints()
+    box.bar2:ClearAllPoints()
+    if vertical then
+        box.bar:SetPoint("TOPLEFT", box, "LEFT", edge, 0)
+        box.bar:SetPoint("BOTTOMRIGHT", -edge, edge)
+        box.bar2:SetPoint("TOPLEFT", edge, -edge)
+        box.bar2:SetPoint("BOTTOMRIGHT", box, "RIGHT", -edge, 0)
+    else
+        box.bar:SetPoint("TOPLEFT", edge, -edge)
+        box.bar:SetPoint("BOTTOMRIGHT", box, "BOTTOM", 0, edge)
+        box.bar2:SetPoint("TOPLEFT", box, "TOP", 0, -edge)
+        box.bar2:SetPoint("BOTTOMRIGHT", -edge, edge)
+    end
+end
+
 function ns.LayoutSwing(f)
     local c = f.cfg.swing
     if f.unit ~= "player" or not c or not c.enabled then
@@ -201,17 +237,26 @@ function ns.LayoutSwing(f)
     local w = c.width and c.width > 0 and c.width or f.cfg.width
     g:SetSize(w, c.height)
     ns.PlacePiece(f, "swing", L["Swing timer"], g, c)
+    local st = c.style
+    local middle = c.fill == "middle"
+    -- the second half fills the other way, toward the first
+    local st2 = setmetatable({ reverse = not st.reverse }, { __index = st })
     local ac = c.aimColor or { r = 1, g = 0.25, b = 0.25, a = 0.45 }
     for kind, box in pairs(g.slots) do
         box:SetSize(w, c.height)
-        ns.StyleBox(box, c.style, box.bar)
-        ns.StyleBar(box.bar, c.style)
-        local col = AUTO_COLORS[kind]
-        ns.PaintBar(box.bar, c.style, col[1], col[2], col[3])
-        box.aim:SetVertexColor(ac.r, ac.g, ac.b, ac.a or 0.45)
+        local edge = ns.StyleBox(box, st, box.bar)
+        PlaceHalves(box, edge, middle, st.orientation == "VERTICAL")
+        local col = c.colors and c.colors[kind] or { r = 1, g = 1, b = 1 }
+        ns.StyleBar(box.bar, st)
+        ns.StyleBar(box.bar2, st2)
+        for _, half in ipairs({ box.bar, box.bar2 }) do
+            ns.PaintBar(half, st, col.r, col.g, col.b)
+            half.aim:SetVertexColor(ac.r, ac.g, ac.b, ac.a or 0.45)
+        end
         ns.StyleText(box.text, c.textStyle, math.max(8, math.floor(c.height * 0.8)))
     end
-    ns.UpdateSwing(f)
+    g.test = ns.testMode and true or false
+    Paint(g, c, GetTime(), true)
 end
 
 -- Test mode shows a sample of each bar
@@ -219,7 +264,7 @@ function ns.UpdateSwing(f)
     local g = f.swing
     if not g or not f.swingOn then return end
     g.test = ns.testMode and true or false
-    Paint(g, f.cfg.swing, GetTime())
+    Paint(g, f.cfg.swing, GetTime(), true)
 end
 
 -------------------------------------------------------------------------------

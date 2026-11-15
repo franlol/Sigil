@@ -437,8 +437,15 @@ P_.player.gcd.fillUp = false
 P_.player.swing = {
     enabled = false, melee = true, ranged = true,
     point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -34, width = 0, height = 6, gap = 2,
+    fill = "edge",   -- "edge": from one end; "middle": two halves fill toward the middle
     style = Bar("auto"), text = false, textStyle = Txt(0),
-    aim = true, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },   -- hunters: Auto Shot aiming zone
+    colors = {
+        main = { r = 0.85, g = 0.85, b = 0.85 },
+        off = { r = 0.6, g = 0.6, b = 0.75 },
+        ranged = { r = 0.45, g = 0.8, b = 0.45 },
+    },
+    -- hunters: Auto Shot aiming zone (aimTime: the wind-up in seconds, before haste)
+    aim = true, aimTime = 0.5, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },
 }
 P_.player.castbar.latency = true
 P_.target.combatText = CombatText(true, "RIGHT", -8)

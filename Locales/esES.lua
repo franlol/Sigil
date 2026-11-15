@@ -455,11 +455,16 @@ ns.translations.esES = {
     ["Space between bars"] = "Espacio entre barras",
     ["Swing timer look"] = "Aspecto del temporizador de golpe",
     ["Swing timer text"] = "Texto del temporizador de golpe",
-    ["By weapon"] = "Por arma",
+    ["From one end"] = "Desde un extremo",
+    ["Toward the middle"] = "Hacia el centro",
+    ["Main hand"] = "Mano principal",
+    ["Off hand"] = "Mano secundaria",
+    ["Ranged"] = "A distancia",
+    ["Aiming time"] = "Tiempo de apuntado",
     ["Auto Shot aiming zone"] = "Zona de apuntado del Disparo automático",
     ["The end of the ranged swing bar where moving or starting a cast delays the next Auto Shot."] = "El final de la barra a distancia donde moverte o empezar un lanzamiento retrasa el próximo Disparo automático.",
     ["Show aiming zone"] = "Mostrar zona de apuntado",
-    ["About 0.5 s, shorter with haste, plus your latency. The game does not report it, so it is an estimate."] = "Unos 0,5 s, menos con celeridad, más tu latencia. El juego no lo indica, así que es una estimación.",
+    ["Before haste. Haste shortens it and your latency is added. The game does not report it, so it is an estimate."] = "Sin celeridad. La celeridad lo acorta y se suma tu latencia. El juego no lo indica, así que es una estimación.",
 
     -- Auras look
     ["Duration sweep"] = "Giro de duración",
