@@ -30,8 +30,8 @@ local RESET_GRACE = 0.1
 
 local state = {
     main = {}, off = {}, ranged = {},
-    melee = false,      -- auto attack on
-    auto = false,       -- Auto Shot / Shoot repeating
+    melee = false,      -- when auto attack was turned on (false: off)
+    auto = false,       -- when Auto Shot / Shoot started repeating (false: off)
     offSeen = false,    -- an off-hand swing happened (dual wield)
     meleeAt = nil,      -- last melee swing
     baseRanged = nil,   -- ranged weapon speed, read out of combat
@@ -144,9 +144,10 @@ local function Wanted(c, kind, now)
     if not c[kind].show then return false end
     local s = state[kind]
     local running = s.start and now < s.start + s.dur
-    if kind == "ranged" then return state.auto or running end
+    -- turned on and swung or shot since: a right-click out of range shows nothing yet
+    if kind == "ranged" then return running or (state.auto and s.start and s.start >= state.auto) end
     if kind == "off" and not state.offSeen then return false end
-    return state.melee or running
+    return running or (state.melee and s.start and s.start >= state.melee)
 end
 
 -- The position and size settings of a piece
@@ -315,11 +316,11 @@ watcher:SetScript("OnEvent", function(_, event, a1, a2)
         if kind == "off" then state.offSeen = true end
         state[kind].start, state[kind].dur = now, a1
     elseif event == "PLAYER_ENTER_COMBAT" then
-        state.melee = true
+        state.melee = now
     elseif event == "PLAYER_LEAVE_COMBAT" then
         state.melee = false
     elseif event == "START_AUTOREPEAT_SPELL" then
-        state.auto = true
+        state.auto = now
     elseif event == "STOP_AUTOREPEAT_SPELL" then
         state.auto = false
     elseif event == "PLAYER_EQUIPMENT_CHANGED" then
