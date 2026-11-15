@@ -397,7 +397,7 @@ local function Build(unit)
     f:SetBackdropColor(0, 0, 0, 0.6)
     f:SetBackdropBorderColor(0, 0, 0, 1)
 
-    -- Clique (click-casting) and similar addons read this table
+    -- click-casting addons read this table
     ClickCastFrames = ClickCastFrames or {}
     ClickCastFrames[f] = true
 
