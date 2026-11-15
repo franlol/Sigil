@@ -216,7 +216,7 @@ function ns.TextStyle(size, extra)
 end
 local Txt = ns.TextStyle
 
--- Time format of a countdown (drawn in Style.lua). style: short | full |
+-- Time format of a countdown (drawn in Style.lua). style: short | compact | full |
 -- clock | seconds; decimals below N s (0: never, 999: always); warning
 -- color below N s (0: off); text only below N s (0: always)
 function ns.TimeFormat(extra)

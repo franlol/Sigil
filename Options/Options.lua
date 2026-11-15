@@ -241,7 +241,7 @@ local function TimeRows(card, getFmt, apply, opts)
     if opts.style then
         g, s = TB(getFmt, "style", apply)
         card:Add(UI.Dropdown(card, L["Time format"], {
-            { "short", "3m" }, { "full", "3m 7s" }, { "clock", "3:07" }, { "seconds", "187" },
+            { "short", "3m · 45s" }, { "compact", "3m · 45" }, { "full", "3m 7s" }, { "clock", "3:07" }, { "seconds", "187" },
         }, g, s, { enableIf = on }))
     end
     if opts.decimals then

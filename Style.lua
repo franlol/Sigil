@@ -172,7 +172,8 @@ end
 -- the time is written with `fmt`. The aura timer hands them to the game,
 -- which counts down even secret times; the other timers run the same rules
 -- here, so they all read alike.
---   style: short (3m) | full (3m 7s) | clock (3:07) | seconds (187)
+--   style: short (3m, 45s) | compact (3m, 45) | full (3m 7s) | clock (3:07) |
+--   seconds (187)
 --   decimals: one decimal below this many seconds (0: never)
 --   warnBelow / warnColor: the color of the last seconds (0: off)
 --   hideAbove: no text until the time left drops below it (0: always shown)
@@ -183,6 +184,12 @@ local EPS = 0.000001
 local STYLES = {
     short = {
         { at = EPS, fmt = "%ds", round = "up" },
+        { at = 60, fmt = "%dm", parts = { { div = 60, round = "up" } } },
+        { at = 3600, fmt = "%dh", parts = { { div = 3600, round = "up" } } },
+        { at = 86400, fmt = "%dd", parts = { { div = 86400, round = "up" } } },
+    },
+    compact = {
+        { at = EPS, fmt = "%d", round = "up" },
         { at = 60, fmt = "%dm", parts = { { div = 60, round = "up" } } },
         { at = 3600, fmt = "%dh", parts = { { div = 3600, round = "up" } } },
         { at = 86400, fmt = "%dd", parts = { { div = 86400, round = "up" } } },
