@@ -473,8 +473,12 @@ P_.player.swing = {
     -- hunters: Auto Shot aiming zone (aimTime: the wind-up in seconds, before haste)
     aim = true, aimTime = 0.5, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },
 }
+-- your own casts: latency, channel ticks, crafting many: one bar for the whole batch
 P_.player.castbar.latency = true
-P_.player.castbar.batch = true   -- crafting many: one bar for the whole batch
+P_.player.castbar.latencyColor = { r = 1, g = 0.15, b = 0.15, a = 0.6 }
+P_.player.castbar.ticks = true
+P_.player.castbar.tickColor = { r = 1, g = 1, b = 1, a = 0.8 }
+P_.player.castbar.batch = true
 P_.target.combatText = CombatText(true, "RIGHT", -8)
 P_.target.threatBar = SmallBar(false, "BOTTOMLEFT", "TOPLEFT", 22, 8, nil, true)
 
@@ -526,7 +530,7 @@ ns.DEFAULTS.colors = {
     prediction = { heal = C(0.3, 0.9, 0.45, 0.55), absorb = C(0.85, 0.9, 1, 0.55) },
     cast = {
         cast = C(1, 0.7, 0), channel = C(0.3, 0.7, 1), locked = C(0.6, 0.6, 0.6),
-        interrupted = C(0.9, 0.2, 0.2), done = C(0.3, 0.85, 0.3), latency = C(1, 0.15, 0.15, 0.6),
+        interrupted = C(0.9, 0.2, 0.2), done = C(0.3, 0.85, 0.3),
     },
     highlight = { mouseover = C(1, 1, 1, 0.5), target = C(1, 0.85, 0.3, 1) },
     -- threat status 1-3, from the game's own colors

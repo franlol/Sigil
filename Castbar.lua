@@ -11,6 +11,8 @@
 --
 -- Colors (Colors page): cast, channel, cannot be interrupted, interrupted,
 -- completed. When a cast ends the bar stays `fadeTime` seconds and fades.
+-- Your own casts also show the latency, channel ticks and one bar for a
+-- crafting batch (their colors are cast bar settings).
 -------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -23,6 +25,8 @@ local function CastRGB(key)
     local c = ns.Color("cast", key)
     return c.r, c.g, c.b
 end
+
+local PASSED_ALPHA = 0.35   -- a channel tick that already happened
 
 -- Fading after the cast ends
 local function FadeOut(cb, duration)
@@ -45,6 +49,15 @@ local function OnUpdate(self, elapsed)
     if self.mode ~= "manual" then return end
     -- base: time of the crafts already made in a batch; span: the whole bar
     local now = GetTime()
+    local times = self.tickTimes
+    if times then
+        local i = self.nextTick
+        while times[i] and now >= times[i] do
+            self.marks[i]:SetAlpha(PASSED_ALPHA)
+            i = i + 1
+        end
+        self.nextTick = i
+    end
     if now >= self.finish then
         self.bar:SetValue(self.channel and 0 or self.base + self.finish - self.start)
         return
@@ -73,6 +86,7 @@ local function Build(f)
     cb.lag = cb.bar:CreateTexture(nil, "OVERLAY")
     cb.lag:SetTexture(FLAT)
     cb.lag:Hide()
+    cb.marks = {}   -- channel tick lines, made when first needed
 
     cb.text = cb.bar:CreateFontString(nil, "OVERLAY")
     cb.text:SetWordWrap(false)
@@ -159,6 +173,75 @@ local function Batch(fresh, spellID)
     return batch
 end
 
+-------------------------------------------------------------------------------
+-- Channel ticks (your own channels): a line where each tick lands. The count
+-- comes from ns.CHANNEL_TICKS; the ticks are spread evenly over the channel
+-- the game started (haste included) and keep their times when a pushback
+-- ends it sooner. Passed ticks are dimmed (OnUpdate).
+-------------------------------------------------------------------------------
+local function HideTicks(cb)
+    for _, m in ipairs(cb.marks) do m:Hide() end
+    cb.tickTimes, cb.tickSpell, cb.nextTick = nil, nil, nil
+end
+
+-- fracs[i]: where line i goes, as a share of the bar from where it fills
+local function DrawMarks(cb, fracs, color)
+    local bar = cb.bar
+    local vertical = bar:GetOrientation() == "VERTICAL"
+    local reverse = bar:GetReverseFill()
+    local side = vertical and (reverse and "TOP" or "BOTTOM") or (reverse and "RIGHT" or "LEFT")
+    local length = vertical and bar:GetHeight() or bar:GetWidth()
+    local sign = reverse and -1 or 1
+    local thick = PixelUtil and PixelUtil.GetNearestPixelSize(1, bar:GetEffectiveScale(), 1) or 1
+    for i, frac in ipairs(fracs) do
+        local m = cb.marks[i]
+        if not m then
+            m = bar:CreateTexture(nil, "ARTWORK", nil, 7)   -- over the fill, under the texts
+            m:SetTexture(FLAT)
+            cb.marks[i] = m
+        end
+        m:ClearAllPoints()
+        if frac > 0 and frac < 1 then
+            if vertical then
+                m:SetSize(bar:GetWidth(), thick)
+                m:SetPoint("CENTER", bar, side, 0, sign * frac * length)
+            else
+                m:SetSize(thick, bar:GetHeight())
+                m:SetPoint("CENTER", bar, side, sign * frac * length, 0)
+            end
+            m:SetVertexColor(color.r, color.g, color.b, color.a or 1)
+            m:SetAlpha(1)
+            m:Show()
+        else
+            m:Hide()
+        end
+    end
+    for i = #fracs + 1, #cb.marks do cb.marks[i]:Hide() end
+end
+
+-- Your channel (plain times): where its ticks land. fresh: a new channel
+local function ChannelTicks(f, spellID, fresh)
+    local cb, c = f.castbar, f.cfg.castbar
+    local n = f.unit == "player" and c.ticks and spellID and ns.CHANNEL_TICKS[spellID]
+    if not n then return HideTicks(cb) end
+    if fresh or cb.tickSpell ~= spellID or not cb.tickTimes then
+        local step = (cb.finish - cb.start) / n
+        cb.tickTimes, cb.tickSpell = {}, spellID
+        for k = 1, n - 1 do cb.tickTimes[k] = cb.start + k * step end
+    end
+    -- the bar shows the time left: a tick sits where that time is left
+    local span = cb.finish - cb.start
+    local fracs = {}
+    for i, t in ipairs(cb.tickTimes) do fracs[i] = (cb.finish - t) / span end
+    DrawMarks(cb, fracs, c.tickColor)
+    cb.nextTick = 1
+    local now = GetTime()
+    while cb.tickTimes[cb.nextTick] and now >= cb.tickTimes[cb.nextTick] do
+        cb.marks[cb.nextTick]:SetAlpha(PASSED_ALPHA)
+        cb.nextTick = cb.nextTick + 1
+    end
+end
+
 -- Does a stop event belong to the cast on the bar? A cast that ended can
 -- send its stop after the next cast started. Unknown ids always match;
 -- channels are not checked (like the game's own cast bar).
@@ -175,6 +258,7 @@ local function Stop(f, reason, guid)
     if not cb or not cb:IsShown() or cb.mode == "fade" then return end
     if not SameCast(cb, guid) then return end
     if cb.craft then cb.craft, batch = nil, nil end
+    HideTicks(cb)
     local fade = f.cfg.castbar.fadeTime or 0
     cb.mode = nil
     if not reason or fade <= 0 then
@@ -215,7 +299,7 @@ local function Start(f, channel, fresh, guid)
     local u = f.unit
     local name, text, texture, startMs, endMs, notInterruptible, castID, spellID, _
     if channel then
-        name, text, texture, startMs, endMs, _, notInterruptible = UnitChannelInfo(u)
+        name, text, texture, startMs, endMs, _, notInterruptible, spellID = UnitChannelInfo(u)
     else
         name, text, texture, startMs, endMs, _, castID, notInterruptible, spellID = UnitCastingInfo(u)
     end
@@ -250,7 +334,7 @@ local function Start(f, channel, fresh, guid)
         if fresh and u == "player" and f.cfg.castbar.latency and sent and total > 0 and not craft
             and cb.castGUID and sent.guid == cb.castGUID then
             local lag = math.min(total, math.max(0, GetTime() - sent.at))
-            local c = ns.Color("cast", "latency")
+            local c = f.cfg.castbar.latencyColor
             cb.lag:SetVertexColor(c.r, c.g, c.b, c.a or 0.6)
             cb.lag:ClearAllPoints()
             local side = channel and "LEFT" or "RIGHT"
@@ -259,11 +343,14 @@ local function Start(f, channel, fresh, guid)
             cb.lag:SetWidth(math.max(1, cb.bar:GetWidth() * lag / total))
             cb.lag:Show()
         end
+        if channel then ChannelTicks(f, R(spellID), fresh) else HideTicks(cb) end
     elseif TryTimer(cb, u, channel) then
+        HideTicks(cb)
         cb.mode = "timer"
         cb.time:SetText("")
     else
         cb.mode = "static"
+        HideTicks(cb)
         cb.bar:SetMinMaxValues(0, 1)
         cb.bar:SetValue(1)
         cb.time:SetText("")
@@ -288,10 +375,14 @@ function ns.UpdateCastbar(f)
         local left = ns.FormatTime(cb.timeRules, 1.2)
         cb.time:SetText(f.cfg.castbar.timeFormat == "both" and left .. " / " .. ns.FormatTime(cb.totalRules, 3) or left)
         if cb.icon:IsShown() then cb.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark") end
-        -- sample latency at the end of your bar
+        -- sample ticks and latency on your bar, to see their colors
+        HideTicks(cb)
+        if f.unit == "player" and f.cfg.castbar.ticks then
+            DrawMarks(cb, { 0.2, 0.4, 0.6, 0.8 }, f.cfg.castbar.tickColor)
+        end
         cb.lag:Hide()
         if f.unit == "player" and f.cfg.castbar.latency then
-            local c = ns.Color("cast", "latency")
+            local c = f.cfg.castbar.latencyColor
             cb.lag:SetVertexColor(c.r, c.g, c.b, c.a or 0.6)
             cb.lag:ClearAllPoints()
             cb.lag:SetPoint("TOPRIGHT")

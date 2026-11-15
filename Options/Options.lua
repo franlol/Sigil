@@ -1332,13 +1332,6 @@ function Tabs.castbar(page, unit)
     end
     g, s = Bind(unit, "castbar", "icon")
     card:Add(UI.Check(card, L["Spell icon"], g, s, { enableIf = On }))
-    if unit == "player" then
-        g, s = Bind(unit, "castbar", "latency")
-        card:Add(UI.Check(card, L["Show latency"], g, s, { enableIf = On,
-            tip = L["The end of the bar the server takes to answer: you can start the next spell there."] }))
-        g, s = Bind(unit, "castbar", "batch")
-        card:Add(UI.Check(card, L["One bar when crafting many"], g, s, { enableIf = On }))
-    end
     g, s = Bind(unit, "castbar", "height")
     card:Add(UI.Slider(card, L["Height"], 8, 40, 1, g, s, { format = Px, enableIf = On }))
     g, s = Bind(unit, "castbar", "width")
@@ -1349,6 +1342,21 @@ function Tabs.castbar(page, unit)
         format = function(v) return v == 0 and L["No"] or ("%.1f s"):format(v) end,
         tip = L["Shows for a moment whether the cast was completed or interrupted."] }))
     card:Add(UI.Note(card, L["Enemy casts: if the game hides their times, the bar is shown full with the spell name."]))
+
+    if unit == "player" then
+        card = page:Add(1, UI.Card(page.content, L["Your casts"]))
+        g, s = Bind(unit, "castbar", "latency")
+        card:Add(UI.Check(card, L["Show latency"], g, s, { enableIf = On,
+            tip = L["The end of the bar the server takes to answer: you can start the next spell there."] }))
+        card:Add(UI.Swatch(card, L["Latency color"], function() return CB().latencyColor end, apply,
+            { alpha = true, enableIf = function() return On() and CB().latency end }))
+        g, s = Bind(unit, "castbar", "ticks")
+        card:Add(UI.Check(card, L["Channel ticks"], g, s, { enableIf = On }))
+        card:Add(UI.Swatch(card, L["Tick color"], function() return CB().tickColor end, apply,
+            { alpha = true, enableIf = function() return On() and CB().ticks end }))
+        g, s = Bind(unit, "castbar", "batch")
+        card:Add(UI.Check(card, L["One bar when crafting many"], g, s, { enableIf = On }))
+    end
 
     BarCard(page, 1, L["Bar look"], function() return CB().style end, apply, { box = true,
         autoLabel = L["By state"], enableIf = On,
@@ -1646,7 +1654,7 @@ local function ColorsPage(container)
     card = page:Add(2, UI.Card(page.content, L["Cast bar"]))
     Swatches(card, "cast", {
         { "cast", L["Casting"] }, { "channel", L["Channeling"] }, { "locked", L["Cannot be interrupted"] },
-        { "interrupted", L["Interrupted"] }, { "done", L["Completed"] }, { "latency", L["Latency"] },
+        { "interrupted", L["Interrupted"] }, { "done", L["Completed"] },
     })
 
     card = page:Add(2, UI.Card(page.content, L["Threat"], L["Border and threat bar."]))

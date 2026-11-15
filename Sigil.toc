@@ -27,6 +27,7 @@ Movers.lua
 Auras.lua
 Icons.lua
 Faders.lua
+ChannelTicks.lua
 Castbar.lua
 Threat.lua
 ComboPoints.lua

@@ -168,6 +168,13 @@ end
 
 -- Older settings in today's shape, before the defaults fill the gaps
 local function Migrate(p)
+    -- latency color: from the Colors page to the player cast bar
+    local cast = type(p.colors) == "table" and p.colors.cast
+    if type(cast) == "table" and cast.latency ~= nil then
+        local cb = type(p.units) == "table" and type(p.units.player) == "table" and p.units.player.castbar
+        if type(cb) == "table" and cb.latencyColor == nil then cb.latencyColor = cast.latency end
+        cast.latency = nil
+    end
     for _, u in pairs(type(p.units) == "table" and p.units or {}) do
         for _, ic in pairs(type(u) == "table" and type(u.icons) == "table" and u.icons or {}) do
             -- icons: `point` was the point of the frame the icon centers on
