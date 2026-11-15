@@ -184,7 +184,7 @@ local function BuildButton(button, g, cancel)
     if g.timer then
         local t = g.timerText or {}
         local fs = top:CreateFontString(nil, "OVERLAY")
-        ns.StyleText(fs, t, math.max(8, math.floor(small * 0.42)))
+        ns.StyleText(fs, t, ns.AutoSize("icon", small))
         fs:SetPoint(t.point or "CENTER", t.x or 0, t.y or 0)
         -- the group's time format, counted down by the game (the plain
         -- countdown if this client refuses it)
@@ -196,7 +196,7 @@ local function BuildButton(button, g, cancel)
 
     local st = g.stackText or {}
     local count = top:CreateFontString(nil, "OVERLAY")
-    ns.StyleText(count, st, math.max(8, math.floor(small * 0.45)))
+    ns.StyleText(count, st, ns.AutoSize("icon", small))
     count:SetPoint(st.point or "BOTTOMRIGHT", st.x or 2, st.y or -1)
     button:SetApplicationCount(count, {})
 
@@ -297,12 +297,12 @@ local function Samples(f, i, g)
             b:SetPoint(g.point, s, g.point,
                 col * (w + (columns and (g.lineSpacing or g.spacing) or g.spacing)) * sx,
                 row * (h + (columns and g.spacing or (g.lineSpacing or g.spacing))) * sy)
-            ns.StyleText(b.time, tt, math.max(8, math.floor(small * 0.42)))
+            ns.StyleText(b.time, tt, ns.AutoSize("icon", small))
             b.time:ClearAllPoints()
             b.time:SetPoint(tt.point or "CENTER", tt.x or 0, tt.y or 0)
             b.time:SetText(ns.FormatTime(rules, SAMPLE_TIMES[k] or k * 7))
             b.time:SetShown(g.timer and true or false)
-            ns.StyleText(b.count, st, math.max(8, math.floor(small * 0.45)))
+            ns.StyleText(b.count, st, ns.AutoSize("icon", small))
             b.count:ClearAllPoints()
             b.count:SetPoint(st.point or "BOTTOMRIGHT", st.x or 2, st.y or -1)
             b.count:SetText(k == 1 and "3" or "")

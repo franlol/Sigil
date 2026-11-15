@@ -130,6 +130,18 @@ function ns.PaintBar(bar, st, r, g, b)
 end
 
 -------------------------------------------------------------------------------
+-- Automatic text size (font size 0): a share of what the text sits on.
+--   long: a long text on a bar (spell name, experience), of the bar height
+--   short: a short number on a bar (swing, threat, alt mana), of the bar height
+--   icon: a text on an icon (aura time and stacks, PvP countdown), of its size
+-------------------------------------------------------------------------------
+local AUTO = { long = 0.6, short = 0.8, icon = 0.45 }
+
+function ns.AutoSize(kind, size)
+    return math.max(8, math.floor(size * AUTO[kind]))
+end
+
+-------------------------------------------------------------------------------
 -- Text look. autoSize: the size used when the style says 0
 -------------------------------------------------------------------------------
 function ns.StyleText(fs, t, autoSize)

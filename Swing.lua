@@ -257,7 +257,7 @@ local function LayoutPiece(f, g, c, key, label)
             half.aim:SetVertexColor(ac.r, ac.g, ac.b, ac.a or 0.45)
         end
         box.timeRules = ns.TimeRules(bc.timeFmt)
-        ns.StyleText(box.text, bc.textStyle, math.max(8, math.floor(pos.height * 0.8)))
+        ns.StyleText(box.text, bc.textStyle, ns.AutoSize("short", pos.height))
         local tp = bc.textPos
         box.text:ClearAllPoints()
         box.text:SetPoint(tp.point, box, tp.relPoint, tp.x, tp.y)

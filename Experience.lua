@@ -60,7 +60,7 @@ function ns.LayoutExperience(f)
     ns.StyleBox(x, c.style, x.rested)
     ns.StyleBar(x.bar, c.style)
     ns.StyleBar(x.rested, c.style)
-    ns.StyleText(x.text, c.textStyle, math.max(8, math.floor(c.height * 0.75)))
+    ns.StyleText(x.text, c.textStyle, ns.AutoSize("long", c.height))
     x:Show()
     ns.UpdateExperience(f)
 end

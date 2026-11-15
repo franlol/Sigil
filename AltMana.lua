@@ -36,7 +36,7 @@ function ns.LayoutAltMana(f)
     ns.StyleBox(a, c.style, a.bar)
     ns.StyleBar(a.bar, c.style)
     ns.PaintBar(a.bar, c.style, ns.PowerRGB("MANA"))
-    ns.StyleText(a.text, c.textStyle, math.max(8, math.floor(c.height * 0.8)))
+    ns.StyleText(a.text, c.textStyle, ns.AutoSize("short", c.height))
     a.text:SetShown(c.text and true or false)
 end
 

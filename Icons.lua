@@ -256,7 +256,7 @@ local function LayoutPvPTimer(f, tex, cfg)
     fs.on = (f.unit == "player" and cfg and cfg.show and cfg.timer) and true or false
     if not cfg then return end
     fs.rules = ns.TimeRules(cfg.timeFmt)
-    ns.StyleText(fs, cfg.timerStyle, math.max(8, math.floor((cfg.size or 26) * 0.4)))
+    ns.StyleText(fs, cfg.timerStyle, ns.AutoSize("icon", cfg.size or 26))
     local tp = cfg.timerPos or {}
     fs:ClearAllPoints()
     fs:SetPoint(tp.point or "CENTER", tex, tp.relPoint or tp.point or "CENTER", tp.x or 0, tp.y or 0)

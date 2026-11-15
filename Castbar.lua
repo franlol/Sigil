@@ -112,7 +112,7 @@ function ns.LayoutCastbar(f)
     cb.bar:SetPoint("BOTTOMRIGHT", -e, e)
     ns.StyleBar(cb.bar, c.style)
 
-    local auto = math.max(8, math.floor(h * 0.6))
+    local auto = ns.AutoSize("long", h)
     ns.StyleText(cb.text, c.nameText, auto)
     ns.StyleText(cb.time, c.timeText, auto)
     cb.time:ClearAllPoints()

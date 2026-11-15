@@ -91,7 +91,7 @@ function ns.LayoutThreatBar(f)
     b:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, c.height)
     ns.StyleBox(b, c.style, b.bar)
     ns.StyleBar(b.bar, c.style)
-    ns.StyleText(b.text, c.textStyle, math.max(8, math.floor(c.height * 0.8)))
+    ns.StyleText(b.text, c.textStyle, ns.AutoSize("short", c.height))
     b.text:SetShown(c.text and true or false)
     b:Hide()
 end
