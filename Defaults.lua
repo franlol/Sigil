@@ -474,6 +474,7 @@ P_.player.swing = {
     aim = true, aimTime = 0.5, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },
 }
 P_.player.castbar.latency = true
+P_.player.castbar.batch = true   -- crafting many: one bar for the whole batch
 P_.target.combatText = CombatText(true, "RIGHT", -8)
 P_.target.threatBar = SmallBar(false, "BOTTOMLEFT", "TOPLEFT", 22, 8, nil, true)
 

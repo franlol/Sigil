@@ -1336,6 +1336,8 @@ function Tabs.castbar(page, unit)
         g, s = Bind(unit, "castbar", "latency")
         card:Add(UI.Check(card, L["Show latency"], g, s, { enableIf = On,
             tip = L["The end of the bar the server takes to answer: you can start the next spell there."] }))
+        g, s = Bind(unit, "castbar", "batch")
+        card:Add(UI.Check(card, L["One bar when crafting many"], g, s, { enableIf = On }))
     end
     g, s = Bind(unit, "castbar", "height")
     card:Add(UI.Slider(card, L["Height"], 8, 40, 1, g, s, { format = Px, enableIf = On }))

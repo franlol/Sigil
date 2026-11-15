@@ -43,16 +43,17 @@ local function OnUpdate(self, elapsed)
         return
     end
     if self.mode ~= "manual" then return end
+    -- base: time of the crafts already made in a batch; span: the whole bar
     local now = GetTime()
     if now >= self.finish then
-        self.bar:SetValue(self.channel and 0 or self.finish - self.start)
+        self.bar:SetValue(self.channel and 0 or self.base + self.finish - self.start)
         return
     end
-    local v = self.channel and (self.finish - now) or (now - self.start)
+    local v = self.channel and (self.finish - now) or (self.base + now - self.start)
     self.bar:SetValue(v)
-    local left = ns.FormatTime(self.timeRules, self.finish - now)
+    local left = ns.FormatTime(self.timeRules, self.span - self.base - (now - self.start))
     if self.timeFormat == "both" then
-        self.time:SetText(left .. " / " .. ns.FormatTime(self.totalRules, self.finish - self.start))
+        self.time:SetText(left .. " / " .. ns.FormatTime(self.totalRules, self.span))
     else
         self.time:SetText(left)
     end
@@ -135,6 +136,29 @@ local function StateKey(cb, notInterruptible)
     return cb.channel and "channel" or "cast"
 end
 
+-- Crafting many at once ("Create all"): one bar for the whole batch.
+-- The game says how many crafts are left when the first one starts; Sigil
+-- counts the ones that follow. nil when no batch is being made.
+local batch   -- { spell, index (the craft being made), total }
+
+-- fresh: a new cast; returns the batch this cast belongs to, or nil
+local function Batch(fresh, spellID)
+    if not fresh then return batch end
+    if batch and spellID and batch.spell == spellID then
+        batch.index = batch.index + 1
+        batch.total = math.max(batch.total, batch.index)
+        return batch
+    end
+    local get = C_TradeSkillUI and C_TradeSkillUI.GetRemainingRecasts
+    local left = get and R(get())
+    if type(left) == "number" and left > 0 and spellID then
+        batch = { spell = spellID, index = 1, total = left + 1 }
+    else
+        batch = nil
+    end
+    return batch
+end
+
 -- Does a stop event belong to the cast on the bar? A cast that ended can
 -- send its stop after the next cast started. Unknown ids always match;
 -- channels are not checked (like the game's own cast bar).
@@ -150,6 +174,7 @@ local function Stop(f, reason, guid)
     local cb = f.castbar
     if not cb or not cb:IsShown() or cb.mode == "fade" then return end
     if not SameCast(cb, guid) then return end
+    if cb.craft then cb.craft, batch = nil, nil end
     local fade = f.cfg.castbar.fadeTime or 0
     cb.mode = nil
     if not reason or fade <= 0 then
@@ -188,32 +213,41 @@ local function Start(f, channel, fresh, guid)
     local cb = f.castbar
     if not cb or not f.cfg.castbar.enabled then return end
     local u = f.unit
-    local name, text, texture, startMs, endMs, notInterruptible, castID, _
+    local name, text, texture, startMs, endMs, notInterruptible, castID, spellID, _
     if channel then
         name, text, texture, startMs, endMs, _, notInterruptible = UnitChannelInfo(u)
     else
-        name, text, texture, startMs, endMs, _, castID, notInterruptible = UnitCastingInfo(u)
+        name, text, texture, startMs, endMs, _, castID, notInterruptible, spellID = UnitCastingInfo(u)
     end
     if not Has(name) then return Stop(f) end
 
     cb.channel = channel
     cb.castGUID = R(guid) or R(castID)
+    cb.craft = not channel and u == "player" and f.cfg.castbar.batch and Batch(fresh, R(spellID)) or nil
     cb:SetAlpha(1)
     Paint(f, StateKey(cb, notInterruptible))
-    if Has(text) then cb.text:SetText(text) else cb.text:SetText(name) end
+    if not Has(text) then text = name end
+    if cb.craft then
+        cb.text:SetText(text .. " " .. cb.craft.index .. "/" .. cb.craft.total)
+    else
+        cb.text:SetText(text)
+    end
     if cb.icon:IsShown() then pcall(cb.icon.SetTexture, cb.icon, texture) end
 
     if fresh then cb.lag:Hide() end
     if not S(startMs) and not S(endMs) and startMs and endMs then
         cb.mode = "manual"
         cb.start, cb.finish = startMs / 1000, endMs / 1000
-        cb.bar:SetMinMaxValues(0, cb.finish - cb.start)
-        -- latency, only for your own casts
         local total = cb.finish - cb.start
-        -- only from the key press of this same cast, used once
+        local craft = cb.craft
+        cb.base = craft and (craft.index - 1) * total or 0
+        cb.span = craft and craft.total * total or total
+        cb.bar:SetMinMaxValues(0, cb.span)
+        -- latency, only for your own casts: from the key press of this same
+        -- cast, used once (not on a batch)
         local sent = ns.castSent
         if fresh and u == "player" then ns.castSent = nil end
-        if fresh and u == "player" and f.cfg.castbar.latency and sent and total > 0
+        if fresh and u == "player" and f.cfg.castbar.latency and sent and total > 0 and not craft
             and cb.castGUID and sent.guid == cb.castGUID then
             local lag = math.min(total, math.max(0, GetTime() - sent.at))
             local c = ns.Color("cast", "latency")
@@ -270,7 +304,19 @@ function ns.UpdateCastbar(f)
     end
     if Has(casting) then return Start(f, false) end
     if Has(channeling) then return Start(f, true) end
-    if cb.mode ~= "fade" then Stop(f) end
+    if cb.mode ~= "fade" and cb.mode ~= "wait" then Stop(f) end
+end
+
+-- One craft of a batch ended and more follow: the bar holds until the next
+local function CraftDone(f, guid)
+    local cb = f.castbar
+    local craft = cb.craft
+    if not craft or craft.index >= craft.total or cb.mode ~= "manual" or not SameCast(cb, guid) then
+        return false
+    end
+    cb.mode = "wait"
+    cb.bar:SetValue(cb.base + cb.finish - cb.start)
+    return true
 end
 
 -- when you press a spell: the start of the latency
@@ -281,7 +327,15 @@ ns.On("UNIT_SPELLCAST_START", function(f, _, guid) Start(f, false, true, guid) e
 ns.On("UNIT_SPELLCAST_DELAYED", function(f, _, guid) Start(f, false, false, guid) end)
 ns.On("UNIT_SPELLCAST_CHANNEL_START", function(f, _, guid) Start(f, true, true, guid) end)
 ns.On("UNIT_SPELLCAST_CHANNEL_UPDATE", function(f, _, guid) Start(f, true, false, guid) end)
-ns.On("UNIT_SPELLCAST_STOP", function(f, _, guid) if f.castbar and not f.castbar.channel then Stop(f, "done", guid) end end)
+ns.On("UNIT_SPELLCAST_STOP", function(f, _, guid)
+    if not f.castbar or f.castbar.channel or CraftDone(f, guid) then return end
+    Stop(f, "done", guid)
+end)
+-- the game stopped making the batch (finished, cancelled or out of materials)
+ns.On("UPDATE_TRADESKILL_CAST_STOPPED", function(f)
+    if f.castbar and f.castbar.mode == "wait" then Stop(f, "done") end
+    batch = nil
+end)
 ns.On("UNIT_SPELLCAST_FAILED", function(f, _, guid) if f.castbar and not f.castbar.channel then Stop(f, "interrupted", guid) end end)
 ns.On("UNIT_SPELLCAST_INTERRUPTED", function(f, _, guid) Stop(f, "interrupted", guid) end)
 -- a channel cut short says who interrupted it

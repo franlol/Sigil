@@ -551,6 +551,7 @@ ns.translations.esES = {
     ["Show latency"] = "Mostrar latencia",
     ["The end of the bar the server takes to answer: you can start the next spell there."] = "El final de la barra que tarda el servidor en responder: ahí ya puedes empezar el siguiente hechizo.",
     ["Latency"] = "Latencia",
+    ["One bar when crafting many"] = "Una sola barra al fabricar varios",
     ["Target sounds"] = "Sonidos de objetivo",
     ["The game sounds when you pick or lose a target."] = "Los sonidos del juego al elegir o perder un objetivo.",
 
