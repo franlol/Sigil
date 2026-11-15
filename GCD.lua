@@ -66,9 +66,9 @@ end
 
 -- Where the global cooldown is read from: the Classic reference spell 29515.
 -- On Forever the retail global cooldown spell (61304) always reports none.
--- isActive (readable in combat too) says whether it runs. While the bar
--- shows, it is read every 0.1 s, so the bar hides as soon as the global
--- cooldown ends (the game sends no event for that).
+-- isActive (readable in combat too) says whether it runs. While it runs it
+-- is read every 0.1 s, so the bar hides as soon as the global cooldown ends
+-- (the game sends no event for that). Nothing runs while it is idle.
 --   plain times: the bar moves itself from the start and the duration
 --   hidden times (combat): the game moves the bar (duration object), set
 --     once when a global cooldown starts. One that starts right as the
@@ -76,7 +76,9 @@ end
 --     the bar again.
 local REF = 29515
 local MAX_GCD = 1.5
-local poll, startedAt
+local poll          -- the 0.1 s check while a global cooldown runs
+local startedAt     -- when the bar started for the current one
+local plainEnd      -- its end, when the times were plain
 
 local function Running()
     local info = C_Spell.GetSpellCooldown(REF)
@@ -84,14 +86,12 @@ local function Running()
     return a ~= nil and not S(a) and a == true, info
 end
 
-local function Stop(g)
+local function Reset()
     if poll then
         poll:Cancel()
         poll = nil
     end
-    startedAt = nil
-    g.finish = nil
-    g:Hide()
+    startedAt, plainEnd = nil, nil
 end
 
 -- a global cooldown starts: plain times, or the game's timer
@@ -99,19 +99,21 @@ local function Start(g, info)
     local start, duration = info.startTime, info.duration
     startedAt = GetTime()
     if not S(start) and not S(duration) and type(duration) == "number" and duration > 0 then
-        g.finish = start + duration
+        plainEnd = start + duration
+        g.finish = plainEnd
         g.duration = duration
         g.bar:SetMinMaxValues(0, duration)
         local left = g.finish - GetTime()
         g.bar:SetValue(g.fillUp and duration - left or left)
-    else
-        g.finish = nil
-        pcall(function()
-            g.bar:SetTimerDuration(C_Spell.GetSpellCooldownDuration(REF), Enum.StatusBarInterpolation.Immediate,
-                g.fillUp and Enum.StatusBarTimerDirection.ElapsedTime or Enum.StatusBarTimerDirection.RemainingTime)
-        end)
+        g:Show()
+        return
     end
-    g:Show()
+    plainEnd, g.finish = nil, nil
+    local ok = pcall(function()
+        g.bar:SetTimerDuration(C_Spell.GetSpellCooldownDuration(REF), Enum.StatusBarInterpolation.Immediate,
+            g.fillUp and Enum.StatusBarTimerDirection.ElapsedTime or Enum.StatusBarTimerDirection.RemainingTime)
+    end)
+    g:SetShown(ok)
 end
 
 local function Bar()
@@ -124,19 +126,20 @@ end
 local function Check()
     local g = Bar()
     if not g then
-        if poll then poll:Cancel() poll = nil end
+        Reset()
         return
     end
     local running, info = Running()
     if not running then
-        Stop(g)
+        Reset()
+        g.finish = nil
+        g:Hide()
         return
     end
-    -- a new one: nothing showing yet, other plain times, or (hidden times)
-    -- the last one is longer than any global cooldown (the next started
-    -- right as it ended)
+    -- a new one: nothing started yet, plain times with another end, or
+    -- (hidden times) running longer than any global cooldown can
     local s, d = info.startTime, info.duration
-    local moved = g.finish and not S(s) and not S(d) and type(d) == "number" and s + d ~= g.finish
+    local moved = plainEnd and not S(s) and not S(d) and type(d) == "number" and s + d ~= plainEnd
     if not startedAt or moved or GetTime() - startedAt > MAX_GCD + 0.05 then Start(g, info) end
     if not poll then poll = C_Timer.NewTicker(0.1, Check) end
 end
