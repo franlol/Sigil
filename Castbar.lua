@@ -135,23 +135,32 @@ local function StateKey(cb, notInterruptible)
     return cb.channel and "channel" or "cast"
 end
 
+-- Does a stop event belong to the cast on the bar? A cast that ended can
+-- send its stop after the next cast started. Unknown ids always match;
+-- channels are not checked (like the game's own cast bar).
+local function SameCast(cb, guid)
+    if cb.channel then return true end
+    guid = R(guid)
+    return not guid or not cb.castGUID or guid == cb.castGUID
+end
+
 -- reason: "done" (completed) or "interrupted"; nil hides at once
-local function Stop(f, reason)
+-- guid: the cast the stop event is about
+local function Stop(f, reason, guid)
     local cb = f.castbar
     if not cb or not cb:IsShown() or cb.mode == "fade" then return end
+    if not SameCast(cb, guid) then return end
     local fade = f.cfg.castbar.fadeTime or 0
+    cb.mode = nil
     if not reason or fade <= 0 then
-        cb.mode = nil
         cb:Hide()
         return
     end
     Paint(f, reason)
-    if reason == "interrupted" then
-        cb.text:SetText(L["Interrupted"])
-    else
-        cb.bar:SetMinMaxValues(0, 1)
-        cb.bar:SetValue(1)
-    end
+    if reason == "interrupted" then cb.text:SetText(L["Interrupted"]) end
+    -- full bar for both ends (also takes the bar back from the game's timer)
+    cb.bar:SetMinMaxValues(0, 1)
+    cb.bar:SetValue(1)
     cb.time:SetText("")
     FadeOut(cb, fade)
 end
@@ -174,19 +183,21 @@ local function Has(v)
 end
 
 -- fresh: a new cast (not a delay or update): measures the latency
-local function Start(f, channel, fresh)
+-- guid: the cast id from the event (nil when called outside an event)
+local function Start(f, channel, fresh, guid)
     local cb = f.castbar
     if not cb or not f.cfg.castbar.enabled then return end
     local u = f.unit
-    local name, text, texture, startMs, endMs, notInterruptible, _
+    local name, text, texture, startMs, endMs, notInterruptible, castID, _
     if channel then
         name, text, texture, startMs, endMs, _, notInterruptible = UnitChannelInfo(u)
     else
-        name, text, texture, startMs, endMs, _, _, notInterruptible = UnitCastingInfo(u)
+        name, text, texture, startMs, endMs, _, castID, notInterruptible = UnitCastingInfo(u)
     end
     if not Has(name) then return Stop(f) end
 
     cb.channel = channel
+    cb.castGUID = R(guid) or R(castID)
     cb:SetAlpha(1)
     Paint(f, StateKey(cb, notInterruptible))
     if Has(text) then cb.text:SetText(text) else cb.text:SetText(name) end
@@ -199,8 +210,12 @@ local function Start(f, channel, fresh)
         cb.bar:SetMinMaxValues(0, cb.finish - cb.start)
         -- latency, only for your own casts
         local total = cb.finish - cb.start
-        if fresh and u == "player" and f.cfg.castbar.latency and ns.castSentAt and total > 0 then
-            local lag = math.min(total, math.max(0, GetTime() - ns.castSentAt))
+        -- only from the key press of this same cast, used once
+        local sent = ns.castSent
+        if fresh and u == "player" then ns.castSent = nil end
+        if fresh and u == "player" and f.cfg.castbar.latency and sent and total > 0
+            and cb.castGUID and sent.guid == cb.castGUID then
+            local lag = math.min(total, math.max(0, GetTime() - sent.at))
             local c = ns.Color("cast", "latency")
             cb.lag:SetVertexColor(c.r, c.g, c.b, c.a or 0.6)
             cb.lag:ClearAllPoints()
@@ -259,14 +274,17 @@ function ns.UpdateCastbar(f)
 end
 
 -- when you press a spell: the start of the latency
-ns.On("UNIT_SPELLCAST_SENT", function() ns.castSentAt = GetTime() end)
-ns.On("UNIT_SPELLCAST_START", function(f) Start(f, false, true) end)
-ns.On("UNIT_SPELLCAST_DELAYED", function(f) Start(f, false) end)
-ns.On("UNIT_SPELLCAST_CHANNEL_START", function(f) Start(f, true, true) end)
-ns.On("UNIT_SPELLCAST_CHANNEL_UPDATE", function(f) Start(f, true) end)
-ns.On("UNIT_SPELLCAST_STOP", function(f) if f.castbar and not f.castbar.channel then Stop(f, "done") end end)
-ns.On("UNIT_SPELLCAST_FAILED", function(f) if f.castbar and not f.castbar.channel then Stop(f, "interrupted") end end)
-ns.On("UNIT_SPELLCAST_INTERRUPTED", function(f) Stop(f, "interrupted") end)
-ns.On("UNIT_SPELLCAST_CHANNEL_STOP", function(f) Stop(f, "done") end)
+ns.On("UNIT_SPELLCAST_SENT", function(_, _, _, guid)
+    ns.castSent = { guid = R(guid), at = GetTime() }
+end)
+ns.On("UNIT_SPELLCAST_START", function(f, _, guid) Start(f, false, true, guid) end)
+ns.On("UNIT_SPELLCAST_DELAYED", function(f, _, guid) Start(f, false, false, guid) end)
+ns.On("UNIT_SPELLCAST_CHANNEL_START", function(f, _, guid) Start(f, true, true, guid) end)
+ns.On("UNIT_SPELLCAST_CHANNEL_UPDATE", function(f, _, guid) Start(f, true, false, guid) end)
+ns.On("UNIT_SPELLCAST_STOP", function(f, _, guid) if f.castbar and not f.castbar.channel then Stop(f, "done", guid) end end)
+ns.On("UNIT_SPELLCAST_FAILED", function(f, _, guid) if f.castbar and not f.castbar.channel then Stop(f, "interrupted", guid) end end)
+ns.On("UNIT_SPELLCAST_INTERRUPTED", function(f, _, guid) Stop(f, "interrupted", guid) end)
+-- a channel cut short says who interrupted it
+ns.On("UNIT_SPELLCAST_CHANNEL_STOP", function(f, _, guid, _, by) Stop(f, Has(by) and "interrupted" or "done", guid) end)
 ns.On("UNIT_SPELLCAST_INTERRUPTIBLE", function(f) if f.castbar and f.castbar.mode ~= "fade" then Paint(f, f.castbar.channel and "channel" or "cast") end end)
 ns.On("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", function(f) if f.castbar and f.castbar.mode ~= "fade" then Paint(f, "locked") end end)
