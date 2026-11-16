@@ -537,7 +537,6 @@ function ns.BuildTexts(f)
             if (cfg.code or ""):find("Hover%s*%(") or cfg.show == "mouseover" or cfg.show == "nomouseover" then
                 f.usesHover = true
             end
-            if not fn then ns.Print(L["Error in a text of %s: %s"]:format(f.unit, tostring(err))) end
             local t = { fs = fs, fn = fn, cfg = cfg, region = region }
             f.texts[#f.texts + 1] = t
             for _, ev in ipairs(cfg.events or {}) do
@@ -824,7 +823,6 @@ function ns.SetTestMode(on)
             ns.UpdateAll(f)
         end
         ns.RefreshAllMovers()
-        ns.Print(on and L["Test mode on."] or L["Test mode off."])
     end)
 end
 
@@ -892,6 +890,5 @@ function ns.SetUnlocked(on)
         if on ~= ns.testMode then ns.SetTestMode(on) end
         ns.RefreshAllMovers()
         ns.ShowGrid(on)
-        ns.Print(on and L["Frames unlocked: drag them. /sigil lock to finish."] or L["Frames locked."])
     end)
 end

@@ -419,10 +419,6 @@ function ns.LayoutAuras(f)
                     block = { key = key, container = result }
                 else
                     block = { key = key }
-                    if not ns.auraWarned then
-                        ns.auraWarned = true
-                        ns.Print(L["Could not create the auras: %s"]:format(tostring(result)))
-                    end
                 end
                 f.auraBlocks[i] = block
             end

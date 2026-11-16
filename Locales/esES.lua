@@ -7,15 +7,6 @@ local _, ns = ...
 
 ns.translations.esES = {
     -- Commands
-    ["Commands:"] = "Comandos:",
-    ["unlock the frames to move them (and show test data)"] = "desbloquea los marcos para moverlos (y muestra datos de prueba)",
-    ["lock the frames"] = "bloquea los marcos",
-    ["show or hide the test frames"] = "muestra u oculta los marcos de prueba",
-    ["back to the default settings of this character"] = "vuelve a la configuración por defecto de este personaje",
-    ["language: en or es"] = "idioma: en o es",
-    ["Language: English"] = "Idioma: español",
-    ["Settings reset."] = "Configuración restablecida.",
-    ["open the options"] = "abre las opciones",
     ["This is not a Sigil profile."] = "Esto no es un perfil de Sigil.",
     ["The text is damaged."] = "El texto está dañado.",
 
@@ -265,10 +256,6 @@ ns.translations.esES = {
     ["Focus"] = "Foco",
     ["Pet"] = "Mascota",
     ["Test cast"] = "Lanzamiento de prueba",
-    ["Test mode on."] = "Modo de prueba activado.",
-    ["Test mode off."] = "Modo de prueba desactivado.",
-    ["Frames unlocked: drag them. /sigil lock to finish."] = "Marcos desbloqueados: arrástralos. /sigil lock para terminar.",
-    ["Frames locked."] = "Marcos bloqueados.",
 
     -- Texts
     ["Test target"] = "Objetivo de prueba",
@@ -284,8 +271,6 @@ ns.translations.esES = {
     ["Dead"] = "Muerto",
     ["AFK"] = "Ausente",
     ["error"] = "error",
-    ["Error in a text of %s: %s"] = "Error en un texto de %s: %s",
-    ["Could not create the auras: %s"] = "No se pudieron crear las auras: %s",
 
     -- Party
     ["Party"] = "Grupo",

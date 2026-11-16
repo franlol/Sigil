@@ -115,13 +115,6 @@ function ns.PvPTimeLeft()
 end
 
 -------------------------------------------------------------------------------
--- Chat
--------------------------------------------------------------------------------
-function ns.Print(msg)
-    print("|cffb48cffSigil|r: " .. msg)
-end
-
--------------------------------------------------------------------------------
 -- Things that cannot be done in combat wait until it ends
 -------------------------------------------------------------------------------
 local pending, order = {}, {}
@@ -466,16 +459,6 @@ end)
 -------------------------------------------------------------------------------
 -- Slash commands
 -------------------------------------------------------------------------------
-local function Help()
-    ns.Print(L["Commands:"])
-    print("  /sigil - " .. L["open the options"])
-    print("  /sigil move - " .. L["unlock the frames to move them (and show test data)"])
-    print("  /sigil lock - " .. L["lock the frames"])
-    print("  /sigil test - " .. L["show or hide the test frames"])
-    print("  /sigil reset - " .. L["back to the default settings of this character"])
-    print("  /sigil lang en|es - " .. L["language: en or es"])
-end
-
 SLASH_SIGIL1 = "/sigil"
 SlashCmdList.SIGIL = function(msg)
     local cmd, arg = strtrim(msg or ""):lower():match("^(%S*)%s*(.-)$")
@@ -487,13 +470,9 @@ SlashCmdList.SIGIL = function(msg)
         ns.SetTestMode(not ns.testMode)
     elseif cmd == "reset" then
         ns.ResetProfile()
-        ns.Print(L["Settings reset."])
     elseif cmd == "lang" or cmd == "idioma" then
         ns.db.language = (arg == "es") and "esES" or "enUS"
         ns.SetLanguage(ns.db.language)
-        ns.Print(L["Language: English"] .. " " .. L["Type /reload to translate everything."])
-    elseif cmd == "help" or cmd == "ayuda" then
-        Help()
     else
         ns.ToggleOptions()
     end

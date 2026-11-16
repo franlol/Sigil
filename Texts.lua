@@ -441,9 +441,5 @@ function ns.RunText(f, t)
     if not ok then
         if t.fs.hpBox then t.fs.hpBox:Hide() end
         t.fs:SetText("|cffff3333" .. L["error"] .. "|r")
-        if t.err ~= err then
-            t.err = err
-            ns.Print(L["Error in a text of %s: %s"]:format(f.unit, tostring(err)))
-        end
     end
 end
