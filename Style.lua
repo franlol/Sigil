@@ -133,11 +133,14 @@ function ns.PaintBar(bar, st, r, g, b)
     bar:GetStatusBarTexture():SetAlpha(st.alpha or 1)
     if bar.bg then
         if st.bg == "custom" and st.bgCustom then
-            bar.bg:SetVertexColor(st.bgCustom.r, st.bgCustom.g, st.bgCustom.b, st.bgAlpha or 0.9)
+            bar.bg:SetVertexColor(st.bgCustom.r, st.bgCustom.g, st.bgCustom.b, 1)
         else
             local k = st.bgBrightness or 0.25
-            bar.bg:SetVertexColor(r * k, g * k, b * k, st.bgAlpha or 0.9)
+            bar.bg:SetVertexColor(r * k, g * k, b * k, 1)
         end
+        -- opacity with SetAlpha: the vertex color alpha does not apply to
+        -- every texture (the game's raid frame atlases ignore it)
+        bar.bg:SetAlpha(st.bgAlpha or 0.9)
     end
 end
 

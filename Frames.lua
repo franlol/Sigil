@@ -114,10 +114,11 @@ function ns.UpdateColor(f)
                 -- the background cannot be darkened from a hidden color: neutral dark
                 local k = st.bgBrightness or 0.25
                 if st.bg == "custom" then
-                    f.health.bg:SetVertexColor(st.bgCustom.r, st.bgCustom.g, st.bgCustom.b, st.bgAlpha or 0.9)
+                    f.health.bg:SetVertexColor(st.bgCustom.r, st.bgCustom.g, st.bgCustom.b, 1)
                 else
-                    f.health.bg:SetVertexColor(k * 0.6, k * 0.6, k * 0.6, st.bgAlpha or 0.9)
+                    f.health.bg:SetVertexColor(k * 0.6, k * 0.6, k * 0.6, 1)
                 end
+                f.health.bg:SetAlpha(st.bgAlpha or 0.9)
                 return
             end
         end
