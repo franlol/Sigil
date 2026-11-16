@@ -1758,6 +1758,8 @@ end
 -------------------------------------------------------------------------------
 -- Unit page: title, on/off, reset and tabs
 -------------------------------------------------------------------------------
+local unitTabs = {}     -- unit -> its tab bar (to open a tab from outside)
+
 local function UnitPage(container, unit)
     PageTitle(container, L[PAGE_TITLES[unit] or UNIT_NAMES[unit]])
 
@@ -1809,6 +1811,7 @@ local function UnitPage(container, unit)
     tabs:SetPoint("TOPLEFT", 0, -30)
     tabs:SetPoint("TOPRIGHT", -12, -30)
     tabs:Select("frame")
+    unitTabs[unit] = tabs
 end
 
 -------------------------------------------------------------------------------
@@ -1992,6 +1995,16 @@ function ns.ToggleOptions()
         return
     end
     win:Toggle()
+end
+
+-- Opens the window on a frame's page and tab (clicking a frame in test mode)
+function ns.OpenOptions(unit, tab)
+    if not win then Build() end
+    win:Show()
+    win:Select(unit)
+    local tabs = unitTabs[unit]
+    if tabs and tab and tabs.buttons[tab] then tabs:Select(tab) end
+    UI.RefreshAll()
 end
 
 -- After dragging a frame, its position sliders show the new values

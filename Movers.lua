@@ -72,8 +72,16 @@ local function NewMover(f, entry)
     m.text:SetPoint("CENTER")
     m:EnableMouse(true)
     m:RegisterForDrag("LeftButton")
+    -- a click without dragging opens the options of the piece
+    m:SetScript("OnMouseDown", function(self) self.moved = nil end)
+    m:SetScript("OnMouseUp", function(self, button)
+        if button == "LeftButton" and not self.moved and self:IsMouseOver() then
+            ns.OpenFrameOptions(self.frame, self.key)
+        end
+    end)
     m:SetScript("OnDragStart", function(self)
         if InCombatLockdown() then return end
+        self.moved = true
         local e = self.entry
         local cx, cy = GetCursorPosition()
         local x0, y0 = e.pos.x or 0, e.pos.y or 0
@@ -122,7 +130,7 @@ function ns.RefreshMovers(f)
         if allowed and region and region:IsVisible() then
             m = m or NewMover(f, entry)
             f.movers[key] = m
-            m.entry = entry
+            m.entry, m.key = entry, key
             m.text:SetText(entry.label or key)
             -- the box covers the piece, never smaller than its label
             -- (a text showing a secret value has a secret size: use the minimum)

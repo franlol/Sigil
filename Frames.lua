@@ -392,6 +392,10 @@ local function Build(unit)
     f:SetAttribute("*type1", "target")
     f:SetAttribute("*type2", "togglemenu")
     f:RegisterForClicks("AnyUp")
+    -- test mode: a click opens this frame's options (the click does nothing else)
+    f:HookScript("OnClick", function(self, button)
+        if ns.testMode and button == "LeftButton" then ns.OpenFrameOptions(self) end
+    end)
     f:SetMovable(true)
     f:SetClampedToScreen(true)
     f:SetBackdrop({ bgFile = FLAT, edgeFile = FLAT, edgeSize = 1 })
@@ -814,10 +818,42 @@ end
 -------------------------------------------------------------------------------
 -- Test mode and moving
 -------------------------------------------------------------------------------
+-- The options tab of each placed piece (a piece key, see ns.PlacePiece)
+local function PieceTab(key)
+    if key == "castbar" then return "castbar" end
+    if key == "health" or key == "power" then return "bars" end
+    if key == "combo" or key == "altMana" or key == "totems" then return "class" end
+    if key:match("^aura%d") then return "auras" end
+    if key:match("^icon:") then return "icons" end
+    if key == "portrait" then return "frame" end
+    return "extras"     -- threat bar, experience, GCD, swing bars, combat text
+end
+
+-- The tab for what is under the mouse on a frame: the smallest part there
+local function TabUnderMouse(f)
+    local found, best
+    for key in pairs(ns.HoverParts(f)) do
+        local e = f.pieces and f.pieces[key]
+        local l, b, r, t = ns.ScreenRect(e and e.region or f[key])
+        local area = l and (r - l) * (t - b) or math.huge
+        if not found or area < best then found, best = key, area end
+    end
+    return found and PieceTab(found) or "frame"
+end
+
+-- Opens the options of a frame on a tab (default: the part under the mouse)
+function ns.OpenFrameOptions(f, pieceKey)
+    if not ns.OpenOptions then return end
+    ns.OpenOptions(ns.CfgKey(f.unit), pieceKey and PieceTab(pieceKey) or TabUnderMouse(f))
+end
+
 function ns.SetTestMode(on)
     ns.RunOOC("test", function()
         ns.testMode = on
         for _, f in pairs(ns.frames) do
+            -- in test mode a click opens the options instead of targeting
+            f:SetAttribute("*type1", (not on) and "target" or nil)
+            f:SetAttribute("*type2", (not on) and "togglemenu" or nil)
             ApplyVisibility(f)
             ns.ApplyAuraVisibility(f)   -- test mode shows every aura group
             ns.UpdateAll(f)
@@ -838,6 +874,11 @@ local function Mover(f)
     m.label:SetText(Label(f.unit))
     m:EnableMouse(true)
     m:RegisterForDrag("LeftButton")
+    -- a click without dragging opens the frame's options
+    m:SetScript("OnMouseDown", function(self) self.moved = nil end)
+    m:SetScript("OnMouseUp", function(self, button)
+        if button == "LeftButton" and not self.moved and self:IsMouseOver() then ns.OpenFrameOptions(f) end
+    end)
     -- party 2-4 follow party 1: dragging any of them moves party 1
     local n = tonumber(f.unit:match("^party(%d)$"))
     local lead = (n and n > 1) and ns.frames.party1 or f
@@ -853,7 +894,7 @@ local function Mover(f)
         if InCombatLockdown() then return end
         local p, _, rp, x0, y0 = lead:GetPoint(1)
         local cx, cy = GetCursorPosition()
-        self.dragging = true
+        self.dragging, self.moved = true, true
         self:SetScript("OnUpdate", function()
             local x, y = GetCursorPosition()
             local s = lead:GetEffectiveScale()
