@@ -1597,14 +1597,11 @@ function Tabs.class(page, unit)
         local function On() return SW().enabled and SW().ranged.show end
         local function LineOn() return On() and SW().multi end
         card = page:Add(1, UI.Card(page.content, L["Multi-Shot clip"],
-            L["A line on the ranged swing bar: the last moment to start Multi-Shot without delaying the next Auto Shot. It learns from your Multi-Shots that clip, so it follows haste and latency."]))
+            L["A line on the ranged swing bar: the last moment to start Multi-Shot without delaying the next Auto Shot."]))
         g, s = Bind(unit, "swing", "multi")
         card:Add(UI.Check(card, L["Show Multi-Shot line"], g, s, { enableIf = On }))
         card:Add(UI.Swatch(card, L["Color"], function() return SW().multiColor end, apply,
             { alpha = true, enableIf = LineOn }))
-        card:Add(UI.Buttons(card, {
-            { L["Forget learned timing"], function() ns.ResetMultiClip() apply() end },
-        }, { enableIf = LineOn }))
     end
 
     if unit == "player" and class == "SHAMAN" then

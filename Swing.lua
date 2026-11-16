@@ -19,14 +19,8 @@
 -- wind-up is about 0.55-0.67 s and scales with the reload; the zone is
 -- still an approximation, not a value the game reports.
 -- A line before the zone marks the last moment to start Multi-Shot without
--- delaying Auto Shot. The game does not report it (Auto Shot waits for the
--- cast to end, then a hidden retry timer can add up to 0.5 s), so it is
--- learned while you play: every Multi-Shot cast standing still, with no other
--- cast before the next Auto Shot, is one sample: the share of the reload that
--- was left when it started (latency taken out) and whether the shot came
--- late. The line goes at the earliest moment that clipped, so it follows haste
--- (the reload) and latency on its own. Until a clip is seen: aiming zone +
--- Multi-Shot's cast + 0.5 s.
+-- delaying Auto Shot: the aiming zone plus Multi-Shot's cast time (read from
+-- the game; 0.5 s shortened by haste when the game reports none).
 -------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -55,13 +49,6 @@ local state = {
 -- Multi-Shot, every rank
 local MULTI_SHOT = { 2643, 14288, 14289, 14290, 25294 }
 local MULTI_CAST = 0.5      -- its cast before haste, when the game reports none
-local MULTI_SET = {}
-for _, id in ipairs(MULTI_SHOT) do MULTI_SET[id] = true end
-local RETRY = 0.5           -- the hidden retry timer: the most it adds after a cast
-local LATE = 0.1            -- an Auto Shot this late (s) after its reload was clipped
-local SAMPLES = 12          -- samples kept of each kind (old ones roll off)
-local PAD = 0.02            -- share of the reload kept as margin past a clip
-local pend                  -- the Multi-Shot being measured (see Measure)
 -- Each bar (state.main, .off, .ranged): start and dur of the swing in
 -- progress, and speed: the weapon's attack speed when it started (nil: not
 -- readable), to follow haste that comes or goes during the swing.
@@ -168,86 +155,6 @@ local function MultiSeconds(dur, hasted)
     local haste = (hasted and state.unhasted) and dur / state.unhasted or 1
     return MULTI_CAST * haste
 end
-
--------------------------------------------------------------------------------
--- Multi-Shot clip: learned from play
--------------------------------------------------------------------------------
--- The clips seen, kept for the account: the share of the reload left when
--- a Multi-Shot that delayed Auto Shot started (the last SAMPLES)
-local function Clips()
-    if not ns.db then return nil end
-    local s = ns.db.multiClip
-    if type(s) ~= "table" or type(s.clips) ~= "table" then
-        s = { clips = {} }
-        ns.db.multiClip = s
-    end
-    return s.clips
-end
-
--- The learned share of the reload (nil: no clip seen yet): the earliest
--- clip, so a cast before the line never clips. The retry timer makes the
--- same moment clip or not, so a safe cast says nothing; a lag spike rolls
--- off with newer clips.
-local learned           -- cached; nil after the clips change
-local function LearnedShare()
-    if learned ~= nil then return learned or nil end
-    local clips = Clips()
-    if not clips then return nil end
-    local top
-    for _, v in ipairs(clips) do top = math.max(top or v, v) end
-    learned = top and top + PAD or false
-    return learned or nil
-end
-
-function ns.ResetMultiClip()
-    if ns.db then ns.db.multiClip = nil end
-    learned = nil
-end
-
--- Seconds before the end of the reload where the Multi-Shot line goes
-local function MultiLineSeconds(dur, windUp, hasted)
-    local share = hasted and LearnedShare()
-    if share then return share * dur + Latency() end
-    return AimSeconds(dur, windUp, hasted) + MultiSeconds(dur, hasted) + RETRY
-end
-
-local function IsMulti(id)
-    if MULTI_SET[id] then return true end
-    local base = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(MULTI_SHOT[1])
-    local info = base and C_Spell.GetSpellInfo(id)
-    return info and info.name == base.name or false
-end
-
--- A Multi-Shot started: measure it if a reload is running with Auto Shot on
-local function Measure(now)
-    local r = state.ranged
-    pend = nil
-    if not (state.auto and r.start and r.dur) then return end
-    local left = r.start + r.dur - now
-    if left <= 0 then return end
-    pend = { share = (left - Latency()) / r.dur, at = now }
-end
-
--- The next Auto Shot came (expected: when the reload was due): keep the sample
-local function Settle(now, due)
-    local p = pend
-    pend = nil
-    if not p or p.spoiled or now - p.at > 10 or now - due <= LATE then return end
-    local clips = Clips()
-    if not clips then return end
-    table.insert(clips, p.share)
-    while #clips > SAMPLES do table.remove(clips, 1) end
-    learned = nil
-end
-
--- Moving spoils the sample (moving delays Auto Shot on its own)
-local mover = CreateFrame("Frame")
-mover:Hide()
-mover:SetScript("OnUpdate", function(self)
-    if not pend then self:Hide() return end
-    local speed = GetUnitSpeed and ns.R(GetUnitSpeed("player"))
-    if type(speed) == "number" and speed > 0 then pend.spoiled = true end
-end)
 
 local function IsHunter()
     local _, class = UnitClass("player")
@@ -423,15 +330,14 @@ local function Paint(g, c, now, restack)
             local vertical = st.orientation == "VERTICAL"
             local len = (aimOn or multiOn) and (vertical and box.bar:GetHeight() or box.bar:GetWidth())
             if (aimOn or multiOn) and (box.aimDur ~= dur or box.aimWind ~= windUp or box.aimBase ~= state.unhasted
-                or box.aimLen ~= len or box.aimTest ~= g.test or box.aimMulti ~= state.multiCast
-                or box.aimLearn ~= LearnedShare()) then
+                or box.aimLen ~= len or box.aimTest ~= g.test or box.aimMulti ~= state.multiCast) then
                 box.aimDur, box.aimWind, box.aimBase, box.aimLen, box.aimTest = dur, windUp, state.unhasted, len, g.test
-                box.aimMulti, box.aimLearn = state.multiCast, LearnedShare()
+                box.aimMulti = state.multiCast
                 local aimSec = AimSeconds(dur, windUp, not g.test)
                 PlaceAim(box.bar, aimSec / dur, vertical, st.reverse)
                 PlaceAim(box.bar2, aimSec / dur, vertical, not st.reverse)
                 -- past the whole reload: no moment is safe, no line
-                local multiFrac = MultiLineSeconds(dur, windUp, not g.test) / dur
+                local multiFrac = (aimSec + MultiSeconds(dur, not g.test)) / dur
                 box.multiFits = multiFrac < 1
                 if box.multiFits then
                     PlaceMulti(box.bar, multiFrac, vertical, st.reverse)
@@ -544,10 +450,7 @@ pcall(watcher.RegisterUnitEvent, watcher, "UNIT_INVENTORY_CHANGED", "player")
 -- attack speed changes (haste buffs, quiver): melee and ranged
 pcall(watcher.RegisterUnitEvent, watcher, "UNIT_ATTACK_SPEED", "player")
 pcall(watcher.RegisterUnitEvent, watcher, "UNIT_RANGEDDAMAGE", "player")
--- Multi-Shot clip samples
-pcall(watcher.RegisterUnitEvent, watcher, "UNIT_SPELLCAST_START", "player")
-pcall(watcher.RegisterUnitEvent, watcher, "UNIT_SPELLCAST_INTERRUPTED", "player")
-watcher:SetScript("OnEvent", function(_, event, a1, a2, a3)
+watcher:SetScript("OnEvent", function(_, event, a1, a2)
     local now = GetTime()
     if event == "PLAYER_SWING" then
         if S(a1) or S(a2) then return end
@@ -556,7 +459,6 @@ watcher:SetScript("OnEvent", function(_, event, a1, a2, a3)
         if kind == "ranged" and state.meleeAt and now - state.meleeAt <= RESET_GRACE then return end
         if kind ~= "ranged" then state.meleeAt = now end
         local s = state[kind]
-        if kind == "ranged" and pend and s.start and s.dur then Settle(now, s.start + s.dur) end
         s.start, s.dur, s.speed = now, a1, EquippedSpeed(kind)
     elseif event == "UNIT_ATTACK_SPEED" or event == "UNIT_RANGEDDAMAGE" then
         FollowSpeed(now)
@@ -564,18 +466,6 @@ watcher:SetScript("OnEvent", function(_, event, a1, a2, a3)
         ReadMulti()
     elseif event == "SPELLS_CHANGED" then
         ReadMulti()
-    elseif event == "UNIT_SPELLCAST_START" then
-        -- a Multi-Shot is measured; any other cast spoils the one measured
-        local id = a3
-        if S(id) or type(id) ~= "number" then return end
-        if IsHunter() and IsMulti(id) then
-            Measure(now)
-            if pend then mover:Show() end
-        elseif pend then
-            pend.spoiled = true
-        end
-    elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
-        pend = nil
     elseif event == "WEAPON_SLOT_CHANGED" then
         -- a weapon swap starts the swing over at the new weapon's speed, as
         -- the game's own swing timer does
@@ -597,7 +487,6 @@ watcher:SetScript("OnEvent", function(_, event, a1, a2, a3)
         state.auto = now
     elseif event == "STOP_AUTOREPEAT_SPELL" then
         state.auto = false
-        pend = nil
     elseif event == "PLAYER_EQUIPMENT_CHANGED" or event == "PLAYER_REGEN_ENABLED" then
         -- stats can be hidden in combat: read them again after it
         ReadStats()
