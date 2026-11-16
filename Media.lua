@@ -16,10 +16,14 @@ local FONTS = {
     { "Morpheus", "Fonts\\MORPHEUS.ttf" },
 }
 
+-- A value is a file path or the name of one of the game's atlases (the
+-- "Raid frames" ones are what Blizzard's raid frames draw).
 local TEXTURES = {
     { "Flat", ns.FLAT },
     { "Blizzard", "Interface\\TargetingFrame\\UI-StatusBar" },
-    { "Blizzard (raid)", "Interface\\RaidFrame\\Raid-Bar-Hp-Fill" },
+    { "Raid frames", "RaidFrame-Hp-Fill" },
+    { "Raid frames · resource", "_RaidFrame-Resource-Fill" },
+    { "Arena frames", "Interface\\RaidFrame\\Raid-Bar-Hp-Fill" },
     { "Gloss", "Interface\\TargetingFrame\\BarFill2" },
     { "Smooth", "Interface\\PaperDollInfoFrame\\UI-Character-Skills-Bar" },
 }

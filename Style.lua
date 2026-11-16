@@ -89,7 +89,13 @@ function ns.StyleBar(bar, st)
     local fill = bar:GetStatusBarTexture()
     fill:SetTexelSnappingBias(0)
     fill:SetSnapToPixelGrid(false)
-    if bar.bg then bar.bg:SetTexture(tex) end
+    if bar.bg then
+        if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(tex) then
+            bar.bg:SetAtlas(tex)
+        else
+            bar.bg:SetTexture(tex)
+        end
+    end
     local vertical = st.orientation == "VERTICAL"
     bar:SetOrientation(vertical and "VERTICAL" or "HORIZONTAL")
     bar:SetReverseFill(st.reverse and true or false)

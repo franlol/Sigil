@@ -231,6 +231,9 @@ ns.translations.esES = {
     ["Tools"] = "Herramientas",
     ["Commands: /sigil (this window), /sigil help."] = "Comandos: /sigil (esta ventana), /sigil help.",
     ["Flat"] = "Plana",
+    ["Raid frames"] = "Marcos de banda",
+    ["Raid frames · resource"] = "Marcos de banda · recurso",
+    ["Arena frames"] = "Marcos de arena",
     ["Gloss"] = "Brillo",
     ["Smooth"] = "Suave",
 
