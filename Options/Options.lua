@@ -1997,7 +1997,7 @@ function ns.ToggleOptions()
     win:Toggle()
 end
 
--- Opens the window on a frame's page and tab (clicking a frame in test mode)
+-- Opens the window on a frame's page and tab (clicking a box while unlocked)
 function ns.OpenOptions(unit, tab)
     if not win then Build() end
     win:Show()

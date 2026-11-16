@@ -392,10 +392,6 @@ local function Build(unit)
     f:SetAttribute("*type1", "target")
     f:SetAttribute("*type2", "togglemenu")
     f:RegisterForClicks("AnyUp")
-    -- test mode: a click opens this frame's options (the click does nothing else)
-    f:HookScript("OnClick", function(self, button)
-        if ns.testMode and button == "LeftButton" then ns.OpenFrameOptions(self) end
-    end)
     f:SetMovable(true)
     f:SetClampedToScreen(true)
     f:SetBackdrop({ bgFile = FLAT, edgeFile = FLAT, edgeSize = 1 })
@@ -851,9 +847,6 @@ function ns.SetTestMode(on)
     ns.RunOOC("test", function()
         ns.testMode = on
         for _, f in pairs(ns.frames) do
-            -- in test mode a click opens the options instead of targeting
-            f:SetAttribute("*type1", (not on) and "target" or nil)
-            f:SetAttribute("*type2", (not on) and "togglemenu" or nil)
             ApplyVisibility(f)
             ns.ApplyAuraVisibility(f)   -- test mode shows every aura group
             ns.UpdateAll(f)
