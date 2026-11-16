@@ -18,6 +18,9 @@
 -- reload (reload / speed without haste), plus your latency. On Forever the
 -- wind-up is about 0.55-0.67 s and scales with the reload; the zone is
 -- still an approximation, not a value the game reports.
+-- A line before the zone marks the last moment to start Multi-Shot without
+-- delaying Auto Shot: the aiming zone plus Multi-Shot's cast time (read from
+-- the game; 0.5 s shortened by haste when the game reports none).
 -------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -39,7 +42,13 @@ local state = {
     hasOff = false,     -- an off-hand weapon is equipped (dual wield)
     meleeAt = nil,      -- last melee swing
     unhasted = nil,     -- ranged weapon speed without haste (quiver included)
+    multi = false,      -- Multi-Shot is known
+    multiCast = nil,    -- its cast time in seconds as the game reports it (nil: none)
 }
+
+-- Multi-Shot, every rank
+local MULTI_SHOT = { 2643, 14288, 14289, 14290, 25294 }
+local MULTI_CAST = 0.5      -- its cast before haste, when the game reports none
 -- Each bar (state.main, .off, .ranged): start and dur of the swing in
 -- progress, and speed: the weapon's attack speed when it started (nil: not
 -- readable), to follow haste that comes or goes during the swing.
@@ -86,9 +95,26 @@ local function ReadUnhasted()
     state.unhasted = speed * (1 + haste / 100) * (1 + (type(quiver) == "number" and quiver or 0) / 100)
 end
 
+-- Multi-Shot known and its cast time (haste changes it: read again then)
+local function ReadMulti()
+    state.multi, state.multiCast = false, nil
+    local book = C_SpellBook and C_SpellBook.IsSpellKnownOrInSpellBook
+    if not (book and C_Spell and C_Spell.GetSpellInfo) then return end
+    for _, id in ipairs(MULTI_SHOT) do
+        if book(id) then
+            state.multi = true
+            local info = C_Spell.GetSpellInfo(id)
+            local ms = info and ns.R(info.castTime)
+            if type(ms) == "number" and ms > 0 then state.multiCast = ms / 1000 end
+            return
+        end
+    end
+end
+
 local function ReadStats()
     ReadOffHand()
     ReadUnhasted()
+    ReadMulti()
 end
 
 -- Haste came or went during a swing: the swing keeps how far along it is and
@@ -122,6 +148,14 @@ local function AimSeconds(dur, windUp, hasted)
     return math.min(dur, windUp * haste + Latency())
 end
 
+-- Seconds of Multi-Shot's cast: the game's value, else the default
+-- shortened by haste like the reload
+local function MultiSeconds(dur, hasted)
+    if hasted and state.multiCast then return state.multiCast end
+    local haste = (hasted and state.unhasted) and dur / state.unhasted or 1
+    return MULTI_CAST * haste
+end
+
 local function IsHunter()
     local _, class = UnitClass("player")
     return class == "HUNTER"
@@ -141,6 +175,9 @@ local function NewHalf(box)
     bar.aim = bar:CreateTexture(nil, "ARTWORK", nil, 2)
     bar.aim:SetTexture(ns.FLAT)
     bar.aim:Hide()
+    bar.multi = bar:CreateTexture(nil, "ARTWORK", nil, 3)
+    bar.multi:SetTexture(ns.FLAT)
+    bar.multi:Hide()
     return bar
 end
 
@@ -172,6 +209,28 @@ local function PlaceAim(bar, frac, vertical, reverse)
         aim:SetPoint("TOP" .. edge, bar, "TOP" .. edge)
         aim:SetPoint("BOTTOM" .. edge, bar, "BOTTOM" .. edge)
         aim:SetWidth(size)
+    end
+end
+
+-- The Multi-Shot line: frac of the bar away from the end it fills toward
+local MULTI_LINE = 2
+local function PlaceMulti(bar, frac, vertical, reverse)
+    local line = bar.multi
+    local len = vertical and bar:GetHeight() or bar:GetWidth()
+    local off = len * frac
+    line:ClearAllPoints()
+    if vertical then
+        local edge = reverse and "BOTTOM" or "TOP"
+        local y = reverse and off or -off
+        line:SetPoint("LEFT", bar, edge .. "LEFT", 0, y)
+        line:SetPoint("RIGHT", bar, edge .. "RIGHT", 0, y)
+        line:SetHeight(MULTI_LINE)
+    else
+        local edge = reverse and "LEFT" or "RIGHT"
+        local x = reverse and off or -off
+        line:SetPoint("TOP", bar, "TOP" .. edge, x, 0)
+        line:SetPoint("BOTTOM", bar, "BOTTOM" .. edge, x, 0)
+        line:SetWidth(MULTI_LINE)
     end
 end
 
@@ -260,22 +319,35 @@ local function Paint(g, c, now, restack)
             box.bar2:SetValue(frac)
             local bc = c[kind]
             box.text:SetText(bc.text and left and ns.FormatTime(box.timeRules, left) or "")
-            local aimOn = (kind == "ranged" and c.aim and IsHunter() and dur) and true or false
-            -- placed again only when the reload, the haste base, the option or
-            -- the bar's size changed (latency is read then), not every frame
+            local hunter = (kind == "ranged" and IsHunter() and dur) and true or false
+            local aimOn = (hunter and c.aim) and true or false
+            local multiOn = (hunter and c.multi and (state.multi or g.test)) and true or false
+            -- placed again only when the reload, the haste base, the options,
+            -- Multi-Shot's cast or the bar's size changed (latency is read
+            -- then), not every frame
             local windUp = c.aimTime or 0.5
             local st = c.style
             local vertical = st.orientation == "VERTICAL"
-            local len = aimOn and (vertical and box.bar:GetHeight() or box.bar:GetWidth())
-            if aimOn and (box.aimDur ~= dur or box.aimWind ~= windUp or box.aimBase ~= state.unhasted
-                or box.aimLen ~= len or box.aimTest ~= g.test) then
+            local len = (aimOn or multiOn) and (vertical and box.bar:GetHeight() or box.bar:GetWidth())
+            if (aimOn or multiOn) and (box.aimDur ~= dur or box.aimWind ~= windUp or box.aimBase ~= state.unhasted
+                or box.aimLen ~= len or box.aimTest ~= g.test or box.aimMulti ~= state.multiCast) then
                 box.aimDur, box.aimWind, box.aimBase, box.aimLen, box.aimTest = dur, windUp, state.unhasted, len, g.test
-                local aimFrac = AimSeconds(dur, windUp, not g.test) / dur
-                PlaceAim(box.bar, aimFrac, vertical, st.reverse)
-                PlaceAim(box.bar2, aimFrac, vertical, not st.reverse)
+                box.aimMulti = state.multiCast
+                local aimSec = AimSeconds(dur, windUp, not g.test)
+                PlaceAim(box.bar, aimSec / dur, vertical, st.reverse)
+                PlaceAim(box.bar2, aimSec / dur, vertical, not st.reverse)
+                -- past the whole reload: no moment is safe, no line
+                local multiFrac = (aimSec + MultiSeconds(dur, not g.test)) / dur
+                box.multiFits = multiFrac < 1
+                if box.multiFits then
+                    PlaceMulti(box.bar, multiFrac, vertical, st.reverse)
+                    PlaceMulti(box.bar2, multiFrac, vertical, not st.reverse)
+                end
             end
             box.bar.aim:SetShown(aimOn)
             box.bar2.aim:SetShown(aimOn and middle)
+            box.bar.multi:SetShown(multiOn and box.multiFits or false)
+            box.bar2.multi:SetShown(multiOn and middle and box.multiFits or false)
         end
     end
     if changed then Restack(g, c) end
@@ -304,6 +376,7 @@ local function LayoutPiece(f, g, c, key, label)
     -- the second half fills the other way, toward the first
     local st2 = setmetatable({ reverse = not st.reverse }, { __index = st })
     local ac = c.aimColor or { r = 1, g = 0.25, b = 0.25, a = 0.45 }
+    local mc = c.multiColor or { r = 1, g = 1, b = 1, a = 0.9 }
     for kind, box in pairs(g.slots) do
         local bc = c[kind]
         box:SetSize(w, pos.height)
@@ -315,6 +388,7 @@ local function LayoutPiece(f, g, c, key, label)
         for _, half in ipairs({ box.bar, box.bar2 }) do
             ns.PaintBar(half, st, col.r, col.g, col.b)
             half.aim:SetVertexColor(ac.r, ac.g, ac.b, ac.a or 0.45)
+            half.multi:SetVertexColor(mc.r, mc.g, mc.b, mc.a or 0.9)
         end
         box.timeRules = ns.TimeRules(bc.timeFmt)
         ns.StyleText(box.text, bc.textStyle, ns.AutoSize("short", pos.height))
@@ -367,7 +441,7 @@ end
 local watcher = CreateFrame("Frame")
 for _, ev in ipairs({ "PLAYER_SWING", "PLAYER_ENTER_COMBAT", "PLAYER_LEAVE_COMBAT", "START_AUTOREPEAT_SPELL",
     "STOP_AUTOREPEAT_SPELL", "PLAYER_EQUIPMENT_CHANGED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD",
-    "WEAPON_SLOT_CHANGED" }) do
+    "WEAPON_SLOT_CHANGED", "SPELLS_CHANGED" }) do
     pcall(watcher.RegisterEvent, watcher, ev)
 end
 -- the game's own swing timer uses this too: WEAPON_SLOT_CHANGED is not
@@ -389,6 +463,9 @@ watcher:SetScript("OnEvent", function(_, event, a1, a2)
     elseif event == "UNIT_ATTACK_SPEED" or event == "UNIT_RANGEDDAMAGE" then
         FollowSpeed(now)
         ReadUnhasted()
+        ReadMulti()
+    elseif event == "SPELLS_CHANGED" then
+        ReadMulti()
     elseif event == "WEAPON_SLOT_CHANGED" then
         -- a weapon swap starts the swing over at the new weapon's speed, as
         -- the game's own swing timer does
