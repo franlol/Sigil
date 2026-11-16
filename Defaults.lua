@@ -472,8 +472,6 @@ P_.player.swing = {
     style = Bar("auto"),
     -- hunters: Auto Shot aiming zone (aimTime: the wind-up in seconds, before haste)
     aim = true, aimTime = 0.5, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },
-    -- hunters: line at the last moment to start Multi-Shot without delaying Auto Shot
-    multi = true, multiColor = { r = 1, g = 1, b = 1, a = 0.9 },
 }
 -- your own casts: latency, channel ticks, crafting many: one bar for the whole batch
 P_.player.castbar.latency = true

@@ -1592,18 +1592,6 @@ function Tabs.class(page, unit)
             { alpha = true, enableIf = function() return AimOn() and SW().aim end }))
     end
 
-    if unit == "player" and class == "HUNTER" then
-        local function SW() return U(unit).swing end
-        local function On() return SW().enabled and SW().ranged.show end
-        local function LineOn() return On() and SW().multi end
-        card = page:Add(1, UI.Card(page.content, L["Multi-Shot clip"],
-            L["A line on the ranged swing bar: the last moment to start Multi-Shot without delaying the next Auto Shot."]))
-        g, s = Bind(unit, "swing", "multi")
-        card:Add(UI.Check(card, L["Show Multi-Shot line"], g, s, { enableIf = On }))
-        card:Add(UI.Swatch(card, L["Color"], function() return SW().multiColor end, apply,
-            { alpha = true, enableIf = LineOn }))
-    end
-
     if unit == "player" and class == "SHAMAN" then
         local function TOn() return U(unit).totems.enabled end
         card = page:Add(1, UI.Card(page.content, L["Totems"], L["The game's totem bar, moved under your frame."]))
