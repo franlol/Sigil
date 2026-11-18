@@ -1378,6 +1378,7 @@ function Tabs.extras(page, unit)
     local player = unit == "player"
 
     -- fading
+    page:AddSection(L["Frame"], { accent = true })
     local card = page:Add(1, UI.Card(page.content, L["Fading"], L["The frame becomes transparent when any checked situation happens."]))
     local g, s
     if not player then
@@ -1410,7 +1411,7 @@ function Tabs.extras(page, unit)
     if not player then
         local function TBr() return U(unit).threatBar end
         local function TBOn() return TBr().enabled end
-        page:AddSection()
+        page:AddSection(L["Threat bar"], { accent = true })
         card = page:Add(1, UI.Card(page.content, L["Threat bar"], L["Your threat on this unit, from 0 to 100 %."]))
         g, s = Bind(unit, "threatBar", "enabled")
         card:Add(UI.Check(card, L["Show threat bar"], g, s))
@@ -1429,7 +1430,7 @@ function Tabs.extras(page, unit)
     if player then
         local function GC() return U(unit).gcd end
         local function GCOn() return GC().enabled end
-        page:AddSection()
+        page:AddSection(L["Global cooldown"], { accent = true })
         card = page:Add(1, UI.Card(page.content, L["Global cooldown"]))
         g, s = Bind(unit, "gcd", "enabled")
         card:Add(UI.Check(card, L["Show global cooldown"], g, s))
@@ -1443,7 +1444,7 @@ function Tabs.extras(page, unit)
 
         local function SW() return U(unit).swing end
         local function SWOn() return SW().enabled end
-        page:AddSection()
+        page:AddSection(L["Swing timer"], { accent = true })
         card = page:Add(1, UI.Card(page.content, L["Swing timer"], L["Time until your next melee swing or ranged shot."]))
         g, s = Bind(unit, "swing", "enabled")
         card:Add(UI.Check(card, L["Show swing timer"], g, s))
@@ -1499,7 +1500,7 @@ function Tabs.extras(page, unit)
 
         local function XP() return U(unit).xp end
         local function On() return XP().enabled end
-        page:AddSection()
+        page:AddSection(L["Experience / reputation"], { accent = true })
         card = page:Add(1, UI.Card(page.content, L["Experience / reputation"]))
         g, s = Bind(unit, "xp", "enabled")
         card:Add(UI.Check(card, L["Show experience bar"], g, s))
@@ -1521,7 +1522,7 @@ function Tabs.extras(page, unit)
     -- combat text: a text, so one anchor and the text look
     local function CT() return U(unit).combatText end
     local function CTOn() return CT().enabled end
-    page:AddSection()
+    page:AddSection(L["Combat text"], { accent = true })
     card = page:Add(1, UI.Card(page.content, L["Combat text"], L["Damage, heals and misses over the frame."]))
     g, s = Bind(unit, "combatText", "enabled")
     card:Add(UI.Check(card, L["Show combat text"], g, s))
@@ -1670,15 +1671,13 @@ local function ColorsPage(container)
     Swatches(card, "highlight", { { "mouseover", L["Mouseover"] }, { "target", L["Your target"] } }, true)
 
     card = page:Add(1, UI.Card(page.content, L["Reset"]))
-    local reset = UI.Buttons(card, {
+    card:Add(UI.Buttons(card, {
         { L["Reset every color"], function()
             ns.P.colors = ns.DeepCopy(ns.DEFAULTS.colors)
             ApplyColors()
             Changed()
-        end, "danger" },
-    })
-    UI.Confirm(reset.buttons[1])
-    card:Add(reset)
+        end, "danger", confirm = true },
+    }))
 end
 
 -- The tabs whose settings can be copied between frames (Core: ns.COPY_SECTIONS)
@@ -1795,7 +1794,7 @@ local function UnitPage(container, unit)
     enabled:SetPoint("RIGHT", reset, "LEFT", -12, 0)
 
     local holder = CreateFrame("Frame", nil, container)
-    holder:SetPoint("TOPLEFT", 0, -64)
+    holder:SetPoint("TOPLEFT", 0, -72)   -- under the tabs (they end at 56), with a gap
     holder:SetPoint("BOTTOMRIGHT")
 
     local labels = {}
@@ -1918,22 +1917,18 @@ local function ProfilesPage(container)
             if copy.from then ns.CopyProfile(copy.from) Changed() end
         end },
     }, { enableIf = function() return copy.from ~= nil end }))
-    local reset = UI.Buttons(card, {
-        { L["Reset this profile"], function() ns.ResetProfile() Changed() end, "danger" },
-    })
-    UI.Confirm(reset.buttons[1])
-    card:Add(reset)
+    card:Add(UI.Buttons(card, {
+        { L["Reset this profile"], function() ns.ResetProfile() Changed() end, "danger", confirm = true },
+    }))
 
     local del = { name = nil }
     card:Add(UI.Dropdown(card, L["Delete profile"], function() return ProfileList(true) end,
         function() return del.name end, function(v) del.name = v end))
-    local delBtn = UI.Buttons(card, {
+    card:Add(UI.Buttons(card, {
         { L["Delete"], function()
             if del.name then ns.DeleteProfile(del.name) del.name = nil Changed() end
-        end, "danger" },
-    }, { enableIf = function() return del.name ~= nil end })
-    UI.Confirm(delBtn.buttons[1])
-    card:Add(delBtn)
+        end, "danger", confirm = true },
+    }, { enableIf = function() return del.name ~= nil end }))
 
     card = page:Add(2, UI.Card(page.content, L["Share"], L["Export this profile as text, or paste one to import it."]))
     local box = card:Add(UI.CodeBox(card, 200))
