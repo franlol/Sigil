@@ -83,7 +83,7 @@ end
 
 -- Texture, orientation, fill direction and spark (bar.bg = background texture)
 function ns.StyleBar(bar, st)
-    local tex = (st.texture and st.texture ~= "") and st.texture or ns.Texture()
+    local tex = (st.texture and st.texture ~= "") and ns.ResolveMedia(st.texture) or ns.Texture()
     bar:SetStatusBarTexture(tex)
     -- slow bars glide instead of jumping a pixel at a time (as the game's own bars)
     local fill = bar:GetStatusBarTexture()
@@ -162,7 +162,7 @@ end
 function ns.StyleText(fs, t, autoSize)
     t = t or {}
     local size = (t.size and t.size > 0) and t.size or autoSize or 11
-    local font = (t.font and t.font ~= "") and t.font or ns.Font()
+    local font = (t.font and t.font ~= "") and ns.ResolveMedia(t.font) or ns.Font()
     local outline = (t.outline ~= nil and t.outline ~= false) and t.outline or ns.Outline()
     if not fs:SetFont(font, size, outline) then
         fs:SetFont(STANDARD_TEXT_FONT, size, outline)

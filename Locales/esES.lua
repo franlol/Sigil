@@ -226,7 +226,8 @@ ns.translations.esES = {
     ["Raid frames · resource"] = "Marcos de banda · recurso",
     ["Arena frames"] = "Marcos de arena",
     ["Gloss"] = "Brillo",
-    ["Smooth"] = "Suave",
+    ["Skills"] = "Habilidades",
+    ["Pet battles"] = "Duelos de mascotas",
 
     -- Options: Profiles
     ["This character"] = "Este personaje",

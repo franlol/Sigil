@@ -1,68 +1,46 @@
 -------------------------------------------------------------------------------
 -- Sigil - Bar textures and fonts
--- The game's ones are always there; if another addon loads
--- LibSharedMedia-3.0, all of its ones are added too.
+-- From LibFlatyUI: its own ("Flaty: ..."), the game's, and LibSharedMedia's
+-- when another addon loads it.
 -------------------------------------------------------------------------------
 
 local _, ns = ...
 local L = ns.L
+local Flaty = LibStub("LibFlatyUI-1.0")
 
 ns.FLAT = "Interface\\Buttons\\WHITE8X8"
+local FONT = "Fonts\\FRIZQT__.TTF"
 
-local FONTS = {
-    { "Friz Quadrata", "Fonts\\FRIZQT__.TTF" },
-    { "Arial Narrow", "Fonts\\ARIALN.TTF" },
-    { "Skurri", "Fonts\\skurri.ttf" },
-    { "Morpheus", "Fonts\\MORPHEUS.ttf" },
-}
-
--- A value is a file path or the name of one of the game's atlases (the
--- "Raid frames" ones are what Blizzard's raid frames draw).
-local TEXTURES = {
-    { "Flat", ns.FLAT },
-    { "Blizzard", "Interface\\TargetingFrame\\UI-StatusBar" },
-    { "Raid frames", "RaidFrame-Hp-Fill" },
-    { "Raid frames · resource", "_RaidFrame-Resource-Fill" },
-    { "Arena frames", "Interface\\RaidFrame\\Raid-Bar-Hp-Fill" },
-    { "Gloss", "Interface\\TargetingFrame\\BarFill2" },
-    { "Smooth", "Interface\\PaperDollInfoFrame\\UI-Character-Skills-Bar" },
-}
-
-local function LSM()
-    return LibStub and LibStub("LibSharedMedia-3.0", true)
-end
-
--- { value, label } lists for the dropdowns
-local function Merge(base, mediaType)
-    local out, seen = {}, {}
-    for _, e in ipairs(base) do
-        out[#out + 1] = { e[2], L[e[1]] }
-        seen[e[2]:lower()] = true
+-- { value, label, font, texture } lists for the dropdowns; the game's names
+-- are translated here (the lib's are brand names)
+local function Translated(list)
+    for _, o in ipairs(list) do
+        if not o[2]:find("^Flaty: ") then o[2] = L[o[2]] end
     end
-    local lsm = LSM()
-    if lsm then
-        local extra = {}
-        for name, path in pairs(lsm:HashTable(mediaType)) do
-            if type(path) == "string" and not seen[path:lower()] then
-                seen[path:lower()] = true
-                extra[#extra + 1] = { path, name }
-            end
-        end
-        table.sort(extra, function(a, b) return a[2] < b[2] end)
-        for _, e in ipairs(extra) do out[#out + 1] = e end
-    end
-    return out
+    return list
 end
+function ns.FontList() return Translated(Flaty.MediaList("font")) end
+function ns.TextureList() return Translated(Flaty.MediaList("statusbar")) end
 
-function ns.FontList() return Merge(FONTS, "font") end
-function ns.TextureList() return Merge(TEXTURES, "statusbar") end
+-- A saved path ready to use (nil: its addon is not loaded)
+ns.ResolveMedia = Flaty.ResolveMedia
+
+-- For dropdown getters: the saved value as the list knows it
+function ns.MediaGetter(get)
+    return function()
+        local v = get()
+        return v and Flaty.ResolveMedia(v) or v
+    end
+end
 
 function ns.Texture()
-    return ns.P and ns.P.media and ns.P.media.texture or ns.FLAT
+    local p = ns.P and ns.P.media and ns.P.media.texture
+    return Flaty.ResolveMedia(p) or ns.FLAT
 end
 
 function ns.Font()
-    return ns.P and ns.P.media and ns.P.media.font or STANDARD_TEXT_FONT or FONTS[1][2]
+    local p = ns.P and ns.P.media and ns.P.media.font
+    return Flaty.ResolveMedia(p) or STANDARD_TEXT_FONT or FONT
 end
 
 function ns.Outline()
@@ -72,6 +50,6 @@ end
 -- Sets a font; if the file fails, falls back to the game's one
 function ns.SetFont(fs, size)
     if not fs:SetFont(ns.Font(), size, ns.Outline()) then
-        fs:SetFont(STANDARD_TEXT_FONT or FONTS[1][2], size, ns.Outline())
+        fs:SetFont(STANDARD_TEXT_FONT or FONT, size, ns.Outline())
     end
 end

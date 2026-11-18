@@ -122,14 +122,14 @@ end
 local function TextureOptions(withDefault)
     local out = {}
     if withDefault then out[1] = { false, L["General texture"] } end
-    for _, o in ipairs(ns.TextureList()) do out[#out + 1] = { o[1], o[2], nil, o[1] } end
+    for _, o in ipairs(ns.TextureList()) do out[#out + 1] = o end
     return out
 end
 
 local function FontOptions(withDefault)
     local out = {}
     if withDefault then out[1] = { false, L["General font"] } end
-    for _, o in ipairs(ns.FontList()) do out[#out + 1] = { o[1], o[2], o[1] } end
+    for _, o in ipairs(ns.FontList()) do out[#out + 1] = o end
     return out
 end
 
@@ -145,7 +145,7 @@ local function BarCard(page, column, title, getStyle, apply, opts)
     local function IsNot(key, value) return function() return getStyle()[key] ~= value end end
 
     local g, s = TB(getStyle, "texture", apply)
-    card:Add(UI.Dropdown(card, L["Texture"], function() return TextureOptions(true) end, g, s, { enableIf = on }))
+    card:Add(UI.Dropdown(card, L["Texture"], function() return TextureOptions(true) end, ns.MediaGetter(g), s, { enableIf = on }))
     if opts.colors then
         opts.colors(card)
     else
@@ -200,7 +200,7 @@ local function TextRows(card, getText, apply, opts)
     opts = opts or {}
     local on = opts.enableIf
     local g, s = TB(getText, "font", apply)
-    card:Add(UI.Dropdown(card, L["Font"], function() return FontOptions(true) end, g, s, { enableIf = on }))
+    card:Add(UI.Dropdown(card, L["Font"], function() return FontOptions(true) end, ns.MediaGetter(g), s, { enableIf = on }))
     g, s = TB(getText, "size", apply)
     card:Add(UI.Slider(card, L["Font size"], opts.auto and 0 or 6, 32, 1, g, s, { enableIf = on,
         format = function(v) return v == 0 and L["Automatic"] or Px(v) end }))
@@ -1831,17 +1831,9 @@ local function GeneralPage(container)
 
     local card = page:Add(1, UI.Card(page.content, L["Appearance"], L["For every frame."]))
     local g, s = GBind("media", "texture")
-    card:Add(UI.Dropdown(card, L["Bar texture"], function()
-        local out = {}
-        for _, o in ipairs(ns.TextureList()) do out[#out + 1] = { o[1], o[2], nil, o[1] } end
-        return out
-    end, g, s))
+    card:Add(UI.Dropdown(card, L["Bar texture"], ns.TextureList, ns.MediaGetter(g), s))
     g, s = GBind("media", "font")
-    card:Add(UI.Dropdown(card, L["Font"], function()
-        local out = {}
-        for _, o in ipairs(ns.FontList()) do out[#out + 1] = { o[1], o[2], o[1] } end
-        return out
-    end, g, s))
+    card:Add(UI.Dropdown(card, L["Font"], ns.FontList, ns.MediaGetter(g), s))
     g, s = GBind("media", "outline")
     card:Add(UI.Segmented(card, L["Text outline"], {
         { "", L["None"] }, { "OUTLINE", L["Thin"] }, { "THICKOUTLINE", L["Thick"] },
