@@ -839,26 +839,23 @@ function Tabs.texts(page, unit)
         rows = 12,
     }))
 
-    local add = { tpl = "name" }
+    -- + in the title: pick a template, the text is added and selected
     local tplOptions = {}
     for _, t in ipairs(TEMPLATES) do tplOptions[#tplOptions + 1] = { t[1], L[t[2]] } end
-    list:Add(UI.Dropdown(list, L["Template"], tplOptions, function() return add.tpl end, function(v) add.tpl = v end))
-    list:Add(UI.Buttons(list, {
-        { L["Add text"], function()
-            for _, t in ipairs(TEMPLATES) do
-                if t[1] == add.tpl then
-                    table.insert(Texts(), {
-                        region = "health", point = "CENTER", x = 0, y = 0, size = 11, justify = "CENTER",
-                        code = t[3], events = ns.DeepCopy(t[4]), name = L[t[2]],
-                    })
-                    state.sel = #Texts()
-                end
+    local function AddText(key)
+        for _, t in ipairs(TEMPLATES) do
+            if t[1] == key then
+                table.insert(Texts(), {
+                    region = "health", point = "CENTER", x = 0, y = 0, size = 11, justify = "CENTER",
+                    code = t[3], events = ns.DeepCopy(t[4]), name = L[t[2]],
+                })
+                state.sel = #Texts()
             end
-            ns.ApplyUnit(unit)
-            Changed()
-            page.LoadEditor()
-        end, "accent" },
-    }))
+        end
+        ns.ApplyUnit(unit)
+        page.LoadEditor()
+    end
+    list:AddHeaderButton("plus", function(self) UI.Menu(self, tplOptions, AddText) end, { tip = L["Add text"] })
 
     -- editor: name, code and events are a draft; Save keeps all three at
     -- once (only when the code works), Undo goes back to the saved ones
@@ -1058,33 +1055,30 @@ function Tabs.auras(page, unit)
         Changed()
     end, { enableIf = SelOn }))
 
-    local add = { tpl = "debuffs" }
+    -- + in the title: pick a template, the group is added and selected
     local tpl = {}
     for _, t in ipairs(ns.AURA_TEMPLATES) do tpl[#tpl + 1] = { t[1], L[t[2]] } end
-    list:Add(UI.Dropdown(list, L["Template"], tpl, function() return add.tpl end, function(v) add.tpl = v end))
-    list:Add(UI.Buttons(list, {
-        { L["Add group"], function()
-            for _, t in ipairs(ns.AURA_TEMPLATES) do
-                if t[1] == add.tpl then
-                    -- the name stays in English and shows in the language in use
-                    local grp = t[3]()
-                    -- right after the last group, the way it grows, so they do not overlap
-                    local last = Groups()[#Groups()]
-                    if last then
-                        ns.FillAuraGroup(last)
-                        local _, bh = ns.AuraBlockSize(last)
-                        grp.anchor, grp.point, grp.relPoint = last.anchor, last.point, last.relPoint
-                        grp.x, grp.growX, grp.growY = last.x, last.growX, last.growY
-                        grp.y = (last.y or 0) + (last.growY == "UP" and 1 or -1) * (bh + 4)
-                    end
-                    table.insert(Groups(), grp)
-                    state.sel = #Groups()
+    local function AddGroup(key)
+        for _, t in ipairs(ns.AURA_TEMPLATES) do
+            if t[1] == key then
+                -- the name stays in English and shows in the language in use
+                local grp = t[3]()
+                -- right after the last group, the way it grows, so they do not overlap
+                local last = Groups()[#Groups()]
+                if last then
+                    ns.FillAuraGroup(last)
+                    local _, bh = ns.AuraBlockSize(last)
+                    grp.anchor, grp.point, grp.relPoint = last.anchor, last.point, last.relPoint
+                    grp.x, grp.growX, grp.growY = last.x, last.growX, last.growY
+                    grp.y = (last.y or 0) + (last.growY == "UP" and 1 or -1) * (bh + 4)
                 end
+                table.insert(Groups(), grp)
+                state.sel = #Groups()
             end
-            apply()
-            Changed()
-        end, "accent" },
-    }))
+        end
+        apply()
+    end
+    list:AddHeaderButton("plus", function(self) UI.Menu(self, tpl, AddGroup) end, { tip = L["Add group"] })
 
     -- how the icons line up, and where the block goes
     local lay = HasSel(page:Add(1, UI.Card(page.content, L["Layout"])))
@@ -1362,20 +1356,23 @@ function Tabs.castbar(page, unit)
         autoLabel = L["By state"], enableIf = On,
     })
 
-    card = page:Add(2, UI.Card(page.content, L["Spell name"]))
+    -- the two texts and the position: one card, a heading for each part
+    card = page:Add(2, UI.Card(page.content, L["Texts and position"]))
+    card:Add(UI.Heading(card, L["Spell name"]))
     TextRows(card, function() return CB().nameText end, apply, { auto = true, enableIf = On })
-    card = page:Add(2, UI.Card(page.content, L["Time text"]))
+    card:Add(UI.Heading(card, L["Time text"]))
     g, s = Bind(unit, "castbar", "timeFormat")
     card:Add(UI.Segmented(card, L["Time"], { { "left", "1.2" }, { "both", "1.2 / 3.0" } }, g, s, { enableIf = On }))
     TimeRows(card, function() return CB().timeFmt end, apply, { decimals = true, warn = true, enableIf = On })
     TextRows(card, function() return CB().timeText end, apply, { auto = true, enableIf = On })
-    card = page:Add(2, UI.Card(page.content, L["Position"]))
+    card:Add(UI.Heading(card, L["Position"]))
     PositionRows(card, CB, apply, { unit = unit, enableIf = On, pieceLabel = L["Point of the bar"] })
 end
 
--- Extras. Left: what changes the frame (fading, threat), then the extra bars
--- and the combat text; right: the look and text of each one, in the same
--- order. Every bar: Show, what it does, Height, position | look | text.
+-- Extras. First what changes the frame (fading | threat border), then one
+-- section per extra bar and the combat text: its settings on the left, its
+-- look and text on the right, level with them. Every bar: Show, what it
+-- does, Height, position | look | text.
 function Tabs.extras(page, unit)
     local apply = function() ns.ApplyUnit(unit) end
     local player = unit == "player"
@@ -1401,7 +1398,7 @@ function Tabs.extras(page, unit)
     card:Add(UI.Slider(card, L["Opacity when faded"], 0, 1, 0.05, g, s, { format = UI.pct }))
 
     -- threat: the border, and (on other units) the bar
-    card = page:Add(1, UI.Card(page.content, L["Threat border"], player
+    card = page:Add(2, UI.Card(page.content, L["Threat border"], player
         and L["Border with your highest threat on any enemy."] or L["Border with your threat on this unit."]))
     g, s = Bind(unit, "threat", "enabled")
     card:Add(UI.Check(card, L["Show threat border"], g, s))
@@ -1413,6 +1410,7 @@ function Tabs.extras(page, unit)
     if not player then
         local function TBr() return U(unit).threatBar end
         local function TBOn() return TBr().enabled end
+        page:AddSection()
         card = page:Add(1, UI.Card(page.content, L["Threat bar"], L["Your threat on this unit, from 0 to 100 %."]))
         g, s = Bind(unit, "threatBar", "enabled")
         card:Add(UI.Check(card, L["Show threat bar"], g, s))
@@ -1431,6 +1429,7 @@ function Tabs.extras(page, unit)
     if player then
         local function GC() return U(unit).gcd end
         local function GCOn() return GC().enabled end
+        page:AddSection()
         card = page:Add(1, UI.Card(page.content, L["Global cooldown"]))
         g, s = Bind(unit, "gcd", "enabled")
         card:Add(UI.Check(card, L["Show global cooldown"], g, s))
@@ -1444,6 +1443,7 @@ function Tabs.extras(page, unit)
 
         local function SW() return U(unit).swing end
         local function SWOn() return SW().enabled end
+        page:AddSection()
         card = page:Add(1, UI.Card(page.content, L["Swing timer"], L["Time until your next melee swing or ranged shot."]))
         g, s = Bind(unit, "swing", "enabled")
         card:Add(UI.Check(card, L["Show swing timer"], g, s))
@@ -1499,6 +1499,7 @@ function Tabs.extras(page, unit)
 
         local function XP() return U(unit).xp end
         local function On() return XP().enabled end
+        page:AddSection()
         card = page:Add(1, UI.Card(page.content, L["Experience / reputation"]))
         g, s = Bind(unit, "xp", "enabled")
         card:Add(UI.Check(card, L["Show experience bar"], g, s))
@@ -1520,6 +1521,7 @@ function Tabs.extras(page, unit)
     -- combat text: a text, so one anchor and the text look
     local function CT() return U(unit).combatText end
     local function CTOn() return CT().enabled end
+    page:AddSection()
     card = page:Add(1, UI.Card(page.content, L["Combat text"], L["Damage, heals and misses over the frame."]))
     g, s = Bind(unit, "combatText", "enabled")
     card:Add(UI.Check(card, L["Show combat text"], g, s))
@@ -1623,10 +1625,14 @@ local function ColorsPage(container)
         ns.ResetGradient()
         ns.ApplyAll()
     end
-    -- one swatch per key of a color group
+    -- one swatch per key of a color group; each one can go back to its
+    -- default on its own (the reset icon shows while it differs)
     local function Swatches(card, group, list, alpha)
         for _, e in ipairs(list) do
-            card:Add(UI.Swatch(card, e[2], function() return ns.P.colors[group][e[1]] end, ApplyColors, { alpha = alpha }))
+            card:Add(UI.Swatch(card, e[2], function() return ns.P.colors[group][e[1]] end, ApplyColors, {
+                alpha = alpha,
+                default = function() return ns.DEFAULTS.colors[group] and ns.DEFAULTS.colors[group][e[1]] end,
+            }))
         end
     end
 

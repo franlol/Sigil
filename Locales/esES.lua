@@ -564,6 +564,8 @@ ns.translations.esES = {
     ["Search..."] = "Buscar...",
     ["Accept"] = "Aceptar",
     ["Cancel"] = "Cancelar",
+    ["Reset to default"] = "Volver al valor por defecto",
+    ["Texts and position"] = "Textos y posición",
     ["This replaces every setting of the profile in use. Continue?"] = "Esto sustituye toda la configuración del perfil en uso. ¿Continuar?",
 
     -- Minimap button
