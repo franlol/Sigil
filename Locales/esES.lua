@@ -565,6 +565,7 @@ ns.translations.esES = {
     ["Accept"] = "Aceptar",
     ["Cancel"] = "Cancelar",
     ["Texts and position"] = "Textos y posición",
+    ["Delete the profile \"%s\"?"] = "¿Borrar el perfil \"%s\"?",
     ["This replaces every setting of the profile in use. Continue?"] = "Esto sustituye toda la configuración del perfil en uso. ¿Continuar?",
 
     -- Minimap button

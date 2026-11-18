@@ -205,7 +205,7 @@ local function TextRows(card, getText, apply, opts)
     card:Add(UI.Slider(card, L["Font size"], opts.auto and 0 or 6, 32, 1, g, s, { enableIf = on,
         format = function(v) return v == 0 and L["Automatic"] or Px(v) end }))
     g, s = TB(getText, "outline", apply)
-    card:Add(UI.Segmented(card, L["Outline"], {
+    card:Add(UI.Dropdown(card, L["Outline"], {
         { false, L["General"] }, { "", L["None"] }, { "OUTLINE", L["Thin"] }, { "THICKOUTLINE", L["Thick"] },
     }, g, s, { enableIf = on }))
     g, s = TB(getText, "shadow", apply)
@@ -363,7 +363,7 @@ function Tabs.frame(page, unit)
 
     card = page:Add(2, UI.Card(page.content, L["When to show"], L["The game decides it, so it also works in combat."]))
     g, s = Bind(unit, "visibility")
-    card:Add(UI.Segmented(card, nil, {
+    card:Add(UI.Dropdown(card, nil, {
         { "always", L["Always"] }, { "combat", L["In combat"] }, { "combatTarget", L["Combat or target"] },
         { "custom", L["Custom"] },
     }, g, s))
@@ -399,7 +399,7 @@ function Tabs.frame(page, unit)
     if unit == "party" then
         card = page:Add(1, UI.Card(page.content, L["Group"], L["The four party members, one after another."]))
         g, s = Bind(unit, "grow")
-        card:Add(UI.Segmented(card, L["Next member"], {
+        card:Add(UI.Dropdown(card, L["Next member"], {
             { "DOWN", L["Below"] }, { "UP", L["Above"] }, { "RIGHT", L["Right"] }, { "LEFT", L["Left"] },
         }, g, s))
         g, s = Bind(unit, "spacing")
@@ -1185,7 +1185,7 @@ function Tabs.auras(page, unit)
 
     local when = HasSel(page:Add(2, UI.Card(page.content, L["When to show"], L["The game decides it, so it also works in combat."])))
     g, s = SB("visibility")
-    when:Add(UI.Segmented(when, nil, {
+    when:Add(UI.Dropdown(when, nil, {
         { "always", L["Always"] }, { "combat", L["In combat"] }, { "nocombat", L["Out of combat"] },
         { "custom", L["Custom"] },
     }, g, s, { enableIf = SelOn }))
@@ -1908,27 +1908,33 @@ local function ProfilesPage(container)
         Changed()
     end, { tip = L["Type a name and press Enter: a new profile with the default settings."] }))
 
+    -- actions, no pick-then-apply: the button lists the other profiles, the
+    -- one picked is confirmed in a dialog (it replaces or removes a lot)
     card = page:Add(1, UI.Card(page.content, L["Copy and reset"]))
-    local copy = { from = nil }
-    card:Add(UI.Dropdown(card, L["Copy from"], function() return ProfileList(true) end,
-        function() return copy.from end, function(v) copy.from = v end))
+    local function HasOthers() return #ProfileList(true) > 0 end
     card:Add(UI.Buttons(card, {
-        { L["Copy into this profile"], function()
-            if copy.from then ns.CopyProfile(copy.from) Changed() end
+        { L["Copy from"] .. "...", function(self)
+            UI.Menu(self, ProfileList(true), function(name)
+                UI.Dialog(L["This replaces every setting of the profile in use. Continue?"], L["Copy"], function()
+                    ns.CopyProfile(name)
+                    Changed()
+                end)
+            end)
         end },
-    }, { enableIf = function() return copy.from ~= nil end }))
+    }, { enableIf = HasOthers }))
     card:Add(UI.Buttons(card, {
         { L["Reset this profile"], function() ns.ResetProfile() Changed() end, "danger", confirm = true },
     }))
-
-    local del = { name = nil }
-    card:Add(UI.Dropdown(card, L["Delete profile"], function() return ProfileList(true) end,
-        function() return del.name end, function(v) del.name = v end))
     card:Add(UI.Buttons(card, {
-        { L["Delete"], function()
-            if del.name then ns.DeleteProfile(del.name) del.name = nil Changed() end
-        end, "danger", confirm = true },
-    }, { enableIf = function() return del.name ~= nil end }))
+        { L["Delete profile"] .. "...", function(self)
+            UI.Menu(self, ProfileList(true), function(name)
+                UI.Dialog(L["Delete the profile \"%s\"?"]:format(name), L["Delete"], function()
+                    ns.DeleteProfile(name)
+                    Changed()
+                end)
+            end)
+        end, "danger" },
+    }, { enableIf = HasOthers }))
 
     card = page:Add(2, UI.Card(page.content, L["Share"], L["Export this profile as text, or paste one to import it."]))
     local box = card:Add(UI.CodeBox(card, 200))
