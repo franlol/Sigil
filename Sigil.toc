@@ -8,6 +8,9 @@
 ## X-Curse-Project-ID: 1799492
 ## Version: @project-version@
 ## IconTexture: Interface\AddOns\Sigil\Media\Icon
+## AddonCompartmentFunc: Sigil_OnCompartmentClick
+## AddonCompartmentFuncOnEnter: Sigil_OnCompartmentEnter
+## AddonCompartmentFuncOnLeave: Sigil_OnCompartmentLeave
 ## SavedVariables: SigilDB
 ## OptionalDeps: Blizzard_AuraContainer, Masque, Clique, LibSharedMedia-3.0
 

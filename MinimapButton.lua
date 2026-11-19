@@ -57,24 +57,36 @@ end)
 btn:SetScript("OnDragStop", function(self)
     self:SetScript("OnUpdate", nil)
 end)
-btn:SetScript("OnClick", function(_, button)
+local function OnClick(button)
     if button == "RightButton" then
         ns.SetTestMode(not ns.testMode)
     else
         ns.ToggleOptions()
     end
-end)
-btn:SetScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+end
+
+-- compartment = opened from the addon compartment (no drag there)
+local function ShowTooltip(owner, compartment)
+    GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
     GameTooltip:AddDoubleLine("Sigil", "v" .. ns.version, ACCENT[1], ACCENT[2], ACCENT[3], 0.5, 0.5, 0.5)
     GameTooltip:AddDoubleLine(L["Profile:"], ns.profileName or "?", 0.7, 0.7, 0.7, 1, 1, 1)
     GameTooltip:AddLine(" ")
     GameTooltip:AddDoubleLine(L["Click"], L["Open the options"], 1, 0.82, 0, 1, 1, 1)
     GameTooltip:AddDoubleLine(L["Right click"], L["Test mode"], 1, 0.82, 0, 1, 1, 1)
-    GameTooltip:AddDoubleLine(L["Drag"], L["Move this button"], 1, 0.82, 0, 1, 1, 1)
+    if not compartment then
+        GameTooltip:AddDoubleLine(L["Drag"], L["Move this button"], 1, 0.82, 0, 1, 1, 1)
+    end
     GameTooltip:Show()
-end)
+end
+
+btn:SetScript("OnClick", function(_, button) OnClick(button) end)
+btn:SetScript("OnEnter", function(self) ShowTooltip(self) end)
 btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+-- Named in the TOC (AddonCompartmentFunc...)
+function Sigil_OnCompartmentClick(_, button) OnClick(button) end
+function Sigil_OnCompartmentEnter(_, owner) ShowTooltip(owner, true) end
+function Sigil_OnCompartmentLeave() GameTooltip:Hide() end
 
 function ns.UpdateMinimapButton()
     btn:SetShown(not Settings().hide)
