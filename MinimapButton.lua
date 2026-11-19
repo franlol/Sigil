@@ -1,7 +1,6 @@
 -------------------------------------------------------------------------------
 -- Sigil - Minimap button (LibDBIcon): click opens the options, right click
--- test mode, drag moves it around the minimap (saved for the whole account).
--- Also the addon compartment entry, named in the TOC.
+-- test mode, drag moves it around the minimap (saved for the whole account)
 -------------------------------------------------------------------------------
 
 local ADDON, ns = ...
@@ -19,36 +18,26 @@ local function Settings()
         m.minimapPos = m.angle
         m.angle = nil
     end
-    -- the addon menu entry comes from the TOC; LibDBIcon's would be a second one
-    m.showInCompartment = nil
     return m
-end
-
-local function OnClick(button)
-    if button == "RightButton" then
-        ns.SetTestMode(not ns.testMode)
-    else
-        ns.ToggleOptions()
-    end
-end
-
--- compartment = shown for the addon compartment (no drag there)
-local function FillTooltip(tt, compartment)
-    tt:AddDoubleLine("Sigil", "v" .. ns.version, ACCENT[1], ACCENT[2], ACCENT[3], 0.5, 0.5, 0.5)
-    tt:AddDoubleLine(L["Profile:"], ns.profileName or "?", 0.7, 0.7, 0.7, 1, 1, 1)
-    tt:AddLine(" ")
-    tt:AddDoubleLine(L["Click"], L["Open the options"], 1, 0.82, 0, 1, 1, 1)
-    tt:AddDoubleLine(L["Right click"], L["Test mode"], 1, 0.82, 0, 1, 1, 1)
-    if not compartment and not Settings().lock then
-        tt:AddDoubleLine(L["Drag"], L["Move this button"], 1, 0.82, 0, 1, 1, 1)
-    end
 end
 
 local broker = LibStub("LibDataBroker-1.1"):NewDataObject(ADDON, {
     type = "launcher",
     icon = "Interface\\AddOns\\Sigil\\Media\\IconRound",
-    OnClick = function(_, button) OnClick(button) end,
-    OnTooltipShow = function(tt) FillTooltip(tt) end,
+    OnClick = function(_, button)
+        if button == "RightButton" then
+            ns.SetTestMode(not ns.testMode)
+        else
+            ns.ToggleOptions()
+        end
+    end,
+    OnTooltipShow = function(tt)
+        tt:AddDoubleLine("Sigil", "v" .. ns.version, ACCENT[1], ACCENT[2], ACCENT[3], 0.5, 0.5, 0.5)
+        tt:AddDoubleLine(L["Profile:"], ns.profileName or "?", 0.7, 0.7, 0.7, 1, 1, 1)
+        tt:AddLine(" ")
+        tt:AddDoubleLine(L["Click"], L["Open the options"], 1, 0.82, 0, 1, 1, 1)
+        tt:AddDoubleLine(L["Right click"], L["Test mode"], 1, 0.82, 0, 1, 1, 1)
+    end,
 })
 
 -- Show or hide it as the options say
@@ -64,12 +53,3 @@ ev:SetScript("OnEvent", function(self)
         DBI:Register(ADDON, broker, Settings())
     end
 end)
-
--- Named in the TOC (AddonCompartmentFunc...)
-function Sigil_OnCompartmentClick(_, button) OnClick(button) end
-function Sigil_OnCompartmentEnter(_, owner)
-    GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
-    FillTooltip(GameTooltip, true)
-    GameTooltip:Show()
-end
-function Sigil_OnCompartmentLeave() GameTooltip:Hide() end
