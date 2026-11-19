@@ -1862,7 +1862,7 @@ local function GeneralPage(container)
     card:Add(UI.Check(card, L["Minimap button"], function()
         return not (ns.db.minimap and ns.db.minimap.hide)
     end, function(v)
-        ns.db.minimap = ns.db.minimap or { angle = 200 }
+        ns.db.minimap = ns.db.minimap or { minimapPos = 200 }
         ns.db.minimap.hide = not v
         ns.UpdateMinimapButton()
     end, { tip = L["Click: options · right click: test mode · drag: move it."] }))

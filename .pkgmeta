@@ -4,7 +4,11 @@ externals:
   Libs/LibFlatyUI-1.0:
     url: https://github.com/franlol/LibFlatyUI-1.0
     tag: latest
+  Libs/CallbackHandler-1.0: https://repos.curseforge.com/wow/callbackhandler/trunk/CallbackHandler-1.0
+  Libs/LibDataBroker-1.1: https://github.com/tekkub/libdatabroker-1-1
+  Libs/LibDBIcon-1.0: https://repos.curseforge.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0
 
 ignore:
   - README.md
+  - Libs/LibDataBroker-1.1/README.textile
   - tools

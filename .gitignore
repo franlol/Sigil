@@ -1,2 +1,7 @@
 # Fetched by the packager (.pkgmeta externals); the source is the LibFlatyUI-1.0 repository
 Libs/LibFlatyUI-1.0/
+
+# Fetched by the packager (.pkgmeta externals)
+Libs/CallbackHandler-1.0/
+Libs/LibDataBroker-1.1/
+Libs/LibDBIcon-1.0/

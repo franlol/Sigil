@@ -1,62 +1,27 @@
 -------------------------------------------------------------------------------
--- Sigil - Minimap button: click opens the options, drag moves it around the
--- minimap (the angle is saved for every character)
+-- Sigil - Minimap button (LibDBIcon): click opens the options, right click
+-- test mode, drag moves it around the minimap (saved for the whole account).
+-- Also the addon compartment entry, named in the TOC.
 -------------------------------------------------------------------------------
 
-local _, ns = ...
+local ADDON, ns = ...
 local L = ns.L
 
 local ACCENT = { 0.71, 0.55, 1 }
+local DBI = LibStub("LibDBIcon-1.0")
 
-local btn = CreateFrame("Button", "SigilMinimapButton", Minimap)
-btn:SetSize(31, 31)
-btn:SetFrameStrata("MEDIUM")
-btn:SetFrameLevel(8)
-btn:RegisterForClicks("AnyUp")
-btn:RegisterForDrag("LeftButton")
-btn:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
-
-local icon = btn:CreateTexture(nil, "ARTWORK")
-icon:SetSize(20, 20)
-icon:SetPoint("TOPLEFT", 7, -5)
-icon:SetTexture("Interface\\AddOns\\Sigil\\Media\\IconRound")
-
-local border = btn:CreateTexture(nil, "OVERLAY")
-border:SetSize(53, 53)
-border:SetPoint("TOPLEFT")
-border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-
-local atan2 = math.atan2 or atan2
-
+-- LibDBIcon's settings (minimapPos, hide, lock). Older versions saved the
+-- position as "angle": same degrees, so it carries over as it is.
 local function Settings()
-    ns.db.minimap = ns.db.minimap or { angle = 200, hide = false }
-    return ns.db.minimap
+    ns.db.minimap = ns.db.minimap or { minimapPos = 200, hide = false }
+    local m = ns.db.minimap
+    if m.angle then
+        m.minimapPos = m.angle
+        m.angle = nil
+    end
+    return m
 end
 
--- On the edge of the minimap, at the saved angle
-local function Place()
-    local a = math.rad(Settings().angle)
-    local r = Minimap:GetWidth() / 2 + 5
-    btn:ClearAllPoints()
-    btn:SetPoint("CENTER", Minimap, "CENTER", math.cos(a) * r, math.sin(a) * r)
-end
-
--- While dragging, it follows the cursor around the minimap
-local function FollowCursor()
-    local mx, my = Minimap:GetCenter()
-    local scale = Minimap:GetEffectiveScale()
-    local cx, cy = GetCursorPosition()
-    Settings().angle = math.deg(atan2(cy / scale - my, cx / scale - mx))
-    Place()
-end
-
-btn:SetScript("OnDragStart", function(self)
-    self:SetScript("OnUpdate", FollowCursor)
-    GameTooltip:Hide()
-end)
-btn:SetScript("OnDragStop", function(self)
-    self:SetScript("OnUpdate", nil)
-end)
 local function OnClick(button)
     if button == "RightButton" then
         ns.SetTestMode(not ns.testMode)
@@ -65,37 +30,44 @@ local function OnClick(button)
     end
 end
 
--- compartment = opened from the addon compartment (no drag there)
-local function ShowTooltip(owner, compartment)
-    GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
-    GameTooltip:AddDoubleLine("Sigil", "v" .. ns.version, ACCENT[1], ACCENT[2], ACCENT[3], 0.5, 0.5, 0.5)
-    GameTooltip:AddDoubleLine(L["Profile:"], ns.profileName or "?", 0.7, 0.7, 0.7, 1, 1, 1)
-    GameTooltip:AddLine(" ")
-    GameTooltip:AddDoubleLine(L["Click"], L["Open the options"], 1, 0.82, 0, 1, 1, 1)
-    GameTooltip:AddDoubleLine(L["Right click"], L["Test mode"], 1, 0.82, 0, 1, 1, 1)
-    if not compartment then
-        GameTooltip:AddDoubleLine(L["Drag"], L["Move this button"], 1, 0.82, 0, 1, 1, 1)
+-- compartment = shown for the addon compartment (no drag there)
+local function FillTooltip(tt, compartment)
+    tt:AddDoubleLine("Sigil", "v" .. ns.version, ACCENT[1], ACCENT[2], ACCENT[3], 0.5, 0.5, 0.5)
+    tt:AddDoubleLine(L["Profile:"], ns.profileName or "?", 0.7, 0.7, 0.7, 1, 1, 1)
+    tt:AddLine(" ")
+    tt:AddDoubleLine(L["Click"], L["Open the options"], 1, 0.82, 0, 1, 1, 1)
+    tt:AddDoubleLine(L["Right click"], L["Test mode"], 1, 0.82, 0, 1, 1, 1)
+    if not compartment and not Settings().lock then
+        tt:AddDoubleLine(L["Drag"], L["Move this button"], 1, 0.82, 0, 1, 1, 1)
     end
-    GameTooltip:Show()
 end
 
-btn:SetScript("OnClick", function(_, button) OnClick(button) end)
-btn:SetScript("OnEnter", function(self) ShowTooltip(self) end)
-btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+local broker = LibStub("LibDataBroker-1.1"):NewDataObject(ADDON, {
+    type = "launcher",
+    icon = "Interface\\AddOns\\Sigil\\Media\\IconRound",
+    OnClick = function(_, button) OnClick(button) end,
+    OnTooltipShow = function(tt) FillTooltip(tt) end,
+})
+
+-- Show or hide it as the options say
+function ns.UpdateMinimapButton()
+    DBI:Refresh(ADDON, Settings())
+end
+
+local ev = CreateFrame("Frame")
+ev:RegisterEvent("PLAYER_LOGIN")
+ev:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_LOGIN")
+    if broker and not DBI:IsRegistered(ADDON) then
+        DBI:Register(ADDON, broker, Settings())
+    end
+end)
 
 -- Named in the TOC (AddonCompartmentFunc...)
 function Sigil_OnCompartmentClick(_, button) OnClick(button) end
-function Sigil_OnCompartmentEnter(_, owner) ShowTooltip(owner, true) end
-function Sigil_OnCompartmentLeave() GameTooltip:Hide() end
-
-function ns.UpdateMinimapButton()
-    btn:SetShown(not Settings().hide)
+function Sigil_OnCompartmentEnter(_, owner)
+    GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
+    FillTooltip(GameTooltip, true)
+    GameTooltip:Show()
 end
-
--- the saved angle is only known after the saved variables load
-btn:RegisterEvent("PLAYER_LOGIN")
-btn:SetScript("OnEvent", function(self)
-    self:UnregisterEvent("PLAYER_LOGIN")
-    Place()
-    ns.UpdateMinimapButton()
-end)
+function Sigil_OnCompartmentLeave() GameTooltip:Hide() end
