@@ -12,12 +12,14 @@
 -- Haste that comes or goes during a swing (UNIT_ATTACK_SPEED,
 -- UNIT_RANGEDDAMAGE) changes the rest of it, so the bar keeps up.
 --
--- Hunters: the end of the ranged bar is shaded as the aiming zone, where
--- moving or starting a cast delays the next Auto Shot. Its length: the
--- wind-up (option, 0.5 s by default) shortened by ranged haste like the
--- reload (reload / speed without haste), plus your latency. On Forever the
--- wind-up is about 0.55-0.67 s and scales with the reload; the zone is
--- still an approximation, not a value the game reports.
+-- Hunters: the end of the ranged bar is the aiming zone, where moving or
+-- starting a cast delays the next Auto Shot, shaded or marked by a line where
+-- it starts. Its length: the wind-up (option, 0.5 s by default), shortened by
+-- ranged haste like the reload (reload / speed without haste) and plus your
+-- latency, each an option. On Forever the wind-up is about 0.55-0.67 s and
+-- scales with the reload; the zone is still an approximation, not a value the
+-- game reports. Optional: the fill takes another color inside the zone, and
+-- the zone's length shows as a text on it.
 -------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -115,11 +117,12 @@ local function Latency()
 end
 
 -- Seconds of the aiming zone for a ranged reload of `dur`: the wind-up
--- (option) shortened by haste like the reload, plus latency. hasted: dur is a
--- real reload (the test sample is not)
-local function AimSeconds(dur, windUp, hasted)
-    local haste = (hasted and state.unhasted) and dur / state.unhasted or 1
-    return math.min(dur, windUp * haste + Latency())
+-- (option), shortened by haste like the reload and plus latency when those
+-- options are on. hasted: dur is a real reload (the test sample is not)
+local function AimSeconds(dur, c, hasted)
+    local haste = (c.aimHaste ~= false and hasted and state.unhasted) and dur / state.unhasted or 1
+    local lag = c.aimLatency ~= false and Latency() or 0
+    return math.min(dur, (c.aimTime or 0.5) * haste + lag)
 end
 
 local function IsHunter()
@@ -138,9 +141,13 @@ local function NewHalf(box)
     bar.bg = bar:CreateTexture(nil, "BACKGROUND")
     bar.bg:SetAllPoints()
     bar:SetMinMaxValues(0, 1)
+    -- the zone: shaded, or a line where it starts (the zone still places it)
     bar.aim = bar:CreateTexture(nil, "ARTWORK", nil, 2)
     bar.aim:SetTexture(ns.FLAT)
     bar.aim:Hide()
+    bar.aimLine = bar:CreateTexture(nil, "ARTWORK", nil, 3)
+    bar.aimLine:SetTexture(ns.FLAT)
+    bar.aimLine:Hide()
     return bar
 end
 
@@ -152,26 +159,50 @@ local function NewSlot(parent)
     over:SetAllPoints()
     over:SetFrameLevel(box.bar:GetFrameLevel() + 2)
     box.text = over:CreateFontString(nil, "OVERLAY")
+    box.aimText = over:CreateFontString(nil, "OVERLAY")   -- the zone's length
+    box.aimText:Hide()
     box:Hide()
     return box
 end
 
--- The aiming zone sits at the end the half fills toward
-local function PlaceAim(bar, frac, vertical, reverse)
-    local aim = bar.aim
+-- The aiming zone sits at the end the half fills toward; its line on the
+-- zone's side where the fill comes in. thick: the line's thickness
+local function PlaceAim(bar, frac, vertical, reverse, thick)
+    local aim, line = bar.aim, bar.aimLine
     local len = vertical and bar:GetHeight() or bar:GetWidth()
     local size = math.max(1, len * frac)
     aim:ClearAllPoints()
+    line:ClearAllPoints()
     if vertical then
         local edge = reverse and "BOTTOM" or "TOP"
+        local start = reverse and "TOP" or "BOTTOM"
         aim:SetPoint(edge .. "LEFT", bar, edge .. "LEFT")
         aim:SetPoint(edge .. "RIGHT", bar, edge .. "RIGHT")
         aim:SetHeight(size)
+        line:SetPoint(start .. "LEFT", aim, start .. "LEFT")
+        line:SetPoint(start .. "RIGHT", aim, start .. "RIGHT")
+        line:SetHeight(math.min(thick, size))
     else
         local edge = reverse and "LEFT" or "RIGHT"
+        local start = reverse and "RIGHT" or "LEFT"
         aim:SetPoint("TOP" .. edge, bar, "TOP" .. edge)
         aim:SetPoint("BOTTOM" .. edge, bar, "BOTTOM" .. edge)
         aim:SetWidth(size)
+        line:SetPoint("TOP" .. start, aim, "TOP" .. start)
+        line:SetPoint("BOTTOM" .. start, aim, "BOTTOM" .. start)
+        line:SetWidth(math.min(thick, size))
+    end
+end
+
+-- Fill color of a slot's halves: the zone color inside the aiming zone
+local function PaintFill(box, c, kind, inZone)
+    local col = c[kind].color or { r = 1, g = 1, b = 1 }
+    ns.PaintBar(box.bar, c.style, col.r, col.g, col.b)
+    ns.PaintBar(box.bar2, box.st2, col.r, col.g, col.b)
+    if inZone then
+        local z = c.aimFillColor or { r = 1, g = 0.3, b = 0.3 }
+        box.bar:SetStatusBarColor(z.r, z.g, z.b)
+        box.bar2:SetStatusBarColor(z.r, z.g, z.b)
     end
 end
 
@@ -246,7 +277,8 @@ local function Paint(g, c, now, restack)
             local frac, left, dur
             if g.test then
                 dur = kind == "ranged" and 2.2 or 2.6
-                frac = kind == "ranged" and 0.4 or (kind == "main" and 0.6 or 0.3)
+                -- ranged: inside the aiming zone, so its options show
+                frac = kind == "ranged" and 0.85 or (kind == "main" and 0.6 or 0.3)
                 left = dur * (1 - frac)
             elseif s.start and now < s.start + s.dur then
                 dur = s.dur
@@ -261,21 +293,33 @@ local function Paint(g, c, now, restack)
             local bc = c[kind]
             box.text:SetText(bc.text and left and ns.FormatTime(box.timeRules, left) or "")
             local aimOn = (kind == "ranged" and c.aim and IsHunter() and dur) and true or false
-            -- placed again only when the reload, the haste base, the option or
-            -- the bar's size changed (latency is read then), not every frame
-            local windUp = c.aimTime or 0.5
+            -- placed again only when the reload, the haste base or the bar's
+            -- size changed (latency is read then), or after a layout (any
+            -- option), not every frame
             local st = c.style
             local vertical = st.orientation == "VERTICAL"
             local len = aimOn and (vertical and box.bar:GetHeight() or box.bar:GetWidth())
-            if aimOn and (box.aimDur ~= dur or box.aimWind ~= windUp or box.aimBase ~= state.unhasted
+            if aimOn and (box.aimDur ~= dur or box.aimBase ~= state.unhasted
                 or box.aimLen ~= len or box.aimTest ~= g.test) then
-                box.aimDur, box.aimWind, box.aimBase, box.aimLen, box.aimTest = dur, windUp, state.unhasted, len, g.test
-                local aimFrac = AimSeconds(dur, windUp, not g.test) / dur
-                PlaceAim(box.bar, aimFrac, vertical, st.reverse)
-                PlaceAim(box.bar2, aimFrac, vertical, not st.reverse)
+                box.aimDur, box.aimBase, box.aimLen, box.aimTest = dur, state.unhasted, len, g.test
+                local secs = AimSeconds(dur, c, not g.test)
+                box.aimFrac = secs / dur
+                local thick = c.aimLine or 2
+                PlaceAim(box.bar, box.aimFrac, vertical, st.reverse, thick)
+                PlaceAim(box.bar2, box.aimFrac, vertical, not st.reverse, thick)
+                box.aimText:SetFormattedText("%.2f", secs)
             end
-            box.bar.aim:SetShown(aimOn)
-            box.bar2.aim:SetShown(aimOn and middle)
+            local line = c.aimStyle == "line"
+            box.bar.aim:SetShown(aimOn and not line)
+            box.bar2.aim:SetShown(aimOn and middle and not line)
+            box.bar.aimLine:SetShown(aimOn and line)
+            box.bar2.aimLine:SetShown(aimOn and middle and line)
+            box.aimText:SetShown(aimOn and c.aimText and true or false)
+            local inZone = (aimOn and c.aimFill and frac >= 1 - box.aimFrac) and true or false
+            if inZone ~= box.inZone then
+                box.inZone = inZone
+                PaintFill(box, c, kind, inZone)
+            end
         end
     end
     if changed then Restack(g, c) end
@@ -309,19 +353,26 @@ local function LayoutPiece(f, g, c, key, label)
         box:SetSize(w, pos.height)
         local edge = ns.StyleBox(box, st, box.bar)
         PlaceHalves(box, edge, bc.fill == "middle", vertical)
-        local col = bc.color or { r = 1, g = 1, b = 1 }
+        box.st2 = st2
         ns.StyleBar(box.bar, st)
         ns.StyleBar(box.bar2, st2)
+        PaintFill(box, c, kind, false)
+        box.inZone = false
         for _, half in ipairs({ box.bar, box.bar2 }) do
-            ns.PaintBar(half, st, col.r, col.g, col.b)
             half.aim:SetVertexColor(ac.r, ac.g, ac.b, ac.a or 0.45)
+            half.aimLine:SetVertexColor(ac.r, ac.g, ac.b, ac.a or 0.45)
         end
         box.timeRules = ns.TimeRules(bc.timeFmt)
         ns.StyleText(box.text, bc.textStyle, ns.AutoSize("short", pos.height))
         local tp = bc.textPos
         box.text:ClearAllPoints()
         box.text:SetPoint(tp.point, box, tp.relPoint, tp.x, tp.y)
-        box.aimDur = nil   -- style changed: place the aiming zone again
+        -- the zone's length, on the zone of the first half
+        ns.StyleText(box.aimText, c.aimTextStyle, ns.AutoSize("short", pos.height))
+        local ap = c.aimTextPos
+        box.aimText:ClearAllPoints()
+        box.aimText:SetPoint(ap.point, box.bar.aim, ap.relPoint, ap.x, ap.y)
+        box.aimDur = nil   -- options changed: place the aiming zone again
     end
     g.test = ns.testMode and true or false
     Paint(g, c, GetTime(), true)

@@ -471,8 +471,16 @@ P_.player.swing = {
     ranged = SwingBar({ r = 0.45, g = 0.8, b = 0.45 },
         { point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -50, width = 0, height = 6 }),
     style = Bar("auto"),
-    -- hunters: Auto Shot aiming zone (aimTime: the wind-up in seconds, before haste)
-    aim = true, aimTime = 0.5, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },
+    -- hunters: Auto Shot aiming zone (aimTime: the wind-up in seconds, before
+    -- haste; aimHaste / aimLatency: the zone shortens with haste / adds latency)
+    aim = true, aimTime = 0.5, aimHaste = true, aimLatency = true,
+    -- aimStyle: "shade" (the whole zone) | "line" (a line where it starts)
+    aimStyle = "shade", aimLine = 2, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },
+    -- the fill takes aimFillColor while it is inside the zone
+    aimFill = false, aimFillColor = { r = 1, g = 0.3, b = 0.3 },
+    -- the zone's length in seconds, as a text on the zone
+    aimText = false, aimTextStyle = Txt(0),
+    aimTextPos = { point = "CENTER", relPoint = "CENTER", x = 0, y = 0 },
 }
 -- your own casts: latency, channel ticks, crafting many: one bar for the whole batch
 P_.player.castbar.latency = true

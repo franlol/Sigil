@@ -1584,15 +1584,40 @@ function Tabs.class(page, unit)
         local function AimOn() return SW().enabled and SW().ranged.show end
         card = page:Add(1, UI.Card(page.content, L["Auto Shot aiming zone"],
             L["The end of the ranged swing bar where moving or starting a cast delays the next Auto Shot."]))
+        local function ZoneOn() return AimOn() and SW().aim end
         g, s = Bind(unit, "swing", "aim")
         card:Add(UI.Check(card, L["Show aiming zone"], g, s, { enableIf = AimOn }))
         g, s = Bind(unit, "swing", "aimTime")
         card:Add(UI.Slider(card, L["Aiming time (0.50 s recommended)"], 0.3, 1, 0.05, g, s, {
-            format = function(v) return ("%.2f s"):format(v) end,
-            enableIf = function() return AimOn() and SW().aim end,
-            tip = L["Recommended: 0.50 s, the Auto Shot wind-up before haste. Haste shortens it and your latency is added. The game does not report it, so it is an estimate."] }))
+            format = function(v) return ("%.2f s"):format(v) end, enableIf = ZoneOn,
+            tip = L["Recommended: 0.50 s, the Auto Shot wind-up before haste. The game does not report it, so it is an estimate."] }))
+        g, s = Bind(unit, "swing", "aimHaste")
+        card:Add(UI.Check(card, L["Shorten with haste"], g, s, { enableIf = ZoneOn,
+            tip = L["Haste shortens the wind-up as much as the reload."] }))
+        g, s = Bind(unit, "swing", "aimLatency")
+        card:Add(UI.Check(card, L["Add latency"], g, s, { enableIf = ZoneOn }))
+
+        card = page:Add(1, UI.Card(page.content, L["Aiming zone look"]))
+        g, s = Bind(unit, "swing", "aimStyle")
+        card:Add(UI.Segmented(card, L["Style"], { { "shade", L["Shade"] }, { "line", L["Line"] } }, g, s,
+            { enableIf = ZoneOn }))
+        g, s = Bind(unit, "swing", "aimLine")
+        card:Add(UI.Slider(card, L["Thickness"], 1, 6, 1, g, s, { format = Px,
+            enableIf = function() return ZoneOn() and SW().aimStyle == "line" end }))
         card:Add(UI.Swatch(card, L["Color"], function() return SW().aimColor end, apply,
-            { alpha = true, enableIf = function() return AimOn() and SW().aim end }))
+            { alpha = true, enableIf = ZoneOn }))
+        g, s = Bind(unit, "swing", "aimFill")
+        card:Add(UI.Check(card, L["Recolor the bar in the zone"], g, s, { enableIf = ZoneOn }))
+        card:Add(UI.Swatch(card, L["Bar color in the zone"], function() return SW().aimFillColor end, apply,
+            { enableIf = function() return ZoneOn() and SW().aimFill end }))
+
+        local function ZoneText() return SW().aimTextStyle end
+        local function ZoneTextOn() return ZoneOn() and SW().aimText end
+        card = page:Add(2, UI.Card(page.content, L["Aiming zone time"]))
+        g, s = Bind(unit, "swing", "aimText")
+        card:Add(UI.Check(card, L["Show zone length"], g, s, { enableIf = ZoneOn }))
+        PositionRows(card, function() return SW().aimTextPos end, apply, { text = true, enableIf = ZoneTextOn })
+        TextRows(card, ZoneText, apply, { auto = true, enableIf = ZoneTextOn })
     end
 
     if unit == "player" and class == "SHAMAN" then
