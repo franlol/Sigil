@@ -292,7 +292,11 @@ local function Paint(g, c, now, restack)
             box.bar2:SetValue(frac)
             local bc = c[kind]
             box.text:SetText(bc.text and left and ns.FormatTime(box.timeRules, left) or "")
-            local aimOn = (kind == "ranged" and c.aim and IsHunter() and dur) and true or false
+            -- the zone is measured when anything uses it: drawn, the bar
+            -- recolored in it or its length shown, each on its own
+            local aimOn = (kind == "ranged" and IsHunter() and dur
+                and (c.aim or c.aimFill or c.zone.text)) and true or false
+            local drawn = aimOn and c.aim and true or false
             -- placed again only when the reload, the haste base or the bar's
             -- size changed (latency is read then), or after a layout (any
             -- option), not every frame
@@ -310,10 +314,10 @@ local function Paint(g, c, now, restack)
                 box.aimText:SetText(ns.FormatTime(box.aimRules, secs))
             end
             local line = c.aimStyle == "line"
-            box.bar.aim:SetShown(aimOn and not line)
-            box.bar2.aim:SetShown(aimOn and middle and not line)
-            box.bar.aimLine:SetShown(aimOn and line)
-            box.bar2.aimLine:SetShown(aimOn and middle and line)
+            box.bar.aim:SetShown(drawn and not line)
+            box.bar2.aim:SetShown(drawn and middle and not line)
+            box.bar.aimLine:SetShown(drawn and line)
+            box.bar2.aimLine:SetShown(drawn and middle and line)
             box.aimText:SetShown(aimOn and c.zone.text and true or false)
             local inZone = (aimOn and c.aimFill and frac >= 1 - box.aimFrac) and true or false
             if inZone ~= box.inZone then
