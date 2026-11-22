@@ -1586,6 +1586,7 @@ function Tabs.class(page, unit)
     if unit == "player" and class == "HUNTER" then
         local function SW() return U(unit).swing end
         local function AimOn() return SW().enabled and SW().ranged.show end
+        page:AddSection(L["Auto Shot aiming zone"], { accent = true })
         card = page:Add(1, UI.Card(page.content, L["Auto Shot aiming zone"],
             L["Drawn at the end of the ranged swing bar (Extras, Swing timer). Moving or casting in it delays the next Auto Shot."]))
         -- the zone is drawn, recolors the bar and shows its length: each on its own
@@ -1626,7 +1627,8 @@ function Tabs.class(page, unit)
         PositionRows(card, function() return ZT().textPos end, apply, { text = true, enableIf = ZoneTextOn })
         TextRows(card, function() return ZT().textStyle end, apply, { auto = true, enableIf = ZoneTextOn })
 
-        card = page:Add(2, UI.Card(page.content, L["Multi-Shot"],
+        page:AddSection(L["Multi-Shot"], { accent = true })
+        card = page:Add(1, UI.Card(page.content, L["Multi-Shot"],
             L["Its short cast, which the game does not show, on your cast bar. It lasts the aiming time and ends when the shot fires."]))
         g, s = Bind(unit, "castbar", "multiShot")
         card:Add(UI.Check(card, L["Show on the cast bar"], g, s,
@@ -1638,6 +1640,7 @@ function Tabs.class(page, unit)
         local function RangeOn() return RG().enabled end
         local function StripOn() return RangeOn() and RG().shows ~= "text" end
         local function RTextOn() return RangeOn() and RG().shows ~= "strip" end
+        page:AddSection(L["Range indicator"], { accent = true })
         card = page:Add(1, UI.Card(page.content, L["Range indicator"],
             L["Where your target is: melee, dead zone, ranged or too far."]))
         g, s = Bind(unit, "range", "enabled")
