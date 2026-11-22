@@ -39,7 +39,7 @@ function ns.LayoutGCD(f)
     local g = f.gcd or Build(f)
     f.gcd = g
     ns.PlacePiece(f, "gcd", L["Global cooldown"], g, c)
-    g:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, c.height)
+    g:SetSize(c.width and c.width > 0 and c.width or ns.FrameWidth(f), c.height)
     ns.StyleBox(g, c.style, g.bar)
     ns.StyleBar(g.bar, c.style)
     ns.PaintBar(g.bar, c.style, 1, 1, 1)

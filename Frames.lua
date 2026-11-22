@@ -547,10 +547,18 @@ function ns.BuildTexts(f)
     end
 end
 
--- Size, position, portrait and bars. Secure frame: only out of combat.
-function ns.Layout(f)
+-- The size the frame has now. It changes only out of combat, so in combat
+-- the parts follow the frame as it is, not a size still waiting.
+function ns.FrameWidth(f) return f.laidW or f.cfg.width end
+function ns.FrameHeight(f) return f.laidH or f.cfg.height end
+
+-- What the game protects in combat: the secure frame's size, position and
+-- scale. Only out of combat (as the aura containers and the game's totem
+-- bar, laid out in ns.Layout).
+local function LayoutSecure(f)
     local c = f.cfg
     f:SetSize(c.width, c.height)
+    f.laidW, f.laidH = c.width, c.height
     f:ClearAllPoints()
     local n = tonumber(f.unit:match("^party(%d)$"))
     if n and n > 1 then
@@ -568,6 +576,13 @@ function ns.Layout(f)
     end
 
     f:SetScale(c.scale or 1)
+end
+
+-- Everything else on and around the frame: look, portrait, bars, texts and
+-- the placed pieces. Also in combat.
+function ns.LayoutParts(f)
+    local c = f.cfg
+    local width, height = ns.FrameWidth(f), ns.FrameHeight(f)
 
     -- background and border
     local edge = c.borderSize or 1
@@ -590,7 +605,7 @@ function ns.Layout(f)
     local portraitDiv, powerDiv = Divider("portraitDiv"), Divider("powerDiv")
 
     -- portrait (square, or the chosen width)
-    local inner = c.height - 2 * inset
+    local inner = height - 2 * inset
     local left, right = inset, inset
     local portrait = f.portrait
     portrait:ClearAllPoints()
@@ -623,7 +638,7 @@ function ns.Layout(f)
         box:SetBackdrop({ bgFile = FLAT, edgeFile = edge > 0 and FLAT or nil, edgeSize = math.max(1, edge) })
         box:SetBackdropColor(bg.r, bg.g, bg.b, bg.a or 1)
         if edge > 0 then box:SetBackdropBorderColor(bd.r, bd.g, bd.b, bd.a or 1) end
-        local w = (b.width and b.width > 0) and b.width or c.width
+        local w = (b.width and b.width > 0) and b.width or width
         box:SetSize(w, height + 2 * inset)
         ns.PlacePiece(f, bar == f.health and "health" or "power",
             bar == f.health and L["Health bar"] or L["Power bar"], box, b)
@@ -696,7 +711,7 @@ function ns.Layout(f)
             local from, to = reverse and "RIGHT" or "LEFT", reverse and "LEFT" or "RIGHT"
             bar:SetPoint("TOP" .. from, after, "TOP" .. to)
             bar:SetPoint("BOTTOM" .. from, after, "BOTTOM" .. to)
-            bar:SetWidth(f.health:GetWidth() > 0 and f.health:GetWidth() or (c.width - left - right))
+            bar:SetWidth(f.health:GetWidth() > 0 and f.health:GetWidth() or (width - left - right))
         end
     end
     Follow(f.pred, fill, ns.Color("prediction", "heal"))
@@ -706,18 +721,24 @@ function ns.Layout(f)
     f.hl:SetFrameLevel(f.overlay:GetFrameLevel() + 3)
 
     ns.BuildTexts(f)
-    ns.LayoutAuras(f)
     ns.LayoutIcons(f)
     ns.LayoutCastbar(f)
     ns.LayoutThreat(f)
     ns.LayoutCombo(f)
     ns.LayoutExperience(f)
-    ns.LayoutTotems(f)
     ns.LayoutAltMana(f)
     ns.LayoutCombatText(f)
     ns.LayoutGCD(f)
     ns.LayoutSwing(f)
     RegisterEvents(f)
+end
+
+-- The whole frame. Only out of combat.
+function ns.Layout(f)
+    LayoutSecure(f)
+    ns.LayoutParts(f)
+    ns.LayoutAuras(f)
+    ns.LayoutTotems(f)
 end
 
 -------------------------------------------------------------------------------
@@ -780,20 +801,27 @@ end
 
 -- Applies the settings of a frame again (options window, profile change).
 -- key: a unit or a settings key ("party" = the four party frames).
--- Secure frames: waits for the end of combat if needed.
+-- In combat the parts change at once; the frame itself (size, position,
+-- visibility), the auras and the totem bar wait for the end of combat.
 function ns.ApplyUnit(key)
     local units = ns.UnitsOf(ns.CfgKey(key))
-    ns.RunOOC("apply:" .. ns.CfgKey(key), function()
+    local function Each(apply)
         for _, unit in ipairs(units) do
             local f = ns.frames[unit]
             if f then
                 f.cfg = ns.P.units[ns.CfgKey(unit)]
-                ns.Layout(f)
-                ApplyVisibility(f)
+                apply(f)
                 ns.UpdateAll(f)
                 if ns.RefreshMovers then ns.RefreshMovers(f) end
             end
         end
+    end
+    if InCombatLockdown() then Each(ns.LayoutParts) end
+    ns.RunOOC("apply:" .. ns.CfgKey(key), function()
+        Each(function(f)
+            ns.Layout(f)
+            ApplyVisibility(f)
+        end)
     end)
     -- the Blizzard frames and cast bars it replaces follow its options
     ns.HideBlizzard()

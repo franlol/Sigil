@@ -32,7 +32,7 @@ function ns.LayoutAltMana(f)
     local a = f.altMana or Build(f)
     f.altMana = a
     ns.PlacePiece(f, "altMana", L["Druid mana"], a, c)
-    a:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, c.height)
+    a:SetSize(c.width and c.width > 0 and c.width or ns.FrameWidth(f), c.height)
     ns.StyleBox(a, c.style, a.bar)
     ns.StyleBar(a.bar, c.style)
     ns.PaintBar(a.bar, c.style, ns.PowerRGB("MANA"))

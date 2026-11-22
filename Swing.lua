@@ -340,7 +340,7 @@ end
 
 local function LayoutPiece(f, g, c, key, label)
     local pos = PosOf(c, g)
-    local w = pos.width and pos.width > 0 and pos.width or f.cfg.width
+    local w = pos.width and pos.width > 0 and pos.width or ns.FrameWidth(f)
     g:SetSize(w, pos.height)
     ns.PlacePiece(f, key, label, g, pos)
     local st = c.style

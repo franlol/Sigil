@@ -88,7 +88,7 @@ function ns.LayoutThreatBar(f)
         f.threatBar = b
     end
     ns.PlacePiece(f, "threatBar", L["Threat bar"], b, c)
-    b:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, c.height)
+    b:SetSize(c.width and c.width > 0 and c.width or ns.FrameWidth(f), c.height)
     ns.StyleBox(b, c.style, b.bar)
     ns.StyleBar(b.bar, c.style)
     ns.StyleText(b.text, c.textStyle, ns.AutoSize("short", c.height))

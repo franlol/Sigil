@@ -80,7 +80,8 @@ local function NewMover(f, entry)
         end
     end)
     m:SetScript("OnDragStart", function(self)
-        if InCombatLockdown() then return end
+        -- aura containers and the game's totem bar only move out of combat
+        if InCombatLockdown() and (self.key == "totems" or self.key:match("^aura%d")) then return end
         self.moved = true
         local e = self.entry
         local cx, cy = GetCursorPosition()

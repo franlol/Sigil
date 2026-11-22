@@ -2001,7 +2001,7 @@ local function Build()
     UI.OnRefresh = function()
         win:SetSubtitle(L["Profile:"] .. " |cffffffff" .. (ns.profileName or "") .. "|r")
         if InCombatLockdown() then
-            win:SetStatus("|cffffb347" .. L["In combat: frame changes will be applied when combat ends."] .. "|r")
+            win:SetStatus("|cffffb347" .. L["In combat: frame size, position, visibility, auras and totems change when combat ends."] .. "|r")
         else
             win:SetStatus(L["Changes are saved and applied at once."])
         end

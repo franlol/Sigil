@@ -54,7 +54,7 @@ function ns.LayoutExperience(f)
     f.xp = x
     x:ClearAllPoints()
     ns.PlacePiece(f, "xp", L["Experience / reputation"], x, c)
-    x:SetSize(c.width and c.width > 0 and c.width or f.cfg.width, c.height)
+    x:SetSize(c.width and c.width > 0 and c.width or ns.FrameWidth(f), c.height)
     x.bar.bg = x.bar.bg or x.rested:CreateTexture(nil, "BACKGROUND")
     x.bar.bg:SetAllPoints(x.rested)
     ns.StyleBox(x, c.style, x.rested)

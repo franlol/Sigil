@@ -45,7 +45,7 @@ function ns.LayoutCombo(f)
     end
     cp:ClearAllPoints()
     ns.PlacePiece(f, "combo", L["Combo points"], cp, c)
-    local w = c.width and c.width > 0 and c.width or f.cfg.width
+    local w = c.width and c.width > 0 and c.width or ns.FrameWidth(f)
     cp:SetSize(w, c.height)
     local edge = ns.StyleBox(cp, c.style, cp.bar)
     local inner = w - 2 * edge
