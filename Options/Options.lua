@@ -1597,7 +1597,8 @@ function Tabs.class(page, unit)
         g, s = Bind(unit, "swing", "aimLatency")
         card:Add(UI.Check(card, L["Add latency"], g, s, { enableIf = ZoneOn }))
 
-        card = page:Add(1, UI.Card(page.content, L["Aiming zone look"]))
+        card = page:Add(1, UI.Card(page.content, L["Aiming zone look"],
+            L["How the zone is drawn on the ranged bar."]))
         g, s = Bind(unit, "swing", "aimStyle")
         card:Add(UI.Segmented(card, L["Style"], { { "shade", L["Shade"] }, { "line", L["Line"] } }, g, s,
             { enableIf = ZoneOn }))
@@ -1614,7 +1615,8 @@ function Tabs.class(page, unit)
         -- the zone's length: the same text settings as the swing timer's time-left texts
         local function ZT() return SW().zone end
         local function ZoneTextOn() return ZoneOn() and ZT().text end
-        card = page:Add(2, UI.Card(page.content, L["Aiming zone time"]))
+        card = page:Add(2, UI.Card(page.content, L["Aiming zone time"],
+            L["The zone's length in seconds, shown on the zone."]))
         g, s = TB(ZT, "text", apply)
         card:Add(UI.Check(card, L["Show zone length"], g, s, { enableIf = ZoneOn }))
         TimeRows(card, function() return ZT().timeFmt end, apply, { decimals = true, enableIf = ZoneTextOn })
