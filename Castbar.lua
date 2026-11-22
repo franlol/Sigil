@@ -312,7 +312,8 @@ local function Start(f, channel, fresh, guid)
     Paint(f, StateKey(cb, notInterruptible))
     if not Has(text) then text = name end
     if cb.craft then
-        cb.text:SetText(text .. " " .. cb.craft.index .. "/" .. cb.craft.total)
+        -- one number: how many are left, this one included
+        cb.text:SetText(text .. " (" .. (cb.craft.total - cb.craft.index + 1) .. ")")
     else
         cb.text:SetText(text)
     end
