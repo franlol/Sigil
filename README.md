@@ -11,8 +11,12 @@ of target, focus, pet and party.
   hides in combat.
 - **Auras** drawn by the game's native container, so they work in combat and
   instances: groups with their own filters, spell lists, size and position.
-- **Cast bar**, global cooldown, threat, combo points, experience / reputation,
-  druid mana, totems, combat text and status icons.
+- **Cast bar**, global cooldown, swing timer (main hand, off hand, ranged),
+  threat, combo points, experience / reputation, druid mana, totems, combat
+  text and status icons.
+- **Hunters**: Auto Shot aiming zone, Multi-Shot on the cast bar and a range
+  indicator (melee, dead zone, ranged, too far).
+- **Changes apply in combat** where the game allows it.
 - **Fading** by range, combat, phase or hostility.
 - **Move anything**: unlock and drag every frame and piece, with a grid and
   snapping.
