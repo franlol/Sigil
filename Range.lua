@@ -7,9 +7,11 @@
 --     max range
 --   Wing Clip range: melee. Learned at level 12; before it, melee and the
 --     dead zone show together as "Close".
---   CheckInteractDistance(target, 3): within about 10 yd, which tells the
---     dead zone from too far. When the game does not answer, both show as
---     "Out of range".
+--   CheckInteractDistance(target, 4): within about 28 yd (follow distance),
+--     which tells the dead zone from too far: Auto Shot reaches past it, so
+--     inside it and out of Auto Shot range is the dead zone (Auto Shot's
+--     minimum counts the target's size, so a shorter check leaves a gap).
+--     When the game does not answer, both show as "Out of range".
 -- The game sends no event when the range changes: the indicator checks
 -- every 0.1 s while you have a target. A target the checks cannot measure
 -- (friendly, dead) hides it.
@@ -59,7 +61,7 @@ local function Zone()
     if ranged then return "ranged", false, true end
     local melee = Check(C_Spell.IsSpellInRange(WING_CLIP, "target"))
     if melee then return "melee", true, false end
-    local near = Check(CheckInteractDistance("target", 3))
+    local near = Check(CheckInteractDistance("target", 4))
     if near == nil then return "out", melee, false end
     if not near then return "far", false, false end
     return melee == nil and "close" or "dead", melee, false
