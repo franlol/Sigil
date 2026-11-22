@@ -189,7 +189,8 @@ end
 -- here, so they all read alike.
 --   style: short (3m, 45s) | compact (3m, 45) | full (3m 7s) | clock (3:07) |
 --   seconds (187)
---   decimals: one decimal below this many seconds (0: never)
+--   decimals: one decimal below this many seconds (0: never; 999: always,
+--   which is below a minute except in the seconds style)
 --   warnBelow / warnColor: the color of the last seconds (0: off)
 --   hideAbove: no text until the time left drops below it (0: always shown)
 -------------------------------------------------------------------------------
@@ -242,7 +243,9 @@ local function Build(f, plain)
     local base = { { at = 0, fmt = "" } }
     if dec > 0 then base[2] = { at = EPS, fmt = "%.1f" } end
     local list = STYLES[f.style] or STYLES.short
-    if dec >= 999 then list = {} end   -- always decimals
+    -- always: on every time written in seconds (all of them in the seconds style)
+    if dec >= 999 then dec = f.style == "seconds" and math.huge or 60 end
+    if dec == math.huge then list = {} end
     for i, r in ipairs(list) do
         local at = math.max(r.at, dec)
         local nextAt = list[i + 1] and math.max(list[i + 1].at, dec)

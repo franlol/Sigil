@@ -217,7 +217,8 @@ end
 local Txt = ns.TextStyle
 
 -- Time format of a countdown (drawn in Style.lua). style: short | compact | full |
--- clock | seconds; decimals below N s (0: never, 999: always); warning
+-- clock | seconds; decimals below N s (0: never, 999: on every time in
+-- seconds); warning
 -- color below N s (0: off); text only below N s (0: always)
 function ns.TimeFormat(extra)
     local t = { style = "short", decimals = 0, warnBelow = 0, warnColor = { r = 1, g = 0.2, b = 0.2 }, hideAbove = 0 }
@@ -234,7 +235,7 @@ local function Castbar(enabled, below, height)
         style = Bar("auto", { spark = true }),
         nameText = Txt(0), timeText = Txt(0),   -- size 0: follows the bar height
         timeFormat = "left",                    -- left | both (left / total)
-        timeFmt = ns.TimeFormat({ style = "seconds", decimals = 999 }),
+        timeFmt = ns.TimeFormat({ style = "compact", decimals = 999 }),
         fadeTime = 0.4,                         -- seconds the bar stays after it ends
         point = below and "TOPLEFT" or "BOTTOMLEFT", relPoint = below and "BOTTOMLEFT" or "TOPLEFT",
         x = 0, y = below and -4 or 12,
