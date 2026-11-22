@@ -29,17 +29,12 @@ local S = ns.S
 local KINDS = { "main", "off", "ranged" }
 local MELEE = { "main", "off" }
 local RANGED = { "ranged" }
--- Forever client bug: a melee swing also resets the ranged reload, reported
--- as a ranged PLAYER_SWING right after it (not a shot), which is ignored;
--- drop this when the client is fixed.
-local RESET_GRACE = 0.1
 
 local state = {
     main = {}, off = {}, ranged = {},
     melee = false,      -- when auto attack was turned on (false: off)
     auto = false,       -- when Auto Shot / Shoot started repeating (false: off)
     hasOff = false,     -- an off-hand weapon is equipped (dual wield)
-    meleeAt = nil,      -- last melee swing
     unhasted = nil,     -- ranged weapon speed without haste (quiver included)
 }
 -- Each bar (state.main, .off, .ranged): start and dur of the swing in
@@ -472,8 +467,6 @@ watcher:SetScript("OnEvent", function(_, event, a1, a2)
         if S(a1) or S(a2) then return end
         local kind = SwingKind(a2)
         if not kind or type(a1) ~= "number" or a1 <= 0 or a1 == math.huge then return end
-        if kind == "ranged" and state.meleeAt and now - state.meleeAt <= RESET_GRACE then return end
-        if kind ~= "ranged" then state.meleeAt = now end
         local s = state[kind]
         s.start, s.dur, s.speed = now, a1, EquippedSpeed(kind)
     elseif event == "UNIT_ATTACK_SPEED" or event == "UNIT_RANGEDDAMAGE" then
