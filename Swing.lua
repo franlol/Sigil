@@ -88,9 +88,20 @@ local function ReadUnhasted()
     state.unhasted = speed * (1 + haste / 100) * (1 + (type(quiver) == "number" and quiver or 0) / 100)
 end
 
+-- Current swing speed of each bar, haste included, as the game reports it
+-- (any haste, from anything). Kept as it was when it can't be read.
+local function ReadSpeeds()
+    if not UnitAttackSpeed then return end
+    local main, off, ranged = UnitAttackSpeed("player")
+    for kind, v in pairs({ main = main, off = off, ranged = ranged }) do
+        if not S(v) then state[kind].now = (type(v) == "number" and v > 0) and v or nil end
+    end
+end
+
 local function ReadStats()
     ReadOffHand()
     ReadUnhasted()
+    ReadSpeeds()
 end
 
 -- Haste came or went during a swing: the swing keeps how far along it is and
@@ -291,7 +302,25 @@ local function Paint(g, c, now, restack)
             box.bar:SetValue(frac)
             box.bar2:SetValue(frac)
             local bc = c[kind]
-            box.text:SetText(bc.text and left and ns.FormatTime(box.timeRules, left) or "")
+            -- the text: time left, left / total, or the swing speed now
+            local txt = ""
+            if bc.text then
+                if bc.shows == "speed" then
+                    local speed = (not g.test and s.now) or dur
+                    txt = speed and ns.FormatTime(box.timeRules, speed) or ""
+                elseif left then
+                    txt = ns.FormatTime(box.timeRules, left)
+                    if bc.shows == "both" and dur then
+                        -- the total changes only with the swing: written once per swing
+                        if box.totalDur ~= dur or box.totalRules ~= box.timeRules then
+                            box.totalDur, box.totalRules = dur, box.timeRules
+                            box.totalTxt = " / " .. ns.FormatTime(box.timeRules, dur)
+                        end
+                        txt = txt .. box.totalTxt
+                    end
+                end
+            end
+            box.text:SetText(txt)
             -- the zone is measured when anything uses it: drawn, the bar
             -- recolored in it or its length shown, each on its own
             local aimOn = (kind == "ranged" and IsHunter() and dur
@@ -445,6 +474,7 @@ watcher:SetScript("OnEvent", function(_, event, a1, a2)
     elseif event == "UNIT_ATTACK_SPEED" or event == "UNIT_RANGEDDAMAGE" then
         FollowSpeed(now)
         ReadUnhasted()
+        ReadSpeeds()
     elseif event == "WEAPON_SLOT_CHANGED" then
         -- a weapon swap starts the swing over at the new weapon's speed, as
         -- the game's own swing timer does

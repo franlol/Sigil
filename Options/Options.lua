@@ -1493,7 +1493,11 @@ function Tabs.extras(page, unit)
         local function BarShown() return SWOn() and TB_().show end
         local function TextOn() return BarShown() and TB_().text end
         g, s = TB(TB_, "text", apply)
-        card:Add(UI.Check(card, L["Show time left"], g, s, { enableIf = BarShown }))
+        card:Add(UI.Check(card, L["Show text"], g, s, { enableIf = BarShown }))
+        g, s = TB(TB_, "shows", apply)
+        card:Add(UI.Dropdown(card, L["Shows"], {
+            { "left", L["Time left"] }, { "both", L["Time left / total"] }, { "speed", L["Swing speed"] },
+        }, g, s, { enableIf = TextOn, tip = L["Swing speed: the time between swings, haste included."] }))
         TimeRows(card, function() return TB_().timeFmt end, apply, { decimals = true, enableIf = TextOn })
         PositionRows(card, function() return TB_().textPos end, apply, { text = true, enableIf = TextOn })
         TextRows(card, function() return TB_().textStyle end, apply, { auto = true, enableIf = TextOn })

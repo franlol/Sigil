@@ -457,7 +457,8 @@ local function SwingText(t)
     return t
 end
 local function SwingBar(color, extra)
-    local b = SwingText({ show = true, fill = "edge", color = color })
+    -- shows: "left" (time left) | "both" (left / total) | "speed" (swing speed, haste included)
+    local b = SwingText({ show = true, fill = "edge", color = color, shows = "left" })
     for k, v in pairs(extra or {}) do b[k] = v end
     return b
 end
