@@ -88,7 +88,9 @@ local function ReadUnhasted()
     state.unhasted = speed * (1 + haste / 100) * (1 + (type(quiver) == "number" and quiver or 0) / 100)
 end
 
--- Current swing speed of each bar, haste included, as the game reports it
+-- Current swing speed of each bar, haste included, as the game reports it;
+-- hidden in combat (then the swing timer follows each PLAYER_SWING, as the
+-- game's own one does)
 -- (any haste, from anything). Kept as it was when it can't be read.
 local function ReadSpeeds()
     if not UnitAttackSpeed then return end
@@ -306,7 +308,10 @@ local function Paint(g, c, now, restack)
             local txt = ""
             if bc.text then
                 if bc.shows == "speed" then
-                    local speed = (not g.test and s.now) or dur
+                    -- the last swing's duration, as the game's swing timer
+                    -- (the live speed is hidden in combat); before any swing,
+                    -- the equipped speed
+                    local speed = dur or (not g.test and s.now)
                     txt = speed and ns.FormatTime(box.timeRules, speed) or ""
                 elseif left then
                     txt = ns.FormatTime(box.timeRules, left)
