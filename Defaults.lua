@@ -493,6 +493,19 @@ P_.player.castbar.tickColor = { r = 1, g = 1, b = 1, a = 0.8 }
 P_.player.castbar.batch = true
 -- hunters: Multi-Shot's short cast (the game shows none) on the cast bar
 P_.player.castbar.multiShot = true
+-- hunters: range indicator (Range.lua). shows: "strip" | "text" | "both";
+-- dim: the swing bars dim out of their range; unlit: opacity of the zones
+-- you are not in
+P_.player.range = {
+    enabled = true, shows = "strip", dim = false, unlit = 0.15,
+    point = "BOTTOMLEFT", relPoint = "TOPLEFT", x = 0, y = 2, width = 0, height = 4,
+    style = { texture = false, border = 1, borderColor = { r = 0, g = 0, b = 0, a = 1 } },
+    colors = {
+        melee = { r = 0.3, g = 0.85, b = 0.3 }, dead = { r = 1, g = 0.6, b = 0.1 },
+        ranged = { r = 0.3, g = 0.6, b = 1 }, far = { r = 0.9, g = 0.2, b = 0.2 },
+    },
+    textStyle = Txt(0), textPos = { point = "CENTER", relPoint = "CENTER", x = 0, y = 9 },
+}
 P_.target.combatText = CombatText(true, "RIGHT", -8)
 P_.target.threatBar = SmallBar(false, "BOTTOMLEFT", "TOPLEFT", 22, 8, nil, true)
 

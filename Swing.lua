@@ -366,6 +366,13 @@ function ns.LayoutSwing(f)
     LayoutPiece(f, f.swingRanged, c, "swingRanged", L["Ranged swing bar"])
 end
 
+-- Range indicator (Range.lua): the opacity of the melee bars and of the
+-- ranged bar, lower out of their range
+function ns.SwingRangeAlpha(f, melee, ranged)
+    if f.swing then f.swing:SetAlpha(melee) end
+    if f.swingRanged then f.swingRanged:SetAlpha(ranged) end
+end
+
 -- Test mode shows a sample of each bar
 function ns.UpdateSwing(f)
     if not f.swingOn then return end

@@ -40,6 +40,7 @@ AltMana.lua
 CombatText.lua
 GCD.lua
 Swing.lua
+Range.lua
 Sounds.lua
 HideBlizzard.lua
 MinimapButton.lua

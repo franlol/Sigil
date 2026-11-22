@@ -287,6 +287,7 @@ function ns.UpdateAll(f)
     ns.UpdateTotems(f)
     ns.UpdateGCD(f)
     ns.UpdateSwing(f)
+    ns.UpdateRange(f)
     if ns.TestCombatText then ns.TestCombatText(f) end
 end
 
@@ -730,6 +731,7 @@ function ns.LayoutParts(f)
     ns.LayoutCombatText(f)
     ns.LayoutGCD(f)
     ns.LayoutSwing(f)
+    ns.LayoutRange(f)
     RegisterEvents(f)
 end
 
@@ -846,7 +848,7 @@ end
 local function PieceTab(key)
     if key == "castbar" then return "castbar" end
     if key == "health" or key == "power" then return "bars" end
-    if key == "combo" or key == "altMana" or key == "totems" then return "class" end
+    if key == "combo" or key == "altMana" or key == "totems" or key == "range" then return "class" end
     if key:match("^aura%d") then return "auras" end
     if key:match("^icon:") then return "icons" end
     if key == "portrait" then return "frame" end

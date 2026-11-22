@@ -1631,6 +1631,45 @@ function Tabs.class(page, unit)
         g, s = Bind(unit, "castbar", "multiShot")
         card:Add(UI.Check(card, L["Show on the cast bar"], g, s,
             { enableIf = function() return U(unit).castbar.enabled end }))
+
+        -- range indicator: what it shows, its colors and place; the strip's
+        -- look and the text in their own cards
+        local function RG() return U(unit).range end
+        local function RangeOn() return RG().enabled end
+        local function StripOn() return RangeOn() and RG().shows ~= "text" end
+        local function RTextOn() return RangeOn() and RG().shows ~= "strip" end
+        card = page:Add(1, UI.Card(page.content, L["Range indicator"],
+            L["Where your target is: melee, dead zone, ranged or too far."]))
+        g, s = Bind(unit, "range", "enabled")
+        card:Add(UI.Check(card, L["Show range indicator"], g, s))
+        g, s = Bind(unit, "range", "shows")
+        card:Add(UI.Segmented(card, L["Shows"], { { "strip", L["Strip"] }, { "text", L["Text"] }, { "both", L["Both"] } },
+            g, s, { enableIf = RangeOn }))
+        g, s = Bind(unit, "range", "dim")
+        card:Add(UI.Check(card, L["Dim swing bars out of range"], g, s, { enableIf = RangeOn }))
+        for _, k in ipairs({ { "melee", L["Melee"] }, { "dead", L["Dead zone"] }, { "ranged", L["Ranged"] },
+            { "far", L["Too far"] } }) do
+            card:Add(UI.Swatch(card, k[2], function() return RG().colors[k[1]] end, apply, { enableIf = RangeOn }))
+        end
+        PositionRows(card, RG, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true, enableIf = RangeOn })
+
+        local function RS() return RG().style end
+        card = page:Add(2, UI.Card(page.content, L["Range strip look"]))
+        g, s = Bind(unit, "range", "height")
+        card:Add(UI.Slider(card, L["Height"], 2, 24, 1, g, s, { format = Px, enableIf = StripOn }))
+        g, s = TB(RS, "texture", apply)
+        card:Add(UI.Dropdown(card, L["Texture"], function() return TextureOptions(true) end, ns.MediaGetter(g), s,
+            { enableIf = StripOn }))
+        g, s = Bind(unit, "range", "unlit")
+        card:Add(UI.Slider(card, L["Other zones opacity"], 0, 1, 0.05, g, s, { format = UI.pct, enableIf = StripOn }))
+        g, s = TB(RS, "border", apply)
+        card:Add(UI.Slider(card, L["Border"], 0, 4, 1, g, s, { format = Px, enableIf = StripOn }))
+        card:Add(UI.Swatch(card, L["Border color"], function() return RS().borderColor end, apply,
+            { alpha = true, enableIf = Both(StripOn, function() return (RS().border or 1) > 0 end) }))
+
+        card = page:Add(2, UI.Card(page.content, L["Range text"]))
+        PositionRows(card, function() return RG().textPos end, apply, { text = true, enableIf = RTextOn })
+        TextRows(card, function() return RG().textStyle end, apply, { auto = true, enableIf = RTextOn })
     end
 
     if unit == "player" and class == "SHAMAN" then
