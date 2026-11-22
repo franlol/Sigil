@@ -4,22 +4,19 @@
 -- bars (main and off hand, stacked) and the ranged bar. Each bar can be
 -- turned off and fills from one end or toward the middle.
 --
--- Timing comes from the game: PLAYER_SWING fires on every swing or shot with
--- the time until the next one at the current speed (haste included), as
--- plain numbers in combat. Each bar fills from one swing to the next.
--- Like the game's own swing timer: the off-hand bar is there with an
--- off-hand weapon and a weapon swap starts the swing over at the new speed.
--- Haste that comes or goes during a swing (UNIT_ATTACK_SPEED,
--- UNIT_RANGEDDAMAGE) changes the rest of it, so the bar keeps up.
+-- Timing works as the game's own swing timer: PLAYER_SWING fires on every
+-- swing or shot with the duration of the next one (haste included) and each
+-- bar fills over it. A weapon swap starts the swing over at the new weapon's
+-- speed; the off-hand bar is there with an off-hand weapon. Haste that comes
+-- or goes shows from the next swing on (the game hides attack speed in
+-- combat).
 --
--- Hunters: the end of the ranged bar is the aiming zone, where moving or
--- starting a cast delays the next Auto Shot, shaded or marked by a line where
--- it starts. Its length: the wind-up (option, 0.5 s by default), shortened by
--- ranged haste like the reload (reload / speed without haste) and plus your
--- latency, each an option. On Forever the wind-up is about 0.55-0.67 s and
--- scales with the reload; the zone is still an approximation, not a value the
--- game reports. Optional: the fill takes another color inside the zone, and
--- the zone's length shows as a text on it.
+-- Hunters: the aiming zone at the end of the ranged bar, where moving or
+-- starting a cast delays the next Auto Shot. Its length: the aiming time
+-- (option, 0.5 s by default, the cast that comes before each Auto Shot)
+-- plus your latency (option). Drawn shaded or as a line where it starts;
+-- the fill can take another color inside it and its length can show as a
+-- text on it, each on its own.
 -------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -35,11 +32,8 @@ local state = {
     melee = false,      -- when auto attack was turned on (false: off)
     auto = false,       -- when Auto Shot / Shoot started repeating (false: off)
     hasOff = false,     -- an off-hand weapon is equipped (dual wield)
-    unhasted = nil,     -- ranged weapon speed without haste (quiver included)
 }
--- Each bar (state.main, .off, .ranged): start and dur of the swing in
--- progress, and speed: the weapon's attack speed when it started (nil: not
--- readable), to follow haste that comes or goes during the swing.
+-- Each bar (state.main, .off, .ranged): start and dur of the swing in progress
 
 local function SwingKind(kind)
     local E = Enum and Enum.PlayerSwingType
@@ -49,7 +43,7 @@ local function SwingKind(kind)
     if kind == E.Ranged then return "ranged" end
 end
 
--- Attack speed of the weapon in a bar's slot (nil: none, or not readable)
+-- Attack speed of the weapon in a bar's slot (nil: none, or hidden in combat)
 local function EquippedSpeed(kind)
     if not UnitAttackSpeed then return nil end
     local main, off, ranged = UnitAttackSpeed("player")
@@ -58,63 +52,12 @@ local function EquippedSpeed(kind)
 end
 
 -- Off-hand weapon, as the game's swing timer checks it. Kept as it was when
--- the speed can't be read.
+-- the speed is hidden.
 local function ReadOffHand()
     if not UnitAttackSpeed then return end
     local _, off = UnitAttackSpeed("player")
-    if ns.S(off) then return end
+    if S(off) then return end
     state.hasOff = type(off) == "number" and off > 0
-end
-
--- Ranged speed without haste: the current speed times the game's ranged
--- haste (buffs and quiver, as percents that multiply, like the character
--- sheet shows them). It only changes with the weapon, so a buff up when it
--- is read does not skew it. Kept as it was when the stats can't be read.
-local function ReadUnhasted()
-    if not (GetRangedHaste and UnitAttackSpeed) then return end
-    local _, _, speed = UnitAttackSpeed("player")
-    local haste, quiver = GetRangedHaste()
-    if S(speed) or S(haste) or S(quiver) then return end
-    if type(speed) ~= "number" or speed <= 0 then
-        state.unhasted = nil   -- no ranged weapon
-        return
-    end
-    if type(haste) ~= "number" then return end
-    state.unhasted = speed * (1 + haste / 100) * (1 + (type(quiver) == "number" and quiver or 0) / 100)
-end
-
--- Current swing speed of each bar, haste included, as the game reports it;
--- hidden in combat (then the swing timer follows each PLAYER_SWING, as the
--- game's own one does)
--- (any haste, from anything). Kept as it was when it can't be read.
-local function ReadSpeeds()
-    if not UnitAttackSpeed then return end
-    local main, off, ranged = UnitAttackSpeed("player")
-    for kind, v in pairs({ main = main, off = off, ranged = ranged }) do
-        if not S(v) then state[kind].now = (type(v) == "number" and v > 0) and v or nil end
-    end
-end
-
-local function ReadStats()
-    ReadOffHand()
-    ReadUnhasted()
-    ReadSpeeds()
-end
-
--- Haste came or went during a swing: the swing keeps how far along it is and
--- the rest goes at the new speed, as the game does
-local function FollowSpeed(now)
-    for _, kind in ipairs(KINDS) do
-        local s = state[kind]
-        if s.start and s.speed and now < s.start + s.dur then
-            local speed = EquippedSpeed(kind)
-            if speed and math.abs(speed - s.speed) > 0.001 then
-                local ratio = speed / s.speed
-                s.start = now - (now - s.start) * ratio
-                s.dur, s.speed = s.dur * ratio, speed
-            end
-        end
-    end
 end
 
 local function Latency()
@@ -124,13 +67,11 @@ local function Latency()
     return type(ms) == "number" and ms / 1000 or 0
 end
 
--- Seconds of the aiming zone for a ranged reload of `dur`: the wind-up
--- (option), shortened by haste like the reload and plus latency when those
--- options are on. hasted: dur is a real reload (the test sample is not)
-local function AimSeconds(dur, c, hasted)
-    local haste = (c.aimHaste ~= false and hasted and state.unhasted) and dur / state.unhasted or 1
+-- Seconds of the aiming zone in a reload of `dur`: the aiming time, plus
+-- latency when that option is on
+local function AimSeconds(dur, c)
     local lag = c.aimLatency ~= false and Latency() or 0
-    return math.min(dur, (c.aimTime or 0.5) * haste + lag)
+    return math.min(dur, (c.aimTime or 0.5) + lag)
 end
 
 local function IsHunter()
@@ -303,11 +244,8 @@ local function Paint(g, c, now, restack)
             local txt = ""
             if bc.text then
                 if bc.shows == "speed" then
-                    -- the last swing's duration, as the game's swing timer
-                    -- (the live speed is hidden in combat); before any swing,
-                    -- the equipped speed
-                    local speed = dur or (not g.test and s.now)
-                    txt = speed and ns.FormatTime(box.timeRules, speed) or ""
+                    -- this swing's duration, as PLAYER_SWING gave it
+                    txt = dur and ns.FormatTime(box.timeRules, dur) or ""
                 elseif left then
                     txt = ns.FormatTime(box.timeRules, left)
                     if bc.shows == "both" and dur then
@@ -326,16 +264,15 @@ local function Paint(g, c, now, restack)
             local aimOn = (kind == "ranged" and IsHunter() and dur
                 and (c.aim or c.aimFill or c.zone.text)) and true or false
             local drawn = aimOn and c.aim and true or false
-            -- placed again only when the reload, the haste base or the bar's
-            -- size changed (latency is read then), or after a layout (any
-            -- option), not every frame
+            -- placed again only when the reload or the bar's size changed
+            -- (latency is read then), or after a layout (any option), not
+            -- every frame
             local st = c.style
             local vertical = st.orientation == "VERTICAL"
             local len = aimOn and (vertical and box.bar:GetHeight() or box.bar:GetWidth())
-            if aimOn and (box.aimDur ~= dur or box.aimBase ~= state.unhasted
-                or box.aimLen ~= len or box.aimTest ~= g.test) then
-                box.aimDur, box.aimBase, box.aimLen, box.aimTest = dur, state.unhasted, len, g.test
-                local secs = AimSeconds(dur, c, not g.test)
+            if aimOn and (box.aimDur ~= dur or box.aimLen ~= len or box.aimTest ~= g.test) then
+                box.aimDur, box.aimLen, box.aimTest = dur, len, g.test
+                local secs = AimSeconds(dur, c)
                 box.aimFrac = secs / dur
                 local thick = c.aimLine or 2
                 PlaceAim(box.bar, box.aimFrac, vertical, st.reverse, thick)
@@ -422,7 +359,7 @@ function ns.LayoutSwing(f)
         return
     end
     f.swingOn = true
-    ReadStats()
+    ReadOffHand()
     f.swing = f.swing or Build(f, MELEE)
     f.swingRanged = f.swingRanged or Build(f, RANGED)
     LayoutPiece(f, f.swing, c, "swing", L["Melee swing bars"])
@@ -455,37 +392,30 @@ for _, ev in ipairs({ "PLAYER_SWING", "PLAYER_ENTER_COMBAT", "PLAYER_LEAVE_COMBA
     "WEAPON_SLOT_CHANGED" }) do
     pcall(watcher.RegisterEvent, watcher, ev)
 end
--- the game's own swing timer uses this too: WEAPON_SLOT_CHANGED is not
--- reliable on entering the world
+-- as the game's own swing timer: the off-hand weapon is checked on these
+-- (WEAPON_SLOT_CHANGED is not reliable on entering the world)
 pcall(watcher.RegisterUnitEvent, watcher, "UNIT_INVENTORY_CHANGED", "player")
--- attack speed changes (haste buffs, quiver): melee and ranged
 pcall(watcher.RegisterUnitEvent, watcher, "UNIT_ATTACK_SPEED", "player")
-pcall(watcher.RegisterUnitEvent, watcher, "UNIT_RANGEDDAMAGE", "player")
 watcher:SetScript("OnEvent", function(_, event, a1, a2)
     local now = GetTime()
     if event == "PLAYER_SWING" then
         if S(a1) or S(a2) then return end
         local kind = SwingKind(a2)
         if not kind or type(a1) ~= "number" or a1 <= 0 or a1 == math.huge then return end
-        local s = state[kind]
-        s.start, s.dur, s.speed = now, a1, EquippedSpeed(kind)
-    elseif event == "UNIT_ATTACK_SPEED" or event == "UNIT_RANGEDDAMAGE" then
-        FollowSpeed(now)
-        ReadUnhasted()
-        ReadSpeeds()
+        state[kind].start, state[kind].dur = now, a1
     elseif event == "WEAPON_SLOT_CHANGED" then
         -- a weapon swap starts the swing over at the new weapon's speed, as
-        -- the game's own swing timer does
-        ReadStats()
+        -- the game's own swing timer does (hidden speed: until the next swing)
+        ReadOffHand()
         for _, kind in ipairs(KINDS) do
             local s = state[kind]
             if s.start and now < s.start + s.dur then
                 local speed = EquippedSpeed(kind)
-                if speed then s.start, s.dur, s.speed = now, speed, speed else s.start = nil end
+                if speed then s.start, s.dur = now, speed else s.start = nil end
             end
         end
-    elseif event == "UNIT_INVENTORY_CHANGED" then
-        ReadStats()
+    elseif event == "UNIT_INVENTORY_CHANGED" or event == "UNIT_ATTACK_SPEED" then
+        ReadOffHand()
     elseif event == "PLAYER_ENTER_COMBAT" then
         state.melee = now
     elseif event == "PLAYER_LEAVE_COMBAT" then
@@ -495,12 +425,12 @@ watcher:SetScript("OnEvent", function(_, event, a1, a2)
     elseif event == "STOP_AUTOREPEAT_SPELL" then
         state.auto = false
     elseif event == "PLAYER_EQUIPMENT_CHANGED" or event == "PLAYER_REGEN_ENABLED" then
-        -- stats can be hidden in combat: read them again after it
-        ReadStats()
+        -- the off-hand speed can be hidden in combat: read it again after it
+        ReadOffHand()
     elseif event == "PLAYER_ENTERING_WORLD" then
         state.melee, state.auto = false, false
         for _, kind in ipairs(KINDS) do state[kind].start = nil end
-        ReadStats()
+        ReadOffHand()
     end
     Refresh()
 end)

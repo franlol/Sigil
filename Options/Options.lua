@@ -1587,7 +1587,7 @@ function Tabs.class(page, unit)
         local function SW() return U(unit).swing end
         local function AimOn() return SW().enabled and SW().ranged.show end
         card = page:Add(1, UI.Card(page.content, L["Auto Shot aiming zone"],
-            L["The end of the ranged swing bar where moving or starting a cast delays the next Auto Shot."]))
+            L["Drawn at the end of the ranged swing bar (Extras, Swing timer). Moving or casting in it delays the next Auto Shot."]))
         -- the zone is drawn, recolors the bar and shows its length: each on its own
         local function Drawn() return AimOn() and SW().aim end
         local function Used() return AimOn() and (SW().aim or SW().aimFill or SW().zone.text) end
@@ -1596,10 +1596,7 @@ function Tabs.class(page, unit)
         g, s = Bind(unit, "swing", "aimTime")
         card:Add(UI.Slider(card, L["Aiming time (0.50 s recommended)"], 0.3, 1, 0.05, g, s, {
             format = function(v) return ("%.2f s"):format(v) end, enableIf = Used,
-            tip = L["Recommended: 0.50 s, the Auto Shot wind-up before haste. The game does not report it, so it is an estimate."] }))
-        g, s = Bind(unit, "swing", "aimHaste")
-        card:Add(UI.Check(card, L["Shorten with haste"], g, s, { enableIf = Used,
-            tip = L["Haste shortens the wind-up as much as the reload."] }))
+            tip = L["The short cast before each Auto Shot."] }))
         g, s = Bind(unit, "swing", "aimLatency")
         card:Add(UI.Check(card, L["Add latency"], g, s, { enableIf = Used }))
 

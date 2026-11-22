@@ -474,9 +474,9 @@ P_.player.swing = {
     ranged = SwingBar({ r = 0.45, g = 0.8, b = 0.45 },
         { point = "TOPLEFT", relPoint = "BOTTOMLEFT", x = 0, y = -50, width = 0, height = 6 }),
     style = Bar("auto"),
-    -- hunters: Auto Shot aiming zone (aimTime: the wind-up in seconds, before
-    -- haste; aimHaste / aimLatency: the zone shortens with haste / adds latency)
-    aim = true, aimTime = 0.5, aimHaste = true, aimLatency = true,
+    -- hunters: Auto Shot aiming zone (aimTime: seconds of the short
+    -- cast before each Auto Shot; aimLatency: the zone adds your latency)
+    aim = true, aimTime = 0.5, aimLatency = true,
     -- aimStyle: "shade" (the whole zone) | "line" (a line where it starts)
     aimStyle = "shade", aimLine = 2, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },
     -- the fill takes aimFillColor while it is inside the zone
