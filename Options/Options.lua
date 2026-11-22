@@ -1478,6 +1478,39 @@ function Tabs.extras(page, unit)
         PositionRows(card, RG, apply, { unit = unit, pieceLabel = L["Point of the bar"], width = true,
             enableIf = BarOn("ranged") })
 
+        -- hunters: the Auto Shot aiming zone at the end of the ranged bar
+        local hunter = select(2, UnitClass("player")) == "HUNTER"
+        local function ZoneOn() return BarOn("ranged")() and SW().aim end
+        if hunter then
+            card = page:Add(1, UI.Card(page.content, L["Auto Shot aiming zone"],
+                L["The end of the ranged swing bar where moving or starting a cast delays the next Auto Shot."]))
+            g, s = Bind(unit, "swing", "aim")
+            card:Add(UI.Check(card, L["Show aiming zone"], g, s, { enableIf = BarOn("ranged") }))
+            g, s = Bind(unit, "swing", "aimTime")
+            card:Add(UI.Slider(card, L["Aiming time (0.50 s recommended)"], 0.3, 1, 0.05, g, s, {
+                format = function(v) return ("%.2f s"):format(v) end, enableIf = ZoneOn,
+                tip = L["Recommended: 0.50 s, the Auto Shot wind-up before haste. The game does not report it, so it is an estimate."] }))
+            g, s = Bind(unit, "swing", "aimHaste")
+            card:Add(UI.Check(card, L["Shorten with haste"], g, s, { enableIf = ZoneOn,
+                tip = L["Haste shortens the wind-up as much as the reload."] }))
+            g, s = Bind(unit, "swing", "aimLatency")
+            card:Add(UI.Check(card, L["Add latency"], g, s, { enableIf = ZoneOn }))
+
+            card = page:Add(1, UI.Card(page.content, L["Aiming zone look"]))
+            g, s = Bind(unit, "swing", "aimStyle")
+            card:Add(UI.Segmented(card, L["Style"], { { "shade", L["Shade"] }, { "line", L["Line"] } }, g, s,
+                { enableIf = ZoneOn }))
+            g, s = Bind(unit, "swing", "aimLine")
+            card:Add(UI.Slider(card, L["Thickness"], 1, 6, 1, g, s, { format = Px,
+                enableIf = function() return ZoneOn() and SW().aimStyle == "line" end }))
+            card:Add(UI.Swatch(card, L["Color"], function() return SW().aimColor end, apply,
+                { alpha = true, enableIf = ZoneOn }))
+            g, s = Bind(unit, "swing", "aimFill")
+            card:Add(UI.Check(card, L["Recolor the bar in the zone"], g, s, { enableIf = ZoneOn }))
+            card:Add(UI.Swatch(card, L["Bar color in the zone"], function() return SW().aimFillColor end, apply,
+                { enableIf = function() return ZoneOn() and SW().aimFill end }))
+        end
+
         BarCard(page, 2, L["Swing timer look"], function() return SW().style end, apply, { box = true,
             enableIf = SWOn, colors = function(c)
                 for _, k in ipairs({ { "main", L["Main hand"] }, { "off", L["Off hand"] }, { "ranged", L["Ranged"] } }) do
@@ -1485,15 +1518,21 @@ function Tabs.extras(page, unit)
                 end
             end })
         card = page:Add(2, UI.Card(page.content, L["Swing timer text"]))
-        -- one text per bar: pick the bar, then its settings
+        -- one text per bar (and the aiming zone's length): pick it, then its settings
         local textOf = { sel = "main" }
         local function TB_() return SW()[textOf.sel] end
-        card:Add(UI.Segmented(card, L["Bar"], { { "main", L["Main hand"] }, { "off", L["Off hand"] }, { "ranged", L["Ranged"] } },
+        local texts = { { "main", L["Main hand: time left"] }, { "off", L["Off hand: time left"] },
+            { "ranged", L["Ranged: time left"] } }
+        if hunter then texts[4] = { "zone", L["Aiming zone length"] } end
+        card:Add(UI.Dropdown(card, L["Text"], texts,
             function() return textOf.sel end, function(v) textOf.sel = v end, { enableIf = SWOn }))
-        local function BarShown() return SWOn() and TB_().show end
+        local function BarShown()
+            if textOf.sel == "zone" then return ZoneOn() end
+            return SWOn() and TB_().show
+        end
         local function TextOn() return BarShown() and TB_().text end
         g, s = TB(TB_, "text", apply)
-        card:Add(UI.Check(card, L["Show time left"], g, s, { enableIf = BarShown }))
+        card:Add(UI.Check(card, L["Show text"], g, s, { enableIf = BarShown }))
         TimeRows(card, function() return TB_().timeFmt end, apply, { decimals = true, enableIf = TextOn })
         PositionRows(card, function() return TB_().textPos end, apply, { text = true, enableIf = TextOn })
         TextRows(card, function() return TB_().textStyle end, apply, { auto = true, enableIf = TextOn })
@@ -1536,7 +1575,7 @@ end
 -- Class: what only some classes use. The tab only shows on the frames
 -- where your class has something (the settings stay saved for the others).
 local CLASS_TAB = {
-    player = { DRUID = true, SHAMAN = true, HUNTER = true },   -- druid mana, totems, Auto Shot aiming zone
+    player = { DRUID = true, SHAMAN = true },   -- druid mana, totems
     target = { ROGUE = true, DRUID = true },    -- combo points
 }
 local function HasClassTab(unit)
@@ -1577,47 +1616,6 @@ function Tabs.class(page, unit)
         card:Add(UI.Check(card, L["Show numbers"], g, s, { enableIf = AMOn }))
         TextRows(card, function() return AM().textStyle end, apply, {
             auto = true, enableIf = function() return AMOn() and AM().text end })
-    end
-
-    if unit == "player" and class == "HUNTER" then
-        local function SW() return U(unit).swing end
-        local function AimOn() return SW().enabled and SW().ranged.show end
-        card = page:Add(1, UI.Card(page.content, L["Auto Shot aiming zone"],
-            L["The end of the ranged swing bar where moving or starting a cast delays the next Auto Shot."]))
-        local function ZoneOn() return AimOn() and SW().aim end
-        g, s = Bind(unit, "swing", "aim")
-        card:Add(UI.Check(card, L["Show aiming zone"], g, s, { enableIf = AimOn }))
-        g, s = Bind(unit, "swing", "aimTime")
-        card:Add(UI.Slider(card, L["Aiming time (0.50 s recommended)"], 0.3, 1, 0.05, g, s, {
-            format = function(v) return ("%.2f s"):format(v) end, enableIf = ZoneOn,
-            tip = L["Recommended: 0.50 s, the Auto Shot wind-up before haste. The game does not report it, so it is an estimate."] }))
-        g, s = Bind(unit, "swing", "aimHaste")
-        card:Add(UI.Check(card, L["Shorten with haste"], g, s, { enableIf = ZoneOn,
-            tip = L["Haste shortens the wind-up as much as the reload."] }))
-        g, s = Bind(unit, "swing", "aimLatency")
-        card:Add(UI.Check(card, L["Add latency"], g, s, { enableIf = ZoneOn }))
-
-        card = page:Add(1, UI.Card(page.content, L["Aiming zone look"]))
-        g, s = Bind(unit, "swing", "aimStyle")
-        card:Add(UI.Segmented(card, L["Style"], { { "shade", L["Shade"] }, { "line", L["Line"] } }, g, s,
-            { enableIf = ZoneOn }))
-        g, s = Bind(unit, "swing", "aimLine")
-        card:Add(UI.Slider(card, L["Thickness"], 1, 6, 1, g, s, { format = Px,
-            enableIf = function() return ZoneOn() and SW().aimStyle == "line" end }))
-        card:Add(UI.Swatch(card, L["Color"], function() return SW().aimColor end, apply,
-            { alpha = true, enableIf = ZoneOn }))
-        g, s = Bind(unit, "swing", "aimFill")
-        card:Add(UI.Check(card, L["Recolor the bar in the zone"], g, s, { enableIf = ZoneOn }))
-        card:Add(UI.Swatch(card, L["Bar color in the zone"], function() return SW().aimFillColor end, apply,
-            { enableIf = function() return ZoneOn() and SW().aimFill end }))
-
-        local function ZoneText() return SW().aimTextStyle end
-        local function ZoneTextOn() return ZoneOn() and SW().aimText end
-        card = page:Add(2, UI.Card(page.content, L["Aiming zone time"]))
-        g, s = Bind(unit, "swing", "aimText")
-        card:Add(UI.Check(card, L["Show zone length"], g, s, { enableIf = ZoneOn }))
-        PositionRows(card, function() return SW().aimTextPos end, apply, { text = true, enableIf = ZoneTextOn })
-        TextRows(card, ZoneText, apply, { auto = true, enableIf = ZoneTextOn })
     end
 
     if unit == "player" and class == "SHAMAN" then

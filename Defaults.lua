@@ -450,12 +450,14 @@ P_.player.altMana = SmallBar(true, "BOTTOMLEFT", "TOPLEFT", 2, 6)
 P_.player.gcd = SmallBar(false, "TOPLEFT", "BOTTOMLEFT", -24, 4, Bar("custom", { custom = { r = 1, g = 1, b = 1 } }))
 P_.player.gcd.fillUp = false
 -- swing timer: melee bars (main and off hand, one piece) and the ranged bar (its own piece)
+-- a time text of the swing timer: shown, time format, look and position
+local function SwingText(t)
+    t.text, t.timeFmt, t.textStyle = false, ns.TimeFormat({ style = "seconds", decimals = 999 }), Txt(0)
+    t.textPos = { point = "CENTER", relPoint = "CENTER", x = 0, y = 0 }
+    return t
+end
 local function SwingBar(color, extra)
-    local b = {
-        show = true, fill = "edge", color = color,
-        text = false, timeFmt = ns.TimeFormat({ style = "seconds", decimals = 999 }), textStyle = Txt(0),
-        textPos = { point = "CENTER", relPoint = "CENTER", x = 0, y = 0 },
-    }
+    local b = SwingText({ show = true, fill = "edge", color = color })
     for k, v in pairs(extra or {}) do b[k] = v end
     return b
 end
@@ -478,9 +480,9 @@ P_.player.swing = {
     aimStyle = "shade", aimLine = 2, aimColor = { r = 1, g = 0.25, b = 0.25, a = 0.45 },
     -- the fill takes aimFillColor while it is inside the zone
     aimFill = false, aimFillColor = { r = 1, g = 0.3, b = 0.3 },
-    -- the zone's length in seconds, as a text on the zone
-    aimText = false, aimTextStyle = Txt(0),
-    aimTextPos = { point = "CENTER", relPoint = "CENTER", x = 0, y = 0 },
+    -- the zone's length, a text on the zone with the same settings as each
+    -- bar's time-left text
+    zone = SwingText({}),
 }
 -- your own casts: latency, channel ticks, crafting many: one bar for the whole batch
 P_.player.castbar.latency = true

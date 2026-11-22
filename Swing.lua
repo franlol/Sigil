@@ -307,14 +307,14 @@ local function Paint(g, c, now, restack)
                 local thick = c.aimLine or 2
                 PlaceAim(box.bar, box.aimFrac, vertical, st.reverse, thick)
                 PlaceAim(box.bar2, box.aimFrac, vertical, not st.reverse, thick)
-                box.aimText:SetFormattedText("%.2f", secs)
+                box.aimText:SetText(ns.FormatTime(box.aimRules, secs))
             end
             local line = c.aimStyle == "line"
             box.bar.aim:SetShown(aimOn and not line)
             box.bar2.aim:SetShown(aimOn and middle and not line)
             box.bar.aimLine:SetShown(aimOn and line)
             box.bar2.aimLine:SetShown(aimOn and middle and line)
-            box.aimText:SetShown(aimOn and c.aimText and true or false)
+            box.aimText:SetShown(aimOn and c.zone.text and true or false)
             local inZone = (aimOn and c.aimFill and frac >= 1 - box.aimFrac) and true or false
             if inZone ~= box.inZone then
                 box.inZone = inZone
@@ -368,8 +368,9 @@ local function LayoutPiece(f, g, c, key, label)
         box.text:ClearAllPoints()
         box.text:SetPoint(tp.point, box, tp.relPoint, tp.x, tp.y)
         -- the zone's length, on the zone of the first half
-        ns.StyleText(box.aimText, c.aimTextStyle, ns.AutoSize("short", pos.height))
-        local ap = c.aimTextPos
+        box.aimRules = ns.TimeRules(c.zone.timeFmt)
+        ns.StyleText(box.aimText, c.zone.textStyle, ns.AutoSize("short", pos.height))
+        local ap = c.zone.textPos
         box.aimText:ClearAllPoints()
         box.aimText:SetPoint(ap.point, box.bar.aim, ap.relPoint, ap.x, ap.y)
         box.aimDur = nil   -- options changed: place the aiming zone again
