@@ -257,6 +257,7 @@ local function Stop(f, reason, guid)
     local cb = f.castbar
     if not cb or not cb:IsShown() or cb.mode == "fade" then return end
     if not SameCast(cb, guid) then return end
+    cb.hidden = nil
     if cb.craft then cb.craft, batch = nil, nil end
     HideTicks(cb)
     local fade = f.cfg.castbar.fadeTime or 0
@@ -305,6 +306,7 @@ local function Start(f, channel, fresh, guid)
     end
     if not Has(name) then return Stop(f) end
 
+    cb.hidden = nil   -- a real cast takes the bar
     cb.channel = channel
     cb.castGUID = R(guid) or R(castID)
     cb.craft = not channel and u == "player" and f.cfg.castbar.batch and Batch(fresh, R(spellID)) or nil
@@ -396,6 +398,8 @@ function ns.UpdateCastbar(f)
     end
     if Has(casting) then return Start(f, false) end
     if Has(channeling) then return Start(f, true) end
+    -- a hidden cast (Multi-Shot) is not one the game reports: it ends on its events
+    if cb.hidden and cb.mode == "manual" then return end
     if cb.mode ~= "fade" and cb.mode ~= "wait" then Stop(f) end
 end
 
@@ -411,9 +415,47 @@ local function CraftDone(f, guid)
     return true
 end
 
--- when you press a spell: the start of the latency
-ns.On("UNIT_SPELLCAST_SENT", function(_, _, _, guid)
+-------------------------------------------------------------------------------
+-- Multi-Shot (hunters, your bar): the game sends no cast for its short cast,
+-- only the key press (SENT) and the shot (SUCCEEDED), or FAILED /
+-- INTERRUPTED. The bar runs from the press over the aiming time (the same
+-- short cast as Auto Shot's, a swing timer setting) and ends when the game
+-- says the shot is done.
+-------------------------------------------------------------------------------
+local MULTI_SHOT = { [2643] = true, [14288] = true, [14289] = true, [14290] = true, [25294] = true }
+
+local function HiddenStart(f, guid, spellID)
+    local cb, c = f.castbar, f.cfg.castbar
+    if f.unit ~= "player" or not cb or not c.enabled or not c.multiShot then return end
+    spellID = R(spellID)
+    if not (spellID and MULTI_SHOT[spellID]) then return end
+    -- a press while it is already on the bar (or during a real cast) is not a new shot
+    if cb:IsShown() and (cb.mode == "manual" or cb.mode == "timer" or cb.mode == "static") then return end
+    local now = GetTime()
+    local total = f.cfg.swing and f.cfg.swing.aimTime or 0.5
+    cb.hidden, cb.channel, cb.craft = true, false, nil
+    cb.castGUID = R(guid)
+    cb:SetAlpha(1)
+    Paint(f, "cast")
+    cb.text:SetText(C_Spell.GetSpellName(spellID) or "")
+    if cb.icon:IsShown() then cb.icon:SetTexture(C_Spell.GetSpellTexture(spellID)) end
+    HideTicks(cb)
+    cb.lag:Hide()
+    cb.mode = "manual"
+    cb.start, cb.finish, cb.base, cb.span = now, now + total, 0, total
+    cb.bar:SetMinMaxValues(0, total)
+    cb.bar:SetValue(0)
+    cb:Show()
+end
+
+-- when you press a spell: the start of the latency (and of Multi-Shot)
+ns.On("UNIT_SPELLCAST_SENT", function(f, _, _, guid, spellID)
     ns.castSent = { guid = R(guid), at = GetTime() }
+    HiddenStart(f, guid, spellID)
+end)
+-- the shot of a hidden cast (real casts end on STOP)
+ns.On("UNIT_SPELLCAST_SUCCEEDED", function(f, _, guid)
+    if f.castbar and f.castbar.hidden then Stop(f, "done", guid) end
 end)
 ns.On("UNIT_SPELLCAST_START", function(f, _, guid) Start(f, false, true, guid) end)
 ns.On("UNIT_SPELLCAST_DELAYED", function(f, _, guid) Start(f, false, false, guid) end)

@@ -1625,6 +1625,12 @@ function Tabs.class(page, unit)
         TimeRows(card, function() return ZT().timeFmt end, apply, { decimals = true, enableIf = ZoneTextOn })
         PositionRows(card, function() return ZT().textPos end, apply, { text = true, enableIf = ZoneTextOn })
         TextRows(card, function() return ZT().textStyle end, apply, { auto = true, enableIf = ZoneTextOn })
+
+        card = page:Add(2, UI.Card(page.content, L["Multi-Shot"],
+            L["Its short cast, which the game does not show, on your cast bar. It lasts the aiming time and ends when the shot fires."]))
+        g, s = Bind(unit, "castbar", "multiShot")
+        card:Add(UI.Check(card, L["Show on the cast bar"], g, s,
+            { enableIf = function() return U(unit).castbar.enabled end }))
     end
 
     if unit == "player" and class == "SHAMAN" then

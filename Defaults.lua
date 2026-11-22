@@ -491,6 +491,8 @@ P_.player.castbar.latencyColor = { r = 1, g = 0.15, b = 0.15, a = 0.6 }
 P_.player.castbar.ticks = true
 P_.player.castbar.tickColor = { r = 1, g = 1, b = 1, a = 0.8 }
 P_.player.castbar.batch = true
+-- hunters: Multi-Shot's short cast (the game shows none) on the cast bar
+P_.player.castbar.multiShot = true
 P_.target.combatText = CombatText(true, "RIGHT", -8)
 P_.target.threatBar = SmallBar(false, "BOTTOMLEFT", "TOPLEFT", 22, 8, nil, true)
 
